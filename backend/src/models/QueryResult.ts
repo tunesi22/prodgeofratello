@@ -5,6 +5,7 @@ export interface IQueryResultDoc extends Document {
   promptId: mongoose.Types.ObjectId
   brandId: mongoose.Types.ObjectId
   model: LLMModel
+  response: string
   mentioned: boolean
   sentiment: Sentiment
   mentionContext: string
@@ -20,6 +21,7 @@ const QueryResultSchema = new Schema<IQueryResultDoc>(
       enum: ['openai', 'gemini', 'perplexity', 'anthropic'],
       required: true,
     },
+    response: { type: String, default: '' },
     mentioned: { type: Boolean, required: true },
     sentiment: {
       type: String,

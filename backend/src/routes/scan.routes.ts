@@ -32,10 +32,12 @@ router.post('/scan', scanLimiter, async (req, res) => {
 router.get('/results', async (req, res) => {
   try {
     const brandId = req.params.id
-    const { model, page = '1', limit = '50' } = req.query
+    const { model, page = '1', limit = '50', mentioned } = req.query
 
     const filter: any = { brandId }
     if (model) filter.model = model
+    if (mentioned === 'true') filter.mentioned = true
+    if (mentioned === 'false') filter.mentioned = false
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string)
 

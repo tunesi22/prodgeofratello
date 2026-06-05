@@ -24,6 +24,7 @@ export function startLLMWorker(): Worker {
         promptId,
         brandId,
         model,
+        response,
         mentioned,
         sentiment,
         mentionContext,
