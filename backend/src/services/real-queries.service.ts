@@ -111,39 +111,70 @@ Return ONLY a valid JSON array of relevant indices, nothing else. Example: [0, 2
   return relevantIndices.map((i) => queries[i])
 }
 
+async function generateSmartSeeds(brandName: string, industry: string): Promise<string[]> {
+  const prompt = `Brand: ${brandName}
+Industry: ${industry}
+
+Generate 12 short search seed phrases (2–5 words each) that real users would type into Google when looking for products, services, or recommendations in this brand's specific niche.
+
+Rules:
+- Focus on PRODUCT CATEGORIES and USE CASES, not the brand name itself
+- Think about what problems/needs the brand solves
+- Mix Indonesian and English phrases
+- Do NOT include the brand name in the seeds
+- Be specific to the industry, not generic "best brand" or "cara branding"
+
+Return ONLY a JSON array of strings. Example: ["shampo rambut rontok", "best shampoo indonesia", "sabun mandi bagus"]`
+
+  try {
+    const raw = await queryAnthropic(prompt)
+    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const match = cleaned.match(/\[[\s\S]*?\]/)
+    if (!match) throw new Error('no array found')
+    const seeds: string[] = JSON.parse(match[0])
+    console.log(`[REAL QUERIES] Claude seeds: ${seeds.join(', ')}`)
+    return seeds.filter((s) => typeof s === 'string' && s.length > 3)
+  } catch (err) {
+    console.error('[REAL QUERIES] Seed generation failed, using fallback:', err)
+    const industryShort = industry.split(' ').slice(0, 3).join(' ')
+    return [
+      `best ${industryShort}`,
+      `${industryShort} terbaik`,
+      `rekomendasi ${industryShort}`,
+      `${industryShort} review`,
+      `${industryShort} indonesia`,
+    ]
+  }
+}
+
 export async function discoverRealQueries(
   brandName: string,
   industry: string
 ): Promise<RealQuery[]> {
-  const industryShort = industry.split(' ').slice(0, 4).join(' ')
+  console.log(`[REAL QUERIES] Generating smart seeds for: ${brandName} / ${industry}`)
 
+  // Step 1: Claude generates contextual seeds based on brand profile
+  const smartSeeds = await generateSmartSeeds(brandName, industry)
+
+  // Step 2: Each seed → Google Autocomplete variations
   const googleSeeds = [
-    brandName,
-    `best ${industryShort}`,
-    `${industryShort} terbaik`,
-    `rekomendasi ${industryShort}`,
-    `aplikasi ${industryShort}`,
-    `${industryShort} vs`,
-    `cara ${industryShort}`,
-    `${industryShort} review`,
-    `${industryShort} indonesia`,
+    ...smartSeeds,
     `${brandName} vs`,
     `${brandName} review`,
-    `${brandName} bagaimana`,
+    `${brandName} bagus ga`,
   ]
 
+  // Step 3: Reddit — use smart seeds + brand name in English
   const redditSeeds = [
     brandName,
-    `${industryShort} indonesia`,
-    industryShort,
-    `${brandName} ${industryShort}`,
+    ...smartSeeds.slice(0, 3),
+    `${brandName} worth it`,
+    `${brandName} recommendation`,
   ]
-
-  console.log(`[REAL QUERIES] Fetching for: ${brandName} / ${industryShort}`)
 
   const [googleBatch, googleRelated, redditResults] = await Promise.all([
     Promise.all(googleSeeds.map(fetchGoogleAutocomplete)).then((r) => r.flat()),
-    fetchGoogleRelated(industryShort),
+    fetchGoogleRelated(smartSeeds[0] || brandName),
     Promise.all(redditSeeds.map(fetchRedditQuestions)).then((r) => r.flat()),
   ])
 
@@ -170,8 +201,8 @@ export async function discoverRealQueries(
     }
   }
 
-  const raw = queries.slice(0, 80)
-  console.log(`[REAL QUERIES] Found ${raw.length} unique queries, running relevance filter...`)
+  const raw = queries.slice(0, 100)
+  console.log(`[REAL QUERIES] Raw: ${raw.length}, running Claude relevance filter...`)
 
   const filtered = await filterByRelevance(raw, brandName, industry)
   return filtered
