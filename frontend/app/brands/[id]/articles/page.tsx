@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 import BrandNav from '@/components/BrandNav'
 
 interface Prompt { _id: string; text: string; category: string; mentionRate?: number }
@@ -17,6 +17,7 @@ interface Article {
 
 export default function ArticlesPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [articles, setArticles] = useState<Article[]>([])
   const [gaps, setGaps] = useState<Prompt[]>([])
   const [preview, setPreview] = useState<Article | null>(null)

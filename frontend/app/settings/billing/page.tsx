@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 import Link from 'next/link'
 
 const PLANS = [
@@ -11,6 +11,7 @@ const PLANS = [
 ]
 
 export default function BillingPage() {
+  const apiFetch = useApiFetch()
   const [currentPlan, setCurrentPlan] = useState<string>('starter')
   const [loading, setLoading] = useState<string | null>(null)
 

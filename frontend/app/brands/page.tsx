@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 
 interface Brand {
   _id: string
@@ -14,6 +14,7 @@ interface Brand {
 }
 
 export default function BrandsPage() {
+  const apiFetch = useApiFetch()
   const [brands, setBrands] = useState<Brand[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

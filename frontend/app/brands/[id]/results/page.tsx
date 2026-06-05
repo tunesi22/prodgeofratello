@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 import BrandNav from '@/components/BrandNav'
 
 interface QueryResult {
@@ -36,6 +36,7 @@ const SENTIMENT_STYLES: Record<string, string> = {
 
 export default function ResultsPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [data, setData] = useState<ResultsResponse | null>(null)
   const [modelFilter, setModelFilter] = useState('')
   const [page, setPage] = useState(1)

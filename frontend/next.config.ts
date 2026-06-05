@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Di production: Nginx yang proxy /api/* ke backend:4000
+  // Di production: Nginx proxy /api/* ke backend:4000
   // Di development: rewrite ini yang handle
   ...(process.env.NODE_ENV === 'development' && {
     async rewrites() {

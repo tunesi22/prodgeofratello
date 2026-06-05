@@ -39,7 +39,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-4 py-4 border-t border-gray-800 flex items-center gap-3">
-        <UserButton afterSignOutUrl="/" />
+        <UserButton />
         <span className="text-xs text-gray-500">Account</span>
       </div>
     </aside>

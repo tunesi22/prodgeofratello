@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 import BrandNav from '@/components/BrandNav'
 
 interface Prompt {
@@ -22,6 +22,7 @@ const CATEGORY_STYLES: Record<string, string> = {
 
 export default function PromptsPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)

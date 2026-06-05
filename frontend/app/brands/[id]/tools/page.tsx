@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 import BrandNav from '@/components/BrandNav'
 
 interface GEOCheck { label: string; passed: boolean; impact: 'high' | 'medium' | 'low'; recommendation: string }
@@ -23,6 +23,7 @@ type ActiveTool = 'llms-txt' | 'nginx' | 'geo-score' | 'backlinks'
 
 export default function ToolsPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [active, setActive] = useState<ActiveTool>('llms-txt')
 
   // llms.txt

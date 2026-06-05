@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import BrandNav from '@/components/BrandNav'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 
 type PlatformType = 'reddit' | 'medium' | 'forum' | 'blog' | 'directory' | 'other'
 
@@ -33,6 +33,7 @@ const PLATFORM_COLORS: Record<PlatformType, string> = {
 
 export default function DistributionPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [publications, setPublications] = useState<Publication[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)

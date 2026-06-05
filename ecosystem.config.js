@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'geo-backend',
       cwd: './backend',
-      script: 'node',
-      args: 'dist/index.js',
+      script: 'node_modules/.bin/tsx',
+      args: 'index.ts',
       instances: 1,
       autorestart: true,
       watch: false,

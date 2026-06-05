@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import BrandNav from '@/components/BrandNav'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 
 interface ConceptScore {
   concept: string
@@ -27,6 +27,7 @@ interface CooccurrenceData {
 
 export default function SemanticPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [proximity, setProximity] = useState<SemanticProximityData | null>(null)
   const [cooccurrence, setCooccurrence] = useState<CooccurrenceData | null>(null)
   const [loading, setLoading] = useState(false)

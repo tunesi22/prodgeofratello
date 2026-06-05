@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 import BrandNav from '@/components/BrandNav'
 
 interface Brand {
@@ -33,6 +33,7 @@ function RateBadge({ rate }: { rate: number }) {
 
 export default function BrandDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [brand, setBrand] = useState<Brand | null>(null)
   const [mentionRate, setMentionRate] = useState<MentionRateResponse | null>(null)
   const [scanning, setScanning] = useState(false)

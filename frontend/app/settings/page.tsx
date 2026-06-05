@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 
 interface UserSettings {
   email: string
@@ -15,6 +15,7 @@ interface UserSettings {
 const PLAN_LABELS: Record<string, string> = { starter: 'Starter', pro: 'Pro', agency: 'Agency' }
 
 export default function SettingsPage() {
+  const apiFetch = useApiFetch()
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)

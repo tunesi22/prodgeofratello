@@ -8,7 +8,7 @@ import {
   PieChart, Pie, Cell,
   AreaChart, Area,
 } from 'recharts'
-import { apiFetch } from '@/lib/api'
+import { useApiFetch } from '@/lib/useApiFetch'
 import BrandNav from '@/components/BrandNav'
 
 interface Analytics {
@@ -44,6 +44,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 
 export default function AnalyticsPage() {
   const { id } = useParams<{ id: string }>()
+  const apiFetch = useApiFetch()
   const [data, setData] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
