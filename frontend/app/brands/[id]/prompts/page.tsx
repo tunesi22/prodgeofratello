@@ -16,6 +16,7 @@ interface RealQuery {
   text: string
   source: 'google' | 'reddit'
   category: string
+  sourceUrl: string
 }
 
 const CATEGORY_STYLES: Record<string, string> = {
@@ -448,7 +449,7 @@ export default function PromptsPage() {
                         <p className={`text-sm ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                           {query.text}
                         </p>
-                        <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                             isSelected
                               ? 'bg-white/10 text-white border-white/20'
@@ -463,6 +464,19 @@ export default function PromptsPage() {
                           }`}>
                             {query.category}
                           </span>
+                          {query.sourceUrl && (
+                            <a
+                              href={query.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className={`text-xs underline underline-offset-2 ${
+                                isSelected ? 'text-white/60 hover:text-white' : 'text-gray-400 hover:text-gray-600'
+                              }`}
+                            >
+                              verify ↗
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>

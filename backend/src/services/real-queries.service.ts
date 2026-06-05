@@ -4,6 +4,7 @@ interface RealQuery {
   text: string
   source: 'google' | 'reddit'
   category: string
+  sourceUrl: string
 }
 
 function categorize(text: string): string {
@@ -188,7 +189,12 @@ export async function discoverRealQueries(
     const key = text.toLowerCase().trim()
     if (!seen.has(key) && text.length > 15 && text.length < 300) {
       seen.add(key)
-      queries.push({ text, source: 'reddit', category: categorize(text) })
+      queries.push({
+        text,
+        source: 'reddit',
+        category: categorize(text),
+        sourceUrl: `https://www.reddit.com/search/?q=${encodeURIComponent(text)}&type=link`,
+      })
     }
   }
 
@@ -197,7 +203,12 @@ export async function discoverRealQueries(
     const key = text.toLowerCase().trim()
     if (!seen.has(key) && text.length > 10 && text.length < 200) {
       seen.add(key)
-      queries.push({ text, source: 'google', category: categorize(text) })
+      queries.push({
+        text,
+        source: 'google',
+        category: categorize(text),
+        sourceUrl: `https://www.google.com/search?q=${encodeURIComponent(text)}`,
+      })
     }
   }
 
