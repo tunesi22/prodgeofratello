@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { useApiFetch } from '@/lib/useApiFetch'
 import BrandNav from '@/components/BrandNav'
 
@@ -33,6 +34,7 @@ const CATEGORY_STYLES: Record<string, string> = {
 export default function ArticlesPage() {
   const { id } = useParams<{ id: string }>()
   const apiFetch = useApiFetch()
+  const { getToken } = useAuth()
   const [articles, setArticles] = useState<Article[]>([])
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [gapIds, setGapIds] = useState<Set<string>>(new Set())
@@ -69,8 +71,25 @@ export default function ArticlesPage() {
     }
   }
 
-  function handleExport(articleId: string, format: 'md' | 'html') {
-    window.open(`/api/brands/${id}/articles/${articleId}/export?format=${format}`, '_blank')
+  async function handleExport(articleId: string, format: 'md' | 'html') {
+    try {
+      const token = await getToken()
+      const res = await fetch(`/api/brands/${id}/articles/${articleId}/export?format=${format}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) { alert('Export failed'); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `article-${articleId}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      alert(e.message)
+    }
   }
 
   if (loading) return (
