@@ -342,14 +342,18 @@ export default function PromptsPage() {
 
           {discovering && (
             <div className="text-center py-16">
-              <div className="inline-flex items-center gap-3 text-gray-600">
+              <div className="inline-flex items-center gap-3 text-gray-600 mb-3">
                 <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                 </svg>
-                <span className="font-medium">Scanning Google + Reddit...</span>
+                <span className="font-medium">Discovering real queries...</span>
               </div>
-              <p className="text-gray-400 text-sm mt-2">This takes 5–10 seconds</p>
+              <div className="text-sm text-gray-400 space-y-1">
+                <p>① Crawling Google Autocomplete + Reddit</p>
+                <p>② Claude filtering for relevance to your brand</p>
+                <p className="text-xs mt-2">Takes ~15–20 seconds</p>
+              </div>
             </div>
           )}
 

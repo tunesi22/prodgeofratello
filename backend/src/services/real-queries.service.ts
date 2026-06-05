@@ -1,3 +1,5 @@
+import { query as queryAnthropic } from './llm/anthropic'
+
 interface RealQuery {
   text: string
   source: 'google' | 'reddit'
@@ -55,6 +57,58 @@ async function fetchGoogleRelated(query: string): Promise<string[]> {
     suffixes.map((s) => fetchGoogleAutocomplete(query + s))
   )
   return results.flat()
+}
+
+async function filterByRelevance(
+  queries: RealQuery[],
+  brandName: string,
+  industry: string
+): Promise<RealQuery[]> {
+  if (queries.length === 0) return []
+
+  const BATCH = 30
+  const relevantIndices: number[] = []
+
+  for (let i = 0; i < queries.length; i += BATCH) {
+    const batch = queries.slice(i, i + BATCH)
+    const numbered = batch.map((q, j) => `${j}: "${q.text}"`).join('\n')
+
+    const prompt = `Brand: ${brandName}
+Industry: ${industry}
+
+Below are ${batch.length} search queries collected from the internet.
+Return ONLY the indices of queries that are genuinely relevant — meaning someone asking this would plausibly be interested in brands like ${brandName} or direct competitors in the same industry.
+
+Discard:
+- Queries about unrelated industries or products
+- Queries mentioning specific brands from a completely different sector
+- Spam or nonsensical queries
+
+Queries:
+${numbered}
+
+Return ONLY a valid JSON array of relevant indices, nothing else. Example: [0, 2, 5]`
+
+    try {
+      const raw = await queryAnthropic(prompt)
+      const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      const match = cleaned.match(/\[[\d,\s]*\]/)
+      if (!match) continue
+      const indices: number[] = JSON.parse(match[0])
+      for (const idx of indices) {
+        if (typeof idx === 'number' && idx >= 0 && idx < batch.length) {
+          relevantIndices.push(i + idx)
+        }
+      }
+    } catch (err) {
+      console.error('[REAL QUERIES] Filter batch failed, keeping all:', err)
+      // fallback: keep entire batch if Claude fails
+      for (let j = i; j < i + batch.length; j++) relevantIndices.push(j)
+    }
+  }
+
+  console.log(`[REAL QUERIES] Relevance filter: ${queries.length} → ${relevantIndices.length} kept`)
+  return relevantIndices.map((i) => queries[i])
 }
 
 export async function discoverRealQueries(
@@ -116,6 +170,9 @@ export async function discoverRealQueries(
     }
   }
 
-  console.log(`[REAL QUERIES] Found ${queries.length} unique queries`)
-  return queries.slice(0, 80)
+  const raw = queries.slice(0, 80)
+  console.log(`[REAL QUERIES] Found ${raw.length} unique queries, running relevance filter...`)
+
+  const filtered = await filterByRelevance(raw, brandName, industry)
+  return filtered
 }
