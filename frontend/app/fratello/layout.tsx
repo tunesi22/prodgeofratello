@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import './fratello.css'
 
 export const metadata: Metadata = {
   title: 'Fratello — Coming June',
