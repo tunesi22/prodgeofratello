@@ -7,8 +7,8 @@ import gsap from "gsap";
 import { TextPlugin } from "gsap/TextPlugin";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight02Icon } from "@hugeicons/core-free-icons";
-import { AnimatedFooter } from "@/components/AnimatedFooter";
-import { SmokyRevealBackground } from "@/components/SmokyRevealBackground";
+import { AnimatedFooter } from "@/components/fratello/AnimatedFooter";
+import { SmokyRevealBackground } from "@/components/fratello/SmokyRevealBackground";
 
 gsap.registerPlugin(TextPlugin);
 
@@ -207,7 +207,7 @@ export function WaitlistPage() {
           <nav aria-label="Primary navigation" className="relative flex items-center">
             <div className="newsletter-trigger relative">
               <Link
-                href="/newsletter"
+                href="/fratello/newsletter"
                 className="block max-w-[calc(100vw-120px)] truncate rounded-full bg-gradient-to-b from-[#272727] to-[#292929] px-4 py-3 text-[16px] font-medium leading-none text-white transition hover:from-[#202020] hover:to-[#262626] focus:outline-none focus:ring-2 focus:ring-white/70"
               >
                 Public Newsletter
