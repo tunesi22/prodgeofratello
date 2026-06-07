@@ -16,6 +16,7 @@ export function WaitlistPage() {
   const [email, setEmail] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [validationMessage, setValidationMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const successRef = useRef<HTMLParagraphElement>(null);
@@ -91,6 +92,9 @@ export function WaitlistPage() {
       return;
     }
 
+    setIsLoading(true);
+    setValidationMessage("");
+
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
@@ -98,19 +102,30 @@ export function WaitlistPage() {
         body: JSON.stringify({ email: normalizedEmail }),
       });
 
-      if (!res.ok) {
-        setValidationMessage("Gagal daftar, coba lagi.");
+      const data = await res.json();
+
+      if (res.status === 409) {
+        setValidationMessage("Email ini sudah terdaftar.");
         animateValidationError();
+        setIsLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        setValidationMessage(data.error ?? "Gagal daftar, coba lagi.");
+        animateValidationError();
+        setIsLoading(false);
         return;
       }
     } catch {
       setValidationMessage("Gagal daftar, coba lagi.");
       animateValidationError();
+      setIsLoading(false);
       return;
     }
 
-    setValidationMessage("");
-    setSuccessMessage("Berhasil. Kamu sudah masuk waitlist.");
+    setIsLoading(false);
+    setSuccessMessage("Berhasil. Kamu sudah masuk waitlist. Cek email kamu!");
     setEmail("");
 
     if (restoreFormTimer.current) {
@@ -291,23 +306,39 @@ export function WaitlistPage() {
                     <button
                       ref={submitButtonRef}
                       type="submit"
+                      disabled={isLoading}
                       aria-label="Join waitlist"
-                      className="group/submit flex h-12 min-w-[166px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-white px-4 text-[16px] font-medium leading-none text-[#03492c] focus:outline-none focus:ring-2 focus:ring-white/70"
+                      className="group/submit flex h-12 min-w-[166px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-white px-4 text-[16px] font-medium leading-none text-[#03492c] focus:outline-none focus:ring-2 focus:ring-white/70 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                      <span className="translate-x-3 transform-gpu transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform group-hover/submit:translate-x-0 group-focus-visible/submit:translate-x-0">
-                        Join Waitlist
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className="ml-2 flex w-6 translate-x-[-8px] scale-95 transform-gpu items-center justify-center opacity-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform group-hover/submit:translate-x-0 group-hover/submit:scale-100 group-hover/submit:opacity-100 group-focus-visible/submit:translate-x-0 group-focus-visible/submit:scale-100 group-focus-visible/submit:opacity-100"
-                      >
-                        <HugeiconsIcon
-                          icon={ArrowRight02Icon}
-                          size={22}
-                          color="currentColor"
-                          strokeWidth={2}
-                        />
-                      </span>
+                      {isLoading ? (
+                        <svg
+                          aria-hidden="true"
+                          className="h-5 w-5 animate-spin text-[#03492c]"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <>
+                          <span className="translate-x-3 transform-gpu transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform group-hover/submit:translate-x-0 group-focus-visible/submit:translate-x-0">
+                            Join Waitlist
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className="ml-2 flex w-6 translate-x-[-8px] scale-95 transform-gpu items-center justify-center opacity-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform group-hover/submit:translate-x-0 group-hover/submit:scale-100 group-hover/submit:opacity-100 group-focus-visible/submit:translate-x-0 group-focus-visible/submit:scale-100 group-focus-visible/submit:opacity-100"
+                          >
+                            <HugeiconsIcon
+                              icon={ArrowRight02Icon}
+                              size={22}
+                              color="currentColor"
+                              strokeWidth={2}
+                            />
+                          </span>
+                        </>
+                      )}
                     </button>
                   </>
                 )}
