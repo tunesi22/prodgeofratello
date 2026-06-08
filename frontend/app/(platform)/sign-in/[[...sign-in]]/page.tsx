@@ -1,16 +1,12 @@
 "use client"
 
-import { useSignIn, useClerk } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import Link from 'next/link'
 
 export default function SignInPage() {
   const router = useRouter()
-  const { signIn } = useSignIn()
-  const { setActive } = useClerk()
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -51,7 +47,7 @@ export default function SignInPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!signIn || loading) return
+    if (loading) return
 
     setLoading(true)
     setError('')
@@ -60,30 +56,22 @@ export default function SignInPage() {
       gsap.fromTo(formRef.current, { x: -6 }, { x: 0, duration: 0.4, ease: 'elastic.out(1, 0.4)' })
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = await (signIn as any).create({ identifier: email.trim(), password })
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      })
 
-      // Clerk v7: returns { error } on failure
-      if (result?.error) {
-        setError(result.error?.longMessage || result.error?.message || 'Email atau password salah.')
-        shake()
-        setLoading(false)
-        return
-      }
-
-      // status may be on result (v6) or on signIn directly (v7)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const status = result?.status || (signIn as any).status
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sessionId = result?.createdSessionId || (signIn as any).createdSessionId
-
-      if (status === 'complete' && sessionId) {
-        await setActive({ session: sessionId })
+      if (res.ok) {
         router.push('/brands')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || 'Email atau password salah.')
+        shake()
       }
-    } catch (err: any) {
-      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Email atau password salah.'
-      setError(msg)
+    } catch {
+      setError('Koneksi bermasalah, coba lagi.')
       shake()
     }
 
@@ -137,13 +125,12 @@ export default function SignInPage() {
         </div>
       </div>
 
-      {/* Right — custom sign in form */}
+      {/* Right — form */}
       <div
         ref={rightRef}
         className="w-full lg:w-[44%] flex items-center justify-center bg-white p-8 lg:p-14"
       >
         <div className="w-full max-w-[380px]">
-          {/* Mobile logo */}
           <div className="lg:hidden mb-10">
             <span className="font-bold text-xl text-gray-900 tracking-tight">GEO Platform</span>
           </div>
@@ -154,7 +141,6 @@ export default function SignInPage() {
           </div>
 
           <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-4">
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
@@ -168,7 +154,6 @@ export default function SignInPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <div className="relative">
@@ -192,15 +177,11 @@ export default function SignInPage() {
               </div>
             </div>
 
-            {/* Error */}
-            {error && (
-              <p className="text-red-500 text-sm">{error}</p>
-            )}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
-            {/* Submit */}
             <button
               type="submit"
-              disabled={loading || !signIn}
+              disabled={loading}
               className="w-full bg-gray-900 hover:bg-gray-700 active:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm py-3 rounded-xl transition-colors mt-2 flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -211,9 +192,7 @@ export default function SignInPage() {
                   </svg>
                   Signing in…
                 </>
-              ) : (
-                'Sign In'
-              )}
+              ) : 'Sign In'}
             </button>
           </form>
         </div>

@@ -1,5 +1,6 @@
 import { Router } from 'express'
-import { clerkClient } from '@clerk/express'
+import bcrypt from 'bcryptjs'
+import mongoose from 'mongoose'
 import User from '../models/User'
 import Brand from '../models/Brand'
 import QueryResult from '../models/QueryResult'
@@ -46,20 +47,31 @@ router.get('/users', async (_req, res) => {
   }
 })
 
-// POST /api/admin/users — create user via Clerk
+// POST /api/admin/users
 router.post('/users', async (req, res) => {
   try {
     const { email, password, plan = 'starter' } = req.body
     if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required.' })
+      res.status(400).json({ error: 'Email dan password wajib diisi.' })
       return
     }
-    const clerkUser = await clerkClient.users.createUser({
-      emailAddress: [email],
-      password,
+
+    const existing = await User.findOne({ email: email.toLowerCase().trim() })
+    if (existing) {
+      res.status(409).json({ error: 'Email sudah digunakan.' })
+      return
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12)
+    const user = await User.create({
+      clerkUserId: new mongoose.Types.ObjectId().toString(),
+      email: email.toLowerCase().trim(),
+      plan,
+      passwordHash,
     })
-    const user = await User.create({ clerkUserId: clerkUser.id, email, plan })
-    res.status(201).json(user)
+    const obj: any = user.toObject()
+    delete obj.passwordHash
+    res.status(201).json(obj)
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }

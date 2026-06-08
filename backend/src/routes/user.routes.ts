@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import { getAuth } from '@clerk/express'
 import User from '../models/User'
 import { requireAuth } from '../middleware/auth'
 

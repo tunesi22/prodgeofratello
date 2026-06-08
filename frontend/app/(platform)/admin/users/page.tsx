@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from 'react'
-import { useAuth } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 type Plan = 'starter' | 'pro' | 'agency'
@@ -59,7 +58,6 @@ function Avatar({ email, plan }: { email: string; plan: Plan }) {
 
 export default function AdminUsersPage() {
   const router = useRouter()
-  const { getToken } = useAuth()
 
   const [users, setUsers] = useState<AdminUser[]>([])
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, activeToday: 0, proPlus: 0, totalBrands: 0 })
@@ -75,18 +73,16 @@ export default function AdminUsersPage() {
   const [createError, setCreateError] = useState('')
 
   const authFetch = useCallback(
-    async (url: string, options?: RequestInit) => {
-      const token = await getToken()
-      return fetch(url, {
+    (url: string, options?: RequestInit) =>
+      fetch(url, {
+        credentials: 'include',
         ...options,
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
           ...(options?.headers ?? {}),
         },
-      })
-    },
-    [getToken]
+      }),
+    []
   )
 
   const loadData = useCallback(async () => {
@@ -343,7 +339,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-white">Create User</h2>
-                <p className="text-gray-500 text-xs mt-0.5">New account via Clerk + MongoDB</p>
+                <p className="text-gray-500 text-xs mt-0.5">New account stored in MongoDB</p>
               </div>
               <button
                 onClick={() => setShowCreate(false)}

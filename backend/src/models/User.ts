@@ -6,6 +6,7 @@ export interface IUserDoc extends Document {
   email: string
   plan: PlanTier
   isAdmin: boolean
+  passwordHash?: string
   lastActiveAt?: Date
   stripeCustomerId?: string
   stripeSubscriptionId?: string
@@ -27,6 +28,7 @@ const UserSchema = new Schema<IUserDoc>(
     stripeSubscriptionId: { type: String },
     midtransOrderId: { type: String },
     isAdmin: { type: Boolean, default: false },
+    passwordHash: { type: String },
     lastActiveAt: { type: Date },
     alertThreshold: { type: Number, default: 20 },
     alertEmail: { type: Boolean, default: true },

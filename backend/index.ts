@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node'
 import express from 'express'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
-import { clerkMiddleware } from '@clerk/express'
+import cookieParser from 'cookie-parser'
 import { connectDB } from './src/config/db'
 import { connectRedis } from './src/config/redis'
 import { startLLMWorker } from './src/workers/llm.worker'
@@ -17,6 +17,7 @@ import userRoutes from './src/routes/user.routes'
 import paymentRoutes from './src/routes/payment.routes'
 import publicationRoutes from './src/routes/publication.routes'
 import adminRoutes from './src/routes/admin.routes'
+import authRoutes from './src/routes/auth.routes'
 
 dotenv.config({ path: '../.env' })
 
@@ -32,7 +33,7 @@ const PORT = process.env.PORT || 4000
 app.use('/api/payment/stripe/webhook', express.raw({ type: 'application/json' }))
 
 app.use(express.json())
-app.use(clerkMiddleware())
+app.use(cookieParser())
 
 // ─── Rate limiting ────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
@@ -52,6 +53,7 @@ app.get('/health', (_req, res) => {
 })
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/payment', paymentRoutes)
 app.use('/api/brands', requireAuth, brandRoutes)

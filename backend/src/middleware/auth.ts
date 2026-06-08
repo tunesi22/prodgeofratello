@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { getAuth } from '@clerk/express'
+import jwt from 'jsonwebtoken'
 import User from '../models/User'
 
 declare global {
@@ -12,26 +12,36 @@ declare global {
   }
 }
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const { userId } = getAuth(req)
+const JWT_SECRET = process.env.JWT_SECRET!
+const COOKIE = 'geo_token'
 
-  if (!userId) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const token = req.cookies?.[COOKIE] || req.headers.authorization?.replace('Bearer ', '')
+
+  if (!token) {
     res.status(401).json({ error: 'Unauthorized' })
     return
   }
 
-  let user = await User.findOne({ clerkUserId: userId })
-  if (!user) {
-    user = await User.create({ clerkUserId: userId, email: '', lastActiveAt: new Date() })
-  } else {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { mongoId: string }
+    const user = await User.findById(payload.mongoId)
+
+    if (!user) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
     if (!user.lastActiveAt || user.lastActiveAt < fiveMinAgo) {
       await User.updateOne({ _id: user._id }, { lastActiveAt: new Date() })
     }
-  }
 
-  req.userId = userId
-  req.userPlan = user.plan
-  req.userIsAdmin = user.isAdmin ?? false
-  next()
+    req.userId = user.clerkUserId
+    req.userPlan = user.plan
+    req.userIsAdmin = user.isAdmin ?? false
+    next()
+  } catch {
+    res.status(401).json({ error: 'Unauthorized' })
+  }
 }
