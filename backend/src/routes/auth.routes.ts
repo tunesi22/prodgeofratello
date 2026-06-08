@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken'
 import User from '../models/User'
 
 const router = Router()
-const JWT_SECRET = process.env.JWT_SECRET!
 const COOKIE = 'geo_token'
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -34,7 +33,7 @@ router.post('/login', async (req, res) => {
       return
     }
 
-    const token = jwt.sign({ mongoId: user._id.toString() }, JWT_SECRET, { expiresIn: '30d' })
+    const token = jwt.sign({ mongoId: user._id.toString() }, process.env.JWT_SECRET!, { expiresIn: '30d' })
     res.cookie(COOKIE, token, COOKIE_OPTS)
     res.json({ ok: true })
   } catch (err: any) {
@@ -53,7 +52,7 @@ router.get('/me', async (req, res) => {
   try {
     const token = req.cookies?.[COOKIE]
     if (!token) { res.status(401).json({ error: 'Unauthorized' }); return }
-    const payload = jwt.verify(token, JWT_SECRET) as { mongoId: string }
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { mongoId: string }
     const user = await User.findById(payload.mongoId).select('-passwordHash')
     if (!user) { res.status(401).json({ error: 'Unauthorized' }); return }
     res.json(user)

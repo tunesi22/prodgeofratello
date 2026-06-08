@@ -12,7 +12,6 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET!
 const COOKIE = 'geo_token'
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -24,7 +23,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { mongoId: string }
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { mongoId: string }
     const user = await User.findById(payload.mongoId)
 
     if (!user) {
