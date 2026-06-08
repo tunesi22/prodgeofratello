@@ -1,6 +1,6 @@
 "use client"
 
-import { useSignIn } from '@clerk/nextjs'
+import { useSignIn, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
@@ -8,7 +8,8 @@ import Link from 'next/link'
 
 export default function SignInPage() {
   const router = useRouter()
-  const { signIn, setActive, isLoaded } = useSignIn()
+  const { signIn, isLoaded } = useSignIn()
+  const { setActive } = useClerk()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
