@@ -11,8 +11,9 @@ export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     const { userId } = await auth()
     if (!userId) {
-      const signInUrl = new URL('/sign-in', req.url)
-      signInUrl.searchParams.set('redirect_url', req.url)
+      const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || 'localhost:3000'
+      const proto = req.headers.get('x-forwarded-proto') || 'https'
+      const signInUrl = new URL(`${proto}://${host}/sign-in`)
       return NextResponse.redirect(signInUrl)
     }
   }
