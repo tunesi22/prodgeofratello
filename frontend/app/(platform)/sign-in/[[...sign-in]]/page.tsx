@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 export default function SignInPage() {
   const router = useRouter()
-  const { signIn, isLoaded } = useSignIn()
+  const { signIn } = useSignIn()
   const { setActive } = useClerk()
 
   const [email, setEmail] = useState('')
@@ -51,7 +51,7 @@ export default function SignInPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!isLoaded || loading) return
+    if (!signIn || loading) return
 
     setLoading(true)
     setError('')
@@ -184,7 +184,7 @@ export default function SignInPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || !isLoaded}
+              disabled={loading || !signIn}
               className="w-full bg-gray-900 hover:bg-gray-700 active:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm py-3 rounded-xl transition-colors mt-2 flex items-center justify-center gap-2"
             >
               {loading ? (
