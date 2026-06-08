@@ -16,6 +16,7 @@ import articleRoutes from './src/routes/article.routes'
 import userRoutes from './src/routes/user.routes'
 import paymentRoutes from './src/routes/payment.routes'
 import publicationRoutes from './src/routes/publication.routes'
+import adminRoutes from './src/routes/admin.routes'
 
 dotenv.config({ path: '../.env' })
 
@@ -59,6 +60,7 @@ app.use('/api/brands/:id', requireAuth, scanRoutes)
 app.use('/api/brands/:id/analytics', requireAuth, analyticsRoutes)
 app.use('/api/brands/:id/articles', requireAuth, articleRoutes)
 app.use('/api/brands/:id/publications', requireAuth, publicationRoutes)
+app.use('/api/admin', adminRoutes)
 
 // ─── Sentry error handler ────────────────────────────────────────────────────
 if (process.env.SENTRY_DSN) {

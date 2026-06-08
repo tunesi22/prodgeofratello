@@ -18,8 +18,7 @@ const PLANS = [
 export default async function LandingPage() {
   const { userId } = await auth()
   if (userId) redirect('/brands')
-
-  return (
+  redirect('/sign-in')
     <div className="min-h-screen bg-white">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-100">

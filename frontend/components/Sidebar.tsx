@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton, useAuth } from '@clerk/nextjs'
+import { useEffect, useState } from 'react'
 
 const NAV = [
   { label: 'Brands', href: '/brands' },
@@ -11,9 +12,26 @@ const NAV = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { isSignedIn } = useAuth()
+  const { isSignedIn, getToken } = useAuth()
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  // Hide sidebar on public pages
+  useEffect(() => {
+    if (!isSignedIn) return
+    const check = async () => {
+      try {
+        const token = await getToken()
+        const res = await fetch('/api/user/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setIsAdmin(data?.isAdmin === true)
+        }
+      } catch {}
+    }
+    check()
+  }, [isSignedIn, getToken])
+
   if (!isSignedIn) return null
 
   return (
@@ -36,6 +54,20 @@ export default function Sidebar() {
             {item.label}
           </Link>
         ))}
+
+        {isAdmin && (
+          <Link
+            href="/admin/users"
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors mt-4 ${
+              pathname.startsWith('/admin')
+                ? 'bg-amber-900/40 text-amber-300 border border-amber-700/30'
+                : 'text-amber-600 hover:bg-amber-900/20 hover:text-amber-400'
+            }`}
+          >
+            <span className="text-xs">⚙</span>
+            Admin
+          </Link>
+        )}
       </nav>
 
       <div className="px-4 py-4 border-t border-gray-800 flex items-center gap-3">
