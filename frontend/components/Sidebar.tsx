@@ -28,7 +28,7 @@ export default function Sidebar() {
       .then((r) => (r.ok ? r.json() : null))
       .then(setUser)
       .catch(() => {})
-  }, [])
+  }, [pathname])
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {

@@ -27,7 +27,11 @@ const MODEL_LABELS: Record<string, string> = {
 }
 
 function RateBadge({ rate }: { rate: number }) {
-  const color = rate >= 60 ? 'text-green-600 bg-green-50' : rate >= 30 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50'
+  const color = rate >= 60
+    ? 'text-emerald-400 bg-emerald-900/40 border border-emerald-700/40'
+    : rate >= 30
+    ? 'text-yellow-400 bg-yellow-900/30 border border-yellow-700/30'
+    : 'text-red-400 bg-red-900/30 border border-red-700/30'
   return <span className={`inline-block px-2.5 py-0.5 rounded-full text-sm font-semibold ${color}`}>{rate}%</span>
 }
 
@@ -63,10 +67,10 @@ export default function BrandDetailPage() {
     }
   }
 
-  if (error) return <div className="p-8 text-red-500 text-sm">{error}</div>
+  if (error) return <div className="p-8 text-red-400 text-sm">{error}</div>
   if (!brand) return (
     <div className="p-8 space-y-4">
-      {[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded-xl animate-pulse" />)}
+      {[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-gray-800 rounded-xl animate-pulse" />)}
     </div>
   )
 
@@ -77,15 +81,15 @@ export default function BrandDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gray-900 text-white flex items-center justify-center font-bold text-lg">
+          <div className="w-12 h-12 rounded-xl bg-emerald-600/20 border border-emerald-700/30 text-emerald-400 flex items-center justify-center font-bold text-lg">
             {brand.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-bold">{brand.name}</h1>
+            <h1 className="text-2xl font-bold text-white">{brand.name}</h1>
             <div className="flex items-center gap-3 mt-0.5">
               <span className="text-sm text-gray-500">{brand.industry}</span>
-              <span className="text-gray-300">·</span>
-              <a href={brand.website} target="_blank" rel="noreferrer" className="text-sm text-blue-500 hover:underline">
+              <span className="text-gray-700">·</span>
+              <a href={brand.website} target="_blank" rel="noreferrer" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
                 {brand.website}
               </a>
             </div>
@@ -94,14 +98,14 @@ export default function BrandDetailPage() {
         <button
           onClick={handleScan}
           disabled={scanning}
-          className="bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
-          {scanning ? 'Starting scan...' : 'Run Scan'}
+          {scanning ? 'Starting scan…' : 'Run Scan'}
         </button>
       </div>
 
       {scanMsg && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3.5 text-sm">
+        <div className="mb-6 bg-blue-900/30 border border-blue-700/50 text-blue-300 rounded-xl p-3.5 text-sm">
           {scanMsg}
         </div>
       )}
@@ -111,42 +115,38 @@ export default function BrandDetailPage() {
       {/* Stats */}
       {hasData ? (
         <div className="space-y-6">
-          {/* Overall stat */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <p className="text-sm text-gray-500">Overall Mention Rate</p>
-              <p className="text-3xl font-bold mt-1">{mentionRate.overall.mentionRate}%</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <p className="text-sm text-gray-500">Total Queries</p>
-              <p className="text-3xl font-bold mt-1">{mentionRate.overall.totalQueries}</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <p className="text-sm text-gray-500">Total Mentions</p>
-              <p className="text-3xl font-bold mt-1">{mentionRate.overall.mentionCount}</p>
-            </div>
+            {[
+              { label: 'Overall Mention Rate', value: `${mentionRate.overall.mentionRate}%`, accent: 'text-emerald-400' },
+              { label: 'Total Queries', value: mentionRate.overall.totalQueries, accent: 'text-white' },
+              { label: 'Total Mentions', value: mentionRate.overall.mentionCount, accent: 'text-white' },
+            ].map(({ label, value, accent }) => (
+              <div key={label} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                <p className="text-sm text-gray-500">{label}</p>
+                <p className={`text-3xl font-bold mt-1 tabular-nums ${accent}`}>{value}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Per model */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-sm text-gray-700">Mention Rate by Model</h2>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-800">
+              <h2 className="font-semibold text-sm text-gray-400 uppercase tracking-wider">Mention Rate by Model</h2>
             </div>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-5 py-3 font-medium text-gray-500">Model</th>
-                  <th className="text-right px-5 py-3 font-medium text-gray-500">Queries</th>
-                  <th className="text-right px-5 py-3 font-medium text-gray-500">Mentions</th>
-                  <th className="text-right px-5 py-3 font-medium text-gray-500">Rate</th>
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Model</th>
+                  <th className="text-right px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Queries</th>
+                  <th className="text-right px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Mentions</th>
+                  <th className="text-right px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">Rate</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {mentionRate.byModel.map((r) => (
-                  <tr key={r.model}>
-                    <td className="px-5 py-3.5 font-medium">{MODEL_LABELS[r.model] || r.model}</td>
-                    <td className="px-5 py-3.5 text-right text-gray-500">{r.totalQueries}</td>
-                    <td className="px-5 py-3.5 text-right text-gray-500">{r.mentionCount}</td>
+              <tbody>
+                {mentionRate.byModel.map((r, i) => (
+                  <tr key={r.model} className={`hover:bg-gray-800/40 transition-colors ${i < mentionRate.byModel.length - 1 ? 'border-b border-gray-800/60' : ''}`}>
+                    <td className="px-5 py-3.5 font-medium text-gray-200">{MODEL_LABELS[r.model] || r.model}</td>
+                    <td className="px-5 py-3.5 text-right text-gray-400 tabular-nums">{r.totalQueries}</td>
+                    <td className="px-5 py-3.5 text-right text-gray-400 tabular-nums">{r.mentionCount}</td>
                     <td className="px-5 py-3.5 text-right"><RateBadge rate={r.mentionRate} /></td>
                   </tr>
                 ))}
@@ -155,11 +155,11 @@ export default function BrandDetailPage() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-20 border-2 border-dashed border-gray-200 rounded-2xl">
-          <p className="text-gray-400 font-medium">No scan data yet</p>
-          <p className="text-gray-400 text-sm mt-1">Generate prompts first, then run a scan</p>
+        <div className="text-center py-20 border-2 border-dashed border-gray-800 rounded-2xl">
+          <p className="text-gray-500 font-medium">No scan data yet</p>
+          <p className="text-gray-600 text-sm mt-1">Generate prompts first, then run a scan</p>
           <div className="flex gap-3 justify-center mt-5">
-            <Link href={`/brands/${id}/prompts`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+            <Link href={`/brands/${id}/prompts`} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               Generate Prompts
             </Link>
           </div>
