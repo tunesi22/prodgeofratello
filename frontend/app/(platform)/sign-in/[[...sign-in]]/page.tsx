@@ -56,19 +56,35 @@ export default function SignInPage() {
     setLoading(true)
     setError('')
 
-    try {
-      const result = await signIn.create({ identifier: email.trim(), password })
+    const shake = () =>
+      gsap.fromTo(formRef.current, { x: -6 }, { x: 0, duration: 0.4, ease: 'elastic.out(1, 0.4)' })
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any = await (signIn as any).create({ identifier: email.trim(), password })
+
+      // Clerk v7: returns { error } on failure
+      if (result?.error) {
+        setError(result.error?.longMessage || result.error?.message || 'Email atau password salah.')
+        shake()
+        setLoading(false)
+        return
+      }
+
+      // status may be on result (v6) or on signIn directly (v7)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const status = result?.status || (signIn as any).status
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sessionId = result?.createdSessionId || (signIn as any).createdSessionId
+
+      if (status === 'complete' && sessionId) {
+        await setActive({ session: sessionId })
         router.push('/brands')
       }
     } catch (err: any) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Email atau password salah.'
       setError(msg)
-
-      // Shake form on error
-      gsap.fromTo(formRef.current, { x: -6 }, { x: 0, duration: 0.4, ease: 'elastic.out(1, 0.4)' })
+      shake()
     }
 
     setLoading(false)
