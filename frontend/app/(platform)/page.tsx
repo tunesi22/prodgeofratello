@@ -26,7 +26,7 @@ export default async function LandingPage() {
         <span className="font-bold text-xl tracking-tight">GEO Platform</span>
         <div className="flex items-center gap-4">
           <Link href="/sign-in" className="text-sm text-gray-600 hover:text-black transition-colors">Sign in</Link>
-          <Link href="/sign-up" className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
+          <Link href="/sign-in" className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
             Get Started
           </Link>
         </div>
@@ -45,7 +45,7 @@ export default async function LandingPage() {
           Get analytics, identify gaps, and generate AI-optimized content automatically.
         </p>
         <div className="flex gap-4 justify-center">
-          <Link href="/sign-up" className="bg-gray-900 text-white px-7 py-3 rounded-xl text-base font-medium hover:bg-gray-700 transition-colors">
+          <Link href="/sign-in" className="bg-gray-900 text-white px-7 py-3 rounded-xl text-base font-medium hover:bg-gray-700 transition-colors">
             Start free trial
           </Link>
           <Link href="#pricing" className="border border-gray-200 text-gray-700 px-7 py-3 rounded-xl text-base font-medium hover:border-gray-400 transition-colors">
@@ -90,7 +90,7 @@ export default async function LandingPage() {
                 <li>✓ Auto-scan scheduling</li>
               </ul>
               <Link
-                href="/sign-up"
+                href="/sign-in"
                 className={`block text-center py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   plan.highlight
                     ? 'bg-white text-gray-900 hover:bg-gray-100'

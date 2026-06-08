@@ -12,6 +12,8 @@ import { SmokyRevealBackground } from "@/components/fratello/SmokyRevealBackgrou
 
 gsap.registerPlugin(TextPlugin);
 
+const IS_CLOSED = true
+
 export function WaitlistPage() {
   const [email, setEmail] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -257,14 +259,17 @@ export function WaitlistPage() {
               </p>
             </div>
 
-            <div data-gsap="waitlist-form" className="relative mx-auto w-full">
+            <div data-gsap="waitlist-form" className={`relative mx-auto w-full ${IS_CLOSED ? 'pointer-events-none' : ''}`}>
+              {IS_CLOSED && (
+                <div className="absolute inset-0 z-20 rounded-full bg-black/40 backdrop-blur-[2px]" />
+              )}
               <form
                 ref={formRef}
                 id="join-waitlist"
                 onSubmit={handleSubmit}
                 noValidate
                 aria-describedby={validationMessage ? "email-validation" : undefined}
-                className="waitlist-form relative mx-auto flex w-full items-center gap-4 rounded-full bg-[#252525]/15 p-2 shadow-[inset_0px_8px_23.2px_0px_rgba(0,0,0,0.05),inset_0px_-8px_40px_0px_rgba(0,0,0,0.05)]"
+                className={`waitlist-form relative mx-auto flex w-full items-center gap-4 rounded-full bg-[#252525]/15 p-2 shadow-[inset_0px_8px_23.2px_0px_rgba(0,0,0,0.05),inset_0px_-8px_40px_0px_rgba(0,0,0,0.05)] ${IS_CLOSED ? 'opacity-50' : ''}`}
               >
                 {successMessage ? (
                   <p
