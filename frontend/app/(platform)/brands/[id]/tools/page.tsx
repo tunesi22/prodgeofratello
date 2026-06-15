@@ -1,80 +1,441 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent, type ReactElement } from 'react'
 import { useParams } from 'next/navigation'
+import { animate, useReducedMotion } from 'framer-motion'
 import { useApiFetch } from '@/lib/useApiFetch'
-import BrandNav from '@/components/BrandNav'
+import { DURATION, EASE_STANDARD } from '@/lib/motion'
+import {
+  Card,
+  EmptyState,
+  ErrorBanner,
+  PageContainer,
+  PageHeader,
+  Section,
+  Skeleton,
+} from '@/components/dashboard/primitives'
+import { ProgressRing } from '@/components/dashboard/ProgressRing'
+import { Button, Chip, Input, Popover, TextBox, ValidationCheck, useToast, type ChipType } from '@/components/ui'
+import { QuestionIcon, CheckCircleIcon } from '@/components/onboarding/icons'
+import { FileText, GearSix, FileCode, Copy, Check } from '@phosphor-icons/react/dist/ssr'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 
-interface GEOCheck { label: string; passed: boolean; impact: 'high' | 'medium' | 'low'; recommendation: string }
-interface GEOResult { score: number; checks: GEOCheck[] }
-interface BacklinkTarget { platform: string; type: string; relevance: string; url: string }
+/**
+ * GEO Audit Tools (sidebar: AI Visibility > GEO Audit Tools).
+ *
+ * Layout (user request): the GEO Score Audit is THE feature, a hero at the top
+ * with a large score ring, URL pre-filled from the brand website, and checks
+ * sorted failed-first. Backlink targets follow as the second audit feature.
+ * The llms.txt and Nginx generators are demoted to a clearly secondary
+ * "for your website developer" zone at the bottom, side by side.
+ * All four endpoints/payloads are unchanged.
+ */
 
-const IMPACT_COLORS = { high: 'text-red-600 bg-red-50', medium: 'text-yellow-600 bg-yellow-50', low: 'text-gray-600 bg-gray-100' }
-const TYPE_COLORS: Record<string, string> = {
-  reddit: 'bg-orange-50 text-orange-700',
-  medium: 'bg-green-50 text-green-700',
-  forum: 'bg-blue-50 text-blue-700',
-  directory: 'bg-purple-50 text-purple-700',
-  blog: 'bg-pink-50 text-pink-700',
-  community: 'bg-teal-50 text-teal-700',
+interface GEOCheck {
+  label: string
+  passed: boolean
+  impact: 'high' | 'medium' | 'low'
+  recommendation: string
 }
 
-type ActiveTool = 'llms-txt' | 'nginx' | 'geo-score' | 'backlinks'
+interface GEOResult {
+  score: number
+  checks: GEOCheck[]
+}
 
-export default function ToolsPage() {
+interface BacklinkTarget {
+  platform: string
+  type: string
+  relevance: string
+  url: string
+}
+
+/** Legacy impact colors (high red / medium yellow / low gray) to DS chip types. */
+const IMPACT_CHIP: Record<GEOCheck['impact'], ChipType> = {
+  high: 'error',
+  medium: 'warning',
+  low: 'neutral',
+}
+
+/**
+ * The audit check labels + recommendations come from the backend in English.
+ * These maps translate them to Indonesian (formal "Anda", no dashes). Lookups
+ * are by the exact English string and fall back to the raw value, so any future
+ * backend check shows up untranslated rather than breaking.
+ */
+const CHECK_LABEL_ID: Record<string, string> = {
+  'llms.txt present': 'File llms.txt tersedia',
+  'FAQ section present': 'Bagian FAQ tersedia',
+  'Brand definition present': 'Definisi brand tersedia',
+  'Structured lists (5+ items)': 'Daftar terstruktur (5+ item)',
+  'Meta description (50+ chars)': 'Meta description (50+ karakter)',
+  'JSON-LD schema markup': 'Markup schema JSON-LD',
+  'Sitemap reference': 'Referensi sitemap',
+}
+
+const CHECK_RECO_ID: Record<string, string> = {
+  'Create a /llms.txt file at your domain root with brand info, key facts, and usage policy.':
+    'Buat file /llms.txt di root domain Anda yang berisi informasi brand, fakta penting, dan kebijakan penggunaan.',
+  'Add an FAQ section to your page. AI assistants frequently extract FAQ-style content.':
+    'Tambahkan bagian FAQ pada halaman Anda. Asisten AI sering mengambil konten bergaya FAQ.',
+  'Add a clear "What is [Brand]?" section on your page so AI can easily extract your brand definition.':
+    'Tambahkan bagian "Apa itu [Brand]?" yang jelas pada halaman Anda agar AI mudah memahami definisi brand Anda.',
+  'Use more bulleted/numbered lists for features, benefits, and comparisons.':
+    'Gunakan lebih banyak daftar berpoin atau bernomor untuk fitur, manfaat, dan perbandingan.',
+  'Add a descriptive meta description (100-160 chars) that summarizes your brand clearly.':
+    'Tambahkan meta description yang deskriptif (100 sampai 160 karakter) yang merangkum brand Anda dengan jelas.',
+  'Add JSON-LD schema (Organization, Product, FAQPage) to help AI understand your brand structure.':
+    'Tambahkan schema JSON-LD (Organization, Product, FAQPage) agar AI memahami struktur brand Anda.',
+  'Add a sitemap.xml and reference it in your robots.txt to help AI crawlers discover all pages.':
+    'Tambahkan sitemap.xml dan referensikan di robots.txt agar crawler AI menemukan semua halaman.',
+}
+
+/** Translate a check's label + recommendation to the active language. */
+function translateCheck(check: GEOCheck, lang: 'id' | 'en'): { label: string; recommendation: string } {
+  if (lang === 'en') return { label: check.label, recommendation: check.recommendation }
+  return {
+    label: CHECK_LABEL_ID[check.label] ?? check.label,
+    recommendation: CHECK_RECO_ID[check.recommendation] ?? check.recommendation,
+  }
+}
+
+/** Legacy backlink type colors to nearest DS chip types. */
+const TYPE_CHIP: Record<string, ChipType> = {
+  reddit: 'warning',
+  medium: 'success',
+  forum: 'neutral',
+  directory: 'neutral',
+  blog: 'neutral',
+  community: 'neutral',
+}
+
+function scoreTone(score: number): string {
+  if (score >= 70) return 'text-brand-token'
+  if (score >= 40) return 'text-warning-token'
+  return 'text-error-token'
+}
+
+/** Pass-count chip color, matching the score tier (readable, never the faint neutral). */
+function scoreChipType(score: number): ChipType {
+  if (score >= 70) return 'success'
+  if (score >= 40) return 'warning'
+  return 'error'
+}
+
+/** Page copy, both languages. Formal "Anda" register; no dashes. */
+const COPY = {
+  id: {
+    title: 'Tools Audit GEO',
+    subtitle: 'Periksa seberapa siap website Anda dibaca AI, lalu perbaiki dengan tools di bawah',
+    requestFailed: 'Permintaan gagal',
+    copy: 'Salin',
+    copied: 'Tersalin!',
+
+    geoSection: 'Audit Skor GEO',
+    geoDesc:
+      'Periksa URL mana pun untuk melihat seberapa siap halaman itu untuk pencarian AI. Anda mendapat skor 0 sampai 100 beserta rekomendasi yang bisa langsung dikerjakan.',
+    urlLabel: 'URL halaman',
+    auditing: 'Mengaudit...',
+    audit: 'Audit Sekarang',
+    reaudit: 'Audit Ulang',
+    geoScoreAria: (score: number): string => `Skor GEO ${score} dari 100`,
+    outOf: 'dari 100',
+    scoreCaption: (score: number): string => {
+      if (score >= 70) return 'Bagus, halaman ini mudah dipahami AI'
+      if (score >= 40) return 'Cukup, halaman ini masih bisa lebih mudah dipahami AI'
+      return 'Kurang, AI kesulitan memahami halaman ini'
+    },
+    checksPassed: (passed: number, total: number): string => `${passed} dari ${total} pemeriksaan lolos`,
+    checksHeading: 'Hasil pemeriksaan',
+    impactLabels: { high: 'dampak tinggi', medium: 'dampak sedang', low: 'dampak rendah' },
+    allPassed: 'Semua pemeriksaan lolos. Pertahankan!',
+    copyAllRecs: 'Salin semua rekomendasi',
+    copiedToast: 'Tersalin ke clipboard',
+    auditDoneToast: (score: number): string => `Audit selesai. Skor ${score} dari 100.`,
+    helpLabel: 'Bantuan',
+    scoreHelpTitle: 'Apa arti skor ini',
+    scoreBands: [
+      '70 sampai 100: Bagus. Halaman mudah dipahami AI.',
+      '40 sampai 69: Cukup. Masih bisa ditingkatkan.',
+      '0 sampai 39: Kurang. AI kesulitan memahami halaman.',
+    ],
+    scoreWeightNote: 'Pemeriksaan berdampak tinggi memberi bobot skor lebih besar.',
+
+    backlinksSection: 'Target Backlink',
+    backlinksDesc:
+      'Temukan website tempat brand Anda layak disebut. Publish konten di sana agar brand Anda muncul di lebih banyak tempat yang dibaca AI.',
+    findingTargets: 'Mencari target...',
+    findTargets: 'Cari Target',
+    noTargetsTitle: 'Tidak ada target',
+    noTargetsDesc: 'Tidak ada target backlink untuk brand ini.',
+
+    devSection: 'Tools untuk Developer Website Anda',
+    devDesc:
+      'Dua tools di bawah menghasilkan file dan konfigurasi teknis. Berikan hasilnya kepada developer website Anda untuk dipasang.',
+    llmsSection: 'Generator llms.txt',
+    llmsDesc:
+      'llms.txt adalah file kecil di website Anda yang memberi tahu AI crawler tentang brand Anda. Buat filenya di sini, lalu upload ke root domain Anda.',
+    keyFactsLabel: 'Fakta Penting (satu per baris, opsional)',
+    keyFactsPlaceholder:
+      'Berdiri tahun 2020\nTersedia di Indonesia, Malaysia, Singapura\nLebih dari 50.000 pengguna aktif\nBooking venue olahraga',
+    llmsGenerating: 'Membuat...',
+    llmsGenerate: 'Generate llms.txt',
+    llmsFileName: '/llms.txt',
+    llmsOutputHeading: 'Salin isi ini ke file /llms.txt di root domain Anda.',
+    llmsDoneToast: 'llms.txt berhasil dibuat',
+    nginxSection: 'Config Bot Nginx',
+    nginxDesc:
+      'Potongan konfigurasi untuk Nginx, software server yang menjalankan website Anda, agar siap melayani bot AI (GPTBot, ClaudeBot, PerplexityBot).',
+    domainLabel: 'Domain',
+    keyPagesLabel: 'Halaman Penting (satu per baris, opsional)',
+    nginxGenerating: 'Membuat...',
+    nginxGenerate: 'Generate Config',
+    nginxFileName: 'nginx.conf',
+    nginxOutputHeading: 'Tempel potongan ini di dalam blok server {} pada konfigurasi Nginx Anda.',
+    nginxDoneToast: 'Config Nginx berhasil dibuat',
+  },
+  en: {
+    title: 'GEO Audit Tools',
+    subtitle: 'Check how ready your website is for AI, then fix it with the tools below',
+    requestFailed: 'Request failed',
+    copy: 'Copy',
+    copied: 'Copied!',
+
+    geoSection: 'GEO Score Audit',
+    geoDesc:
+      'Check any URL to see how ready it is for AI search. You get a score from 0 to 100 plus practical recommendations.',
+    urlLabel: 'Page URL',
+    auditing: 'Auditing...',
+    audit: 'Audit Now',
+    reaudit: 'Audit Again',
+    geoScoreAria: (score: number): string => `GEO score ${score} of 100`,
+    outOf: 'of 100',
+    scoreCaption: (score: number): string => {
+      if (score >= 70) return 'Good, AI can understand this page easily'
+      if (score >= 40) return 'Fair, this page could be easier for AI to understand'
+      return 'Poor, AI struggles to understand this page'
+    },
+    checksPassed: (passed: number, total: number): string => `${passed} of ${total} checks passed`,
+    checksHeading: 'Check results',
+    impactLabels: { high: 'high impact', medium: 'medium impact', low: 'low impact' },
+    allPassed: 'All checks passed. Keep it up!',
+    copyAllRecs: 'Copy all recommendations',
+    copiedToast: 'Copied to clipboard',
+    auditDoneToast: (score: number): string => `Audit complete. Score ${score} of 100.`,
+    helpLabel: 'Help',
+    scoreHelpTitle: 'What this score means',
+    scoreBands: [
+      '70 to 100: Good. AI understands the page easily.',
+      '40 to 69: Fair. Room to improve.',
+      '0 to 39: Poor. AI struggles to understand the page.',
+    ],
+    scoreWeightNote: 'High impact checks contribute more to the score.',
+
+    backlinksSection: 'Backlink Targets',
+    backlinksDesc:
+      'Find websites worth getting your brand mentioned on. Publish content there so your brand shows up in more places AI reads.',
+    findingTargets: 'Finding targets...',
+    findTargets: 'Find Targets',
+    noTargetsTitle: 'No targets found',
+    noTargetsDesc: 'No backlink targets were returned for this brand.',
+
+    devSection: 'Tools for Your Website Developer',
+    devDesc:
+      'The two tools below generate technical files and configuration. Hand the results to your website developer to install.',
+    llmsSection: 'llms.txt Generator',
+    llmsDesc:
+      'llms.txt is a small file on your website that tells AI crawlers about your brand. Generate it here, then upload it to your domain root.',
+    keyFactsLabel: 'Key Facts (one per line, optional)',
+    keyFactsPlaceholder:
+      'Founded in 2020\nAvailable in Indonesia, Malaysia, Singapore\nOver 50,000 active users\nBooking for sports venues',
+    llmsGenerating: 'Generating...',
+    llmsGenerate: 'Generate llms.txt',
+    llmsFileName: '/llms.txt',
+    llmsOutputHeading: 'Copy this into a /llms.txt file at your domain root.',
+    llmsDoneToast: 'llms.txt generated',
+    nginxSection: 'Nginx Bot Config',
+    nginxDesc:
+      'A configuration snippet for Nginx, the server software that runs your website, so it serves AI bots (GPTBot, ClaudeBot, PerplexityBot) well.',
+    domainLabel: 'Domain',
+    keyPagesLabel: 'Key Pages (one per line, optional)',
+    nginxGenerating: 'Generating...',
+    nginxGenerate: 'Generate Config',
+    nginxFileName: 'nginx.conf',
+    nginxOutputHeading: 'Paste this inside the server {} block of your Nginx config.',
+    nginxDoneToast: 'Nginx config generated',
+  },
+} as const
+
+/**
+ * Generated-output panel, styled like a code editor tab: a filename bar with a
+ * copy action, the content, then a one-line "what to do with it" footer.
+ */
+function ToolOutputCard({
+  fileName,
+  instruction,
+  content,
+  copied,
+  onCopy,
+  maxHeightClass,
+}: {
+  fileName: string
+  instruction: string
+  content: string
+  copied: boolean
+  onCopy: () => void
+  maxHeightClass: string
+}): ReactElement {
+  const { lang } = useLanguage()
+  const t = COPY[lang]
+  return (
+    <Card className="flex flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-primary bg-secondary px-4 py-2.5 transition-colors duration-300 ease-standard">
+        <div className="flex min-w-0 items-center gap-2">
+          <FileCode className="size-4 shrink-0 text-icon-brand" aria-hidden="true" />
+          <span className="truncate text-label-medium font-medium text-secondary transition-colors duration-200 ease-standard">
+            {fileName}
+          </span>
+        </div>
+        <Button
+          type="ghost"
+          size="sm"
+          iconLeft={copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+          onClick={onCopy}
+        >
+          {copied ? t.copied : t.copy}
+        </Button>
+      </div>
+      {/* font-sans keeps the DS Figtree stack; the DS has no mono font. */}
+      <pre
+        className={`w-full overflow-auto whitespace-pre-wrap p-4 font-sans text-paragraph-medium text-secondary transition-colors duration-200 ease-standard ${maxHeightClass}`}
+      >
+        {content}
+      </pre>
+      <div className="border-t border-neutral-primary px-4 py-3 transition-colors duration-300 ease-standard">
+        <p className="text-label-medium text-tertiary transition-colors duration-200 ease-standard">{instruction}</p>
+      </div>
+    </Card>
+  )
+}
+
+export default function ToolsPage(): ReactElement {
   const { id } = useParams<{ id: string }>()
   const apiFetch = useApiFetch()
-  const [active, setActive] = useState<ActiveTool>('llms-txt')
+  const { lang } = useLanguage()
+  const t = COPY[lang]
+  const toast = useToast()
+  const prefersReducedMotion = useReducedMotion()
 
-  // llms.txt
-  const [keyFacts, setKeyFacts] = useState('')
-  const [llmsTxtContent, setLLMsTxtContent] = useState('')
-  const [llmsLoading, setLLMsLoading] = useState(false)
-
-  // nginx
-  const [domain, setDomain] = useState('')
-  const [pages, setPages] = useState('')
-  const [nginxContent, setNginxContent] = useState('')
-  const [nginxLoading, setNginxLoading] = useState(false)
-
-  // geo score
-  const [auditUrl, setAuditUrl] = useState('')
+  // geo score (hero)
+  const [auditUrl, setAuditUrl] = useState<string>('')
   const [geoResult, setGeoResult] = useState<GEOResult | null>(null)
-  const [geoLoading, setGeoLoading] = useState(false)
+  const [geoLoading, setGeoLoading] = useState<boolean>(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
+  // Animated count-up of the score number + ring sweep (synchronized).
+  const [displayScore, setDisplayScore] = useState<number>(0)
+  const [ringProgress, setRingProgress] = useState<number>(0)
 
   // backlinks
   const [backlinks, setBacklinks] = useState<BacklinkTarget[]>([])
-  const [backlinksLoading, setBacklinksLoading] = useState(false)
-  const [backlinksLoaded, setBacklinksLoaded] = useState(false)
+  const [backlinksLoading, setBacklinksLoading] = useState<boolean>(false)
+  const [backlinksLoaded, setBacklinksLoaded] = useState<boolean>(false)
+  const [backlinksError, setBacklinksError] = useState<string | null>(null)
 
-  async function handleLLMsTxt() {
-    setLLMsLoading(true)
-    try {
-      const facts = keyFacts.split('\n').map((f) => f.trim()).filter(Boolean)
-      const { content } = await apiFetch<{ content: string }>(`/brands/${id}/articles/tools/llms-txt`, {
-        method: 'POST',
-        body: JSON.stringify({ keyFacts: facts }),
+  // llms.txt
+  const [keyFacts, setKeyFacts] = useState<string>('')
+  const [llmsContent, setLlmsContent] = useState<string>('')
+  const [llmsLoading, setLlmsLoading] = useState<boolean>(false)
+  const [llmsError, setLlmsError] = useState<string | null>(null)
+
+  // nginx
+  const [domain, setDomain] = useState<string>('')
+  const [pages, setPages] = useState<string>('')
+  const [nginxContent, setNginxContent] = useState<string>('')
+  const [nginxLoading, setNginxLoading] = useState<boolean>(false)
+  const [nginxError, setNginxError] = useState<string | null>(null)
+
+  const [copiedKey, setCopiedKey] = useState<'llms' | 'nginx' | null>(null)
+
+  // Pre-fill the audit URL (and the nginx domain) from the brand website.
+  useEffect(() => {
+    let cancelled = false
+    apiFetch<{ website?: string }>(`/brands/${id}`)
+      .then((brand) => {
+        if (cancelled || !brand?.website) return
+        setAuditUrl((current) => (current === '' ? brand.website ?? '' : current))
+        setDomain((current) =>
+          current === ''
+            ? (brand.website ?? '').replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+            : current,
+        )
       })
-      setLLMsTxtContent(content)
-    } catch (e: any) { alert(e.message) }
-    finally { setLLMsLoading(false) }
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
+  // Animate the score number (0 -> N) and the ring sweep together over the same
+  // duration (DURATION.long, ease-standard). Reduced motion snaps to the final
+  // value. The ring's own CSS transition handles the stroke sweep once
+  // ringProgress goes 0 -> N on the next frame.
+  useEffect(() => {
+    if (geoResult == null) {
+      setDisplayScore(0)
+      setRingProgress(0)
+      return
+    }
+    const target = geoResult.score
+    if (prefersReducedMotion) {
+      setDisplayScore(target)
+      setRingProgress(target)
+      return
+    }
+    setRingProgress(0)
+    const raf = requestAnimationFrame(() => setRingProgress(target))
+    const controls = animate(0, target, {
+      duration: DURATION.long,
+      ease: EASE_STANDARD,
+      onUpdate: (v) => setDisplayScore(Math.round(v)),
+    })
+    return () => {
+      cancelAnimationFrame(raf)
+      controls.stop()
+    }
+  }, [geoResult, prefersReducedMotion])
+
+  function errorMessage(e: unknown): string {
+    return e instanceof Error ? e.message : t.requestFailed
   }
 
-  async function handleNginx() {
-    setNginxLoading(true)
-    try {
-      const pageList = pages.split('\n').map((p) => p.trim()).filter(Boolean)
-      const { content } = await apiFetch<{ content: string }>(`/brands/${id}/articles/tools/nginx-config`, {
-        method: 'POST',
-        body: JSON.stringify({ domain, pages: pageList }),
-      })
-      setNginxContent(content)
-    } catch (e: any) { alert(e.message) }
-    finally { setNginxLoading(false) }
+  function handleCopy(key: 'llms' | 'nginx', content: string): void {
+    void navigator.clipboard.writeText(content)
+    setCopiedKey(key)
+    toast.success(t.copiedToast)
+    window.setTimeout(() => {
+      setCopiedKey((current) => (current === key ? null : current))
+    }, 2000)
   }
 
-  async function handleGEOScore() {
+  /** Copy every failed check's recommendation (translated) as one block. */
+  function copyRecommendations(): void {
+    if (geoResult == null) return
+    const failed = geoResult.checks.filter((c) => !c.passed)
+    if (failed.length === 0) return
+    const text = failed
+      .map((c) => {
+        const tr = translateCheck(c, lang)
+        return `- [${t.impactLabels[c.impact]}] ${tr.label}: ${tr.recommendation}`
+      })
+      .join('\n')
+    void navigator.clipboard.writeText(text)
+    toast.success(t.copiedToast)
+  }
+
+  async function handleGeoScore(): Promise<void> {
     setGeoLoading(true)
+    setGeoError(null)
     setGeoResult(null)
     try {
       const result = await apiFetch<GEOResult>(`/brands/${id}/articles/tools/geo-score`, {
@@ -82,200 +443,363 @@ export default function ToolsPage() {
         body: JSON.stringify({ url: auditUrl }),
       })
       setGeoResult(result)
-    } catch (e: any) { alert(e.message) }
-    finally { setGeoLoading(false) }
+      toast.success(t.auditDoneToast(result.score))
+    } catch (e) {
+      setGeoError(errorMessage(e))
+    } finally {
+      setGeoLoading(false)
+    }
   }
 
-  async function handleBacklinks() {
+  async function handleBacklinks(): Promise<void> {
     setBacklinksLoading(true)
+    setBacklinksError(null)
     try {
-      const { targets } = await apiFetch<{ targets: BacklinkTarget[] }>(`/brands/${id}/articles/tools/backlinks`)
+      const { targets } = await apiFetch<{ targets: BacklinkTarget[] }>(
+        `/brands/${id}/articles/tools/backlinks`,
+      )
       setBacklinks(targets)
       setBacklinksLoaded(true)
-    } catch (e: any) { alert(e.message) }
-    finally { setBacklinksLoading(false) }
+    } catch (e) {
+      setBacklinksError(errorMessage(e))
+    } finally {
+      setBacklinksLoading(false)
+    }
   }
 
-  const TOOLS: { key: ActiveTool; label: string }[] = [
-    { key: 'llms-txt', label: 'llms.txt Generator' },
-    { key: 'nginx', label: 'Nginx Bot Config' },
-    { key: 'geo-score', label: 'GEO Score Audit' },
-    { key: 'backlinks', label: 'Backlink Targets' },
-  ]
+  async function handleLlmsTxt(): Promise<void> {
+    setLlmsLoading(true)
+    setLlmsError(null)
+    try {
+      const facts = keyFacts.split('\n').map((f) => f.trim()).filter(Boolean)
+      const { content } = await apiFetch<{ content: string }>(
+        `/brands/${id}/articles/tools/llms-txt`,
+        { method: 'POST', body: JSON.stringify({ keyFacts: facts }) },
+      )
+      setLlmsContent(content)
+      toast.success(t.llmsDoneToast)
+    } catch (e) {
+      setLlmsError(errorMessage(e))
+    } finally {
+      setLlmsLoading(false)
+    }
+  }
+
+  async function handleNginx(): Promise<void> {
+    setNginxLoading(true)
+    setNginxError(null)
+    try {
+      const pageList = pages.split('\n').map((p) => p.trim()).filter(Boolean)
+      const { content } = await apiFetch<{ content: string }>(
+        `/brands/${id}/articles/tools/nginx-config`,
+        { method: 'POST', body: JSON.stringify({ domain, pages: pageList }) },
+      )
+      setNginxContent(content)
+      toast.success(t.nginxDoneToast)
+    } catch (e) {
+      setNginxError(errorMessage(e))
+    } finally {
+      setNginxLoading(false)
+    }
+  }
+
+  const sortedChecks =
+    geoResult != null ? [...geoResult.checks].sort((a, b) => Number(a.passed) - Number(b.passed)) : []
+  const passedCount = geoResult != null ? geoResult.checks.filter((c) => c.passed).length : 0
 
   return (
-    <div className="p-8 max-w-5xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Technical Tools</h1>
-        <p className="text-sm text-gray-500 mt-1">GEO optimization utilities for your brand</p>
-      </div>
+    <PageContainer wide className="!gap-10">
+      <PageHeader title={t.title} subtitle={t.subtitle} />
 
-      <BrandNav id={id} />
-
-      {/* Tool selector */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {TOOLS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActive(t.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${active === t.key ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-900'}`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* llms.txt */}
-      {active === 'llms-txt' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="font-semibold mb-1">Generate llms.txt</h2>
-            <p className="text-sm text-gray-500 mb-4">Create a /llms.txt file for your domain root. AI crawlers use this to understand your brand.</p>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Key Facts (one per line, optional)</label>
-            <textarea
-              value={keyFacts}
-              onChange={(e) => setKeyFacts(e.target.value)}
-              rows={5}
-              placeholder={"Founded in 2020\nAvailable in Indonesia, Malaysia, Singapore\nOver 50,000 active users\nBooking for sports venues"}
-              className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono"
-            />
-            <button onClick={handleLLMsTxt} disabled={llmsLoading} className="mt-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors">
-              {llmsLoading ? 'Generating...' : 'Generate llms.txt'}
-            </button>
-          </div>
-          {llmsTxtContent && (
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-sm">Output — copy to /llms.txt on your domain</h3>
-                <button onClick={() => navigator.clipboard.writeText(llmsTxtContent)} className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-900 transition-colors">
-                  Copy
-                </button>
+      {/* ── HERO: GEO Score Audit ─────────────────────────────────────── */}
+      <Section title={t.geoSection}>
+        <Card variant="brand" className="flex flex-col gap-6 p-6 lg:p-8">
+          <div className="grid w-full items-center gap-6 lg:grid-cols-[1fr_auto]">
+            <div className="flex flex-col gap-4">
+              <p className="max-w-[560px] text-paragraph-medium text-secondary transition-colors duration-200 ease-standard">
+                {t.geoDesc}
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <Input
+                  label={t.urlLabel}
+                  type="url"
+                  className="min-w-0 flex-1"
+                  value={auditUrl}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setAuditUrl(e.target.value)}
+                  placeholder="https://yourdomain.com"
+                />
+                <Button
+                  size="md"
+                  onClick={handleGeoScore}
+                  disabled={geoLoading || auditUrl === ''}
+                  className="shrink-0"
+                >
+                  {geoLoading ? t.auditing : geoResult != null ? t.reaudit : t.audit}
+                </Button>
               </div>
-              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono bg-gray-50 rounded-lg p-4 overflow-auto max-h-80">{llmsTxtContent}</pre>
+            </div>
+
+            {/* Score zone: ring with the number centered inside. */}
+            <div className="flex items-center justify-center lg:min-w-[200px]">
+              {geoLoading ? (
+                <Skeleton className="size-[140px] !rounded-circle" />
+              ) : geoResult != null ? (
+                <div className="relative flex items-center justify-center">
+                  <ProgressRing
+                    progress={ringProgress}
+                    size={140}
+                    stroke={10}
+                    aria-label={t.geoScoreAria(geoResult.score)}
+                  />
+                  <span className="absolute flex flex-col items-center">
+                    <span className={`text-h2 font-semibold tabular-nums ${scoreTone(geoResult.score)}`}>
+                      {displayScore}
+                    </span>
+                    <span className="text-label-medium font-medium text-tertiary">{t.outOf}</span>
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {geoResult != null && !geoLoading && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-label-big font-medium text-primary transition-colors duration-200 ease-standard">
+                {t.scoreCaption(geoResult.score)}
+              </span>
+              <Popover
+                label={t.helpLabel}
+                content={
+                  <>
+                    <span className="text-label-medium font-medium text-primary">{t.scoreHelpTitle}</span>
+                    {t.scoreBands.map((band) => (
+                      <span key={band} className="text-paragraph-medium text-secondary">
+                        {band}
+                      </span>
+                    ))}
+                    <span className="text-paragraph-medium text-tertiary">{t.scoreWeightNote}</span>
+                  </>
+                }
+              >
+                <QuestionIcon className="size-4" />
+              </Popover>
+              <Chip size="sm" type={scoreChipType(geoResult.score)} className="ml-1">
+                {t.checksPassed(passedCount, geoResult.checks.length)}
+              </Chip>
             </div>
           )}
-        </div>
-      )}
+        </Card>
 
-      {/* Nginx config */}
-      {active === 'nginx' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="font-semibold mb-1">Nginx Bot Routing Config</h2>
-            <p className="text-sm text-gray-500 mb-4">Generate an Nginx config snippet that detects and optimizes for AI bots (GPTBot, ClaudeBot, PerplexityBot).</p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Domain</label>
-                <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="yourdomain.com"
-                  className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Key Pages (one per line, optional)</label>
-                <textarea value={pages} onChange={(e) => setPages(e.target.value)} rows={4}
-                  placeholder={"/\n/about\n/features\n/pricing"}
-                  className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono" />
-              </div>
-            </div>
-            <button onClick={handleNginx} disabled={nginxLoading || !domain} className="mt-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors">
-              {nginxLoading ? 'Generating...' : 'Generate Config'}
-            </button>
-          </div>
-          {nginxContent && (
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-sm">Output — paste inside your server {} block</h3>
-                <button onClick={() => navigator.clipboard.writeText(nginxContent)} className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-900 transition-colors">Copy</button>
-              </div>
-              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono bg-gray-50 rounded-lg p-4 overflow-auto max-h-96">{nginxContent}</pre>
-            </div>
-          )}
-        </div>
-      )}
+        {geoError != null && <ErrorBanner message={geoError} />}
 
-      {/* GEO score */}
-      {active === 'geo-score' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="font-semibold mb-1">GEO Score Audit</h2>
-            <p className="text-sm text-gray-500 mb-4">Audit any URL for GEO optimization readiness. Score 0–100 with actionable recommendations.</p>
-            <div className="flex gap-3">
-              <input type="url" value={auditUrl} onChange={(e) => setAuditUrl(e.target.value)} placeholder="https://yourdomain.com"
-                className="flex-1 border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
-              <button onClick={handleGEOScore} disabled={geoLoading || !auditUrl} className="bg-gray-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors">
-                {geoLoading ? 'Auditing...' : 'Audit'}
-              </button>
+        {geoResult != null && !geoLoading && (
+          <Card className="flex flex-col divide-y divide-neutral-primary">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+              <h3 className="text-label-medium font-medium text-tertiary transition-colors duration-200 ease-standard">
+                {t.checksHeading}
+              </h3>
+              {passedCount < geoResult.checks.length && (
+                <Button type="ghost" size="sm" onClick={copyRecommendations}>
+                  {t.copyAllRecs}
+                </Button>
+              )}
             </div>
-          </div>
-          {geoResult && (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-4">
-                <div className={`text-4xl font-bold ${geoResult.score >= 70 ? 'text-green-600' : geoResult.score >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {geoResult.score}
-                </div>
-                <div>
-                  <p className="font-semibold">GEO Score</p>
-                  <p className="text-sm text-gray-500">{geoResult.score >= 70 ? 'Good — well optimized' : geoResult.score >= 40 ? 'Fair — room for improvement' : 'Poor — needs attention'}</p>
-                </div>
+            {passedCount === geoResult.checks.length && (
+              <div className="flex items-center gap-2 px-5 py-4 text-paragraph-medium font-medium text-brand-token">
+                <CheckCircleIcon className="size-5" />
+                {t.allPassed}
               </div>
-              <div className="divide-y divide-gray-100">
-                {geoResult.checks.map((check) => (
-                  <div key={check.label} className="px-5 py-4 flex items-start gap-4">
-                    <span className="text-lg mt-0.5">{check.passed ? '✅' : '❌'}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-medium">{check.label}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${IMPACT_COLORS[check.impact]}`}>{check.impact}</span>
-                      </div>
-                      {!check.passed && <p className="text-sm text-gray-500">{check.recommendation}</p>}
-                    </div>
+            )}
+            {sortedChecks.map((check) => {
+              const tr = translateCheck(check, lang)
+              return (
+                <div key={check.label} className="flex flex-col gap-1 px-5 py-4">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    {/* Long audit labels must wrap; relax the DS row's nowrap. */}
+                    <ValidationCheck checked={check.passed} className="min-w-0 [&>span]:whitespace-normal">
+                      {tr.label}
+                    </ValidationCheck>
+                    {!check.passed && (
+                      <Chip size="sm" type={IMPACT_CHIP[check.impact]}>
+                        {t.impactLabels[check.impact]}
+                      </Chip>
+                    )}
                   </div>
-                ))}
-              </div>
+                  {!check.passed && (
+                    <p className="pl-7 text-paragraph-medium text-secondary transition-colors duration-200 ease-standard">
+                      {tr.recommendation}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </Card>
+        )}
+      </Section>
+
+      {/* ── Backlink Targets ──────────────────────────────────────────── */}
+      <Section title={t.backlinksSection}>
+        <Card className="flex flex-col gap-4 p-5">
+          <p className="text-paragraph-medium text-secondary transition-colors duration-200 ease-standard">
+            {t.backlinksDesc}
+          </p>
+          {!backlinksLoaded && (
+            <div>
+              <Button onClick={handleBacklinks} disabled={backlinksLoading}>
+                {backlinksLoading ? t.findingTargets : t.findTargets}
+              </Button>
             </div>
           )}
-        </div>
-      )}
+        </Card>
+        {backlinksError != null && <ErrorBanner message={backlinksError} />}
+        {backlinksLoading && (
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        )}
+        {!backlinksLoading && backlinksLoaded && backlinks.length === 0 && (
+          <EmptyState title={t.noTargetsTitle} description={t.noTargetsDesc} />
+        )}
+        {!backlinksLoading && backlinks.length > 0 && (
+          <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-2">
+            {backlinks.map((target, i) => (
+              <Card key={`${target.platform}-${i}`} className="flex flex-col gap-2 p-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={target.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-label-medium font-medium text-brand-token underline-offset-2 transition-colors duration-200 ease-standard hover:underline"
+                  >
+                    {target.platform}
+                  </a>
+                  <Chip size="sm" type={TYPE_CHIP[target.type] ?? 'neutral'}>
+                    {target.type}
+                  </Chip>
+                </div>
+                <p className="text-paragraph-medium text-secondary transition-colors duration-200 ease-standard">
+                  {target.relevance}
+                </p>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Section>
 
-      {/* Backlinks */}
-      {active === 'backlinks' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="font-semibold mb-1">Backlink Target Finder</h2>
-            <p className="text-sm text-gray-500 mb-4">Find the best platforms to publish content for your industry to increase AI visibility.</p>
-            {!backlinksLoaded && (
-              <button onClick={handleBacklinks} disabled={backlinksLoading} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors">
-                {backlinksLoading ? 'Finding targets...' : 'Find Targets'}
-              </button>
+      {/* ── Secondary: generators for the website developer ───────────── */}
+      <Section title={t.devSection}>
+        <p className="text-paragraph-medium text-tertiary transition-colors duration-200 ease-standard">
+          {t.devDesc}
+        </p>
+        <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-2">
+          {/* llms.txt */}
+          <div className="flex flex-col gap-3">
+            <Card className="flex flex-col gap-5 p-6">
+              <div className="flex items-start gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-token-12 bg-display-brand text-icon-brand transition-colors duration-300 ease-standard">
+                  <FileText className="size-6" aria-hidden="true" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-label-big font-medium text-primary transition-colors duration-200 ease-standard">
+                      {t.llmsSection}
+                    </h3>
+                    <span className="rounded-token-4 bg-display-brand px-2 py-0.5 text-label-medium font-medium text-brand-token transition-colors duration-300 ease-standard">
+                      /llms.txt
+                    </span>
+                  </div>
+                  <p className="text-paragraph-medium text-secondary transition-colors duration-200 ease-standard">
+                    {t.llmsDesc}
+                  </p>
+                </div>
+              </div>
+              <div className="border-t border-neutral-primary transition-colors duration-300 ease-standard" />
+              <TextBox
+                label={t.keyFactsLabel}
+                className="!w-full"
+                value={keyFacts}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setKeyFacts(e.target.value)}
+                placeholder={t.keyFactsPlaceholder}
+              />
+              <div>
+                <Button type="primary-outlined" onClick={handleLlmsTxt} disabled={llmsLoading}>
+                  {llmsLoading ? t.llmsGenerating : t.llmsGenerate}
+                </Button>
+              </div>
+            </Card>
+            {llmsError != null && <ErrorBanner message={llmsError} />}
+            {llmsLoading && <Skeleton className="h-40 w-full" />}
+            {!llmsLoading && llmsContent !== '' && (
+              <ToolOutputCard
+                fileName={t.llmsFileName}
+                instruction={t.llmsOutputHeading}
+                content={llmsContent}
+                copied={copiedKey === 'llms'}
+                onCopy={() => handleCopy('llms', llmsContent)}
+                maxHeightClass="max-h-80"
+              />
             )}
           </div>
-          {backlinks.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-5 py-3 font-medium text-gray-500">Platform</th>
-                    <th className="text-left px-5 py-3 font-medium text-gray-500">Type</th>
-                    <th className="text-left px-5 py-3 font-medium text-gray-500">Why Relevant</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {backlinks.map((b, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      <td className="px-5 py-3.5">
-                        <a href={b.url} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">{b.platform}</a>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${TYPE_COLORS[b.type] || 'bg-gray-100 text-gray-600'}`}>{b.type}</span>
-                      </td>
-                      <td className="px-5 py-3.5 text-gray-500 text-xs">{b.relevance}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+
+          {/* nginx */}
+          <div className="flex flex-col gap-3">
+            <Card className="flex flex-col gap-5 p-6">
+              <div className="flex items-start gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-token-12 bg-display-brand text-icon-brand transition-colors duration-300 ease-standard">
+                  <GearSix className="size-6" aria-hidden="true" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-label-big font-medium text-primary transition-colors duration-200 ease-standard">
+                      {t.nginxSection}
+                    </h3>
+                    <span className="rounded-token-4 bg-display-brand px-2 py-0.5 text-label-medium font-medium text-brand-token transition-colors duration-300 ease-standard">
+                      nginx.conf
+                    </span>
+                  </div>
+                  <p className="text-paragraph-medium text-secondary transition-colors duration-200 ease-standard">
+                    {t.nginxDesc}
+                  </p>
+                </div>
+              </div>
+              <div className="border-t border-neutral-primary transition-colors duration-300 ease-standard" />
+              <Input
+                label={t.domainLabel}
+                type="text"
+                value={domain}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setDomain(e.target.value)}
+                placeholder="yourdomain.com"
+              />
+              <TextBox
+                label={t.keyPagesLabel}
+                className="!w-full"
+                value={pages}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPages(e.target.value)}
+                placeholder={'/\n/about\n/features\n/pricing'}
+              />
+              <div>
+                <Button type="primary-outlined" onClick={handleNginx} disabled={nginxLoading || domain === ''}>
+                  {nginxLoading ? t.nginxGenerating : t.nginxGenerate}
+                </Button>
+              </div>
+            </Card>
+            {nginxError != null && <ErrorBanner message={nginxError} />}
+            {nginxLoading && <Skeleton className="h-40 w-full" />}
+            {!nginxLoading && nginxContent !== '' && (
+              <ToolOutputCard
+                fileName={t.nginxFileName}
+                instruction={t.nginxOutputHeading}
+                content={nginxContent}
+                copied={copiedKey === 'nginx'}
+                onCopy={() => handleCopy('nginx', nginxContent)}
+                maxHeightClass="max-h-96"
+              />
+            )}
+          </div>
         </div>
-      )}
-    </div>
+      </Section>
+    </PageContainer>
   )
 }

@@ -1,9 +1,49 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+/**
+ * Boost your AI Ranking (sidebar: Admin > Boost your AI Ranking), redesign of
+ * the legacy "Semantic Intelligence" page, reframed as an action plan.
+ *
+ * Parity contract: .design/specs/feature-inventory.md §9 (/brands/[id]/semantic).
+ * - Same endpoints, fired in parallel ON DEMAND only (never auto-run on mount):
+ *   GET /brands/{id}/analytics/semantic-proximity
+ *   GET /brands/{id}/analytics/cooccurrence
+ * - Same widgets: 3 stat cards (Mentions Analyzed / Concepts Found / the
+ *   legacy "Semantic Gaps" stat, relabeled "Missing Concepts", still in red),
+ *   concept proximity bars (label + bar width = score% capped
+ *   100 + score% text), semantic-gap chips with the "SHOULD be associated
+ *   with" subtitle + content tip footnote, competitor concept comparison rows
+ *   (or "No competitor mentions found in scan data").
+ * - Same states: initial "Click 'Run Analysis' to start / Requires completed
+ *   scan data", loading "Analyzing brand mentions... / This may take 30 to 60
+ *   seconds", zero-mentions empty state, red error banner.
+ * - `CooccurrenceData.topConcepts` is fetched but not rendered, identical to
+ *   the legacy page (the inventory widget list never displays it).
+ * - BrandNav removed: the new sidebar owns navigation; title via PageHeader.
+ * - Legacy 🧠 loading emoji replaced with DS LoadingCircle; legacy red gap
+ *   pills rendered as DS warning Chips, framed as recommendations per the
+ *   redesign brief.
+ */
+
+import { useState } from 'react'
+import type { ReactElement } from 'react'
 import { useParams } from 'next/navigation'
-import BrandNav from '@/components/BrandNav'
+import { motion } from 'framer-motion'
 import { useApiFetch } from '@/lib/useApiFetch'
+import { fadeUp } from '@/lib/motion'
+import {
+  PageContainer,
+  PageHeader,
+  Section,
+  Card,
+  StatCard,
+  EmptyState,
+  ErrorBanner,
+  Skeleton,
+} from '@/components/dashboard/primitives'
+import { Button, Chip, LoadingCircle, ProgressBar } from '@/components/ui'
+import { BoostIcon } from '@/components/dashboard/nav-icons'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 
 interface ConceptScore {
   concept: string
@@ -19,182 +59,273 @@ interface SemanticProximityData {
   computedAt: string
 }
 
+interface CompetitorComparison {
+  competitor: string
+  concepts: string[]
+}
+
 interface CooccurrenceData {
   brandId: string
   topConcepts: ConceptScore[]
-  competitorComparison: { competitor: string; concepts: string[] }[]
+  competitorComparison: CompetitorComparison[]
 }
 
-export default function SemanticPage() {
+/** Page copy, both languages. No dashes; plain wording for first-time users. */
+const COPY = {
+  id: {
+    title: 'Naikkan Ranking AI',
+    subtitle:
+      'Lihat kata dan topik apa saja yang dikaitkan AI dengan brand Anda. Jalankan analisis untuk mengetahui konsep yang sudah melekat pada brand Anda dan konsep yang perlu Anda tambahkan di konten.',
+    analyzing: 'Menganalisis...',
+    runAnalysis: 'Jalankan Analisis',
+    analysisFailed: 'Analisis gagal',
+    loadingAria: 'Menganalisis sebutan brand',
+    loadingTitle: 'Sedang menganalisis sebutan brand Anda...',
+    loadingHint: 'Biasanya perlu 30 sampai 60 detik',
+    noMentionsTitle: 'Belum ada sebutan',
+    noMentionsDesc: 'Jalankan scan terlebih dahulu untuk mengumpulkan sebutan brand Anda',
+    statMentions: 'Sebutan Dianalisis',
+    statConcepts: 'Konsep Ditemukan',
+    statGaps: 'Konsep yang Masih Kurang',
+    topConceptsTitle: 'Konsep yang Paling Sering Dikaitkan AI dengan Brand Anda',
+    computedAt: (date: string): string => `Dihitung ${date}`,
+    noConcepts: 'Belum ada konsep yang bisa diambil dari sebutan brand Anda',
+    proximityAria: (concept: string): string => `Skor keterkaitan ${concept}`,
+    gapsTitle: 'Konsep yang Perlu Anda Tambahkan',
+    gapsDesc: 'Konsep yang seharusnya dikaitkan AI dengan brand Anda, tetapi saat ini belum.',
+    gapsTip:
+      'Rekomendasi: buat konten yang secara natural mengaitkan brand Anda dengan konsep-konsep ini agar AI mulai mengaitkannya juga.',
+    competitorTitle: 'Perbandingan Konsep Kompetitor',
+    noCompetitorMentions: 'Tidak ada sebutan kompetitor di data scan',
+    initialTitle: 'Klik "Jalankan Analisis" untuk mulai',
+    initialDesc: 'Butuh data scan yang sudah selesai',
+  },
+  en: {
+    title: 'Boost your AI Ranking',
+    subtitle:
+      'See which words and topics AI connects with your brand. Run the analysis to find concepts that already stick to your brand and concepts you should add to your content.',
+    analyzing: 'Analyzing...',
+    runAnalysis: 'Run Analysis',
+    analysisFailed: 'Analysis failed',
+    loadingAria: 'Analyzing brand mentions',
+    loadingTitle: 'Analyzing brand mentions...',
+    loadingHint: 'This may take 30 to 60 seconds',
+    noMentionsTitle: 'No mentions found',
+    noMentionsDesc: 'Run a scan first to collect brand mentions',
+    statMentions: 'Mentions Analyzed',
+    statConcepts: 'Concepts Found',
+    statGaps: 'Missing Concepts',
+    topConceptsTitle: 'Top Concepts AI Connects with Your Brand',
+    computedAt: (date: string): string => `Computed ${date}`,
+    noConcepts: 'No concepts extracted from your mentions yet',
+    proximityAria: (concept: string): string => `${concept} association score`,
+    gapsTitle: 'Concepts You Should Add',
+    gapsDesc: "Concepts your brand SHOULD be associated with but currently isn't.",
+    gapsTip:
+      'Recommendation: create content that naturally connects your brand with these concepts so AI starts to associate them too.',
+    competitorTitle: 'Competitor Concept Comparison',
+    noCompetitorMentions: 'No competitor mentions found in scan data',
+    initialTitle: 'Click "Run Analysis" to start',
+    initialDesc: 'Requires completed scan data',
+  },
+} as const
+
+export default function BoostAiRankingPage(): ReactElement {
   const { id } = useParams<{ id: string }>()
   const apiFetch = useApiFetch()
+  const { lang } = useLanguage()
+  const t = COPY[lang]
   const [proximity, setProximity] = useState<SemanticProximityData | null>(null)
   const [cooccurrence, setCooccurrence] = useState<CooccurrenceData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string>('')
 
-  async function analyze() {
+  async function analyze(): Promise<void> {
     setLoading(true)
     setError('')
     try {
+      // Both endpoints in parallel, exactly like the legacy page.
       const [prox, co] = await Promise.all([
         apiFetch<SemanticProximityData>(`/brands/${id}/analytics/semantic-proximity`),
         apiFetch<CooccurrenceData>(`/brands/${id}/analytics/cooccurrence`),
       ])
       setProximity(prox)
       setCooccurrence(co)
-    } catch (err: any) {
-      setError(err.message || 'Analysis failed')
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : t.analysisFailed)
     } finally {
       setLoading(false)
     }
   }
 
+  const hasResults: boolean = !loading && proximity !== null
+  const computedAtLabel: string | null =
+    proximity !== null && proximity.computedAt
+      ? new Date(proximity.computedAt).toLocaleString()
+      : null
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <BrandNav id={id} />
+    <PageContainer wide>
+      <PageHeader
+        title={t.title}
+        subtitle={t.subtitle}
+        actions={
+          <Button type="primary" size="sm" onClick={() => void analyze()} disabled={loading}>
+            {loading ? t.analyzing : t.runAnalysis}
+          </Button>
+        }
+      />
 
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Semantic Intelligence</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Which concepts co-occur with your brand in LLM responses
-          </p>
-        </div>
-        <button
-          onClick={analyze}
-          disabled={loading}
-          className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 disabled:opacity-50"
-        >
-          {loading ? 'Analyzing...' : 'Run Analysis'}
-        </button>
-      </div>
+      {error !== '' && (
+        <motion.div variants={fadeUp} className="w-full">
+          <ErrorBanner message={error} />
+        </motion.div>
+      )}
 
+      {/* Loading: legacy 🧠 emoji replaced with DS LoadingCircle */}
       {loading && (
-        <div className="text-center py-16 text-gray-500">
-          <div className="text-4xl mb-3">🧠</div>
-          <p className="font-medium">Analyzing brand mentions...</p>
-          <p className="text-sm mt-1">This may take 30–60 seconds</p>
-        </div>
+        <motion.div variants={fadeUp} className="flex w-full flex-col gap-4">
+          <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+            <LoadingCircle size="lg" aria-label={t.loadingAria} />
+            <span className="text-h6 font-normal text-primary">{t.loadingTitle}</span>
+            <span className="text-paragraph-medium text-secondary">{t.loadingHint}</span>
+          </Card>
+          <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+          <Skeleton className="h-48 w-full" />
+        </motion.div>
       )}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
-          {error}
-        </div>
+      {/* Zero mentions: analysis ran but no brand mentions in scan data */}
+      {hasResults && proximity !== null && proximity.totalMentions === 0 && (
+        <motion.div variants={fadeUp} className="w-full">
+          <EmptyState
+            icon={<BoostIcon />}
+            title={t.noMentionsTitle}
+            description={t.noMentionsDesc}
+          />
+        </motion.div>
       )}
 
-      {!loading && proximity && (
+      {hasResults && proximity !== null && proximity.totalMentions > 0 && (
         <>
-          {proximity.totalMentions === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <p className="font-medium">No mentions found</p>
-              <p className="text-sm mt-1">Run a scan first to collect brand mentions</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Stats row */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Mentions Analyzed</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{proximity.totalMentions}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Concepts Found</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{proximity.concepts.length}</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Semantic Gaps</p>
-                  <p className="text-2xl font-bold text-red-500 mt-1">{proximity.gaps.length}</p>
-                </div>
-              </div>
+          {/* Stats row: Semantic Gaps stays red per inventory */}
+          <motion.div variants={fadeUp} className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard label={t.statMentions} value={proximity.totalMentions} />
+            <StatCard label={t.statConcepts} value={proximity.concepts.length} />
+            <StatCard
+              label={t.statGaps}
+              value={<span className="text-error-token">{proximity.gaps.length}</span>}
+            />
+          </motion.div>
 
-              {/* Top Concepts */}
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <h2 className="text-sm font-semibold text-gray-900 mb-4">
-                  Top Concepts Associated with Your Brand
-                </h2>
-                <div className="space-y-3">
-                  {proximity.concepts.map((c) => (
-                    <div key={c.concept} className="flex items-center gap-3">
-                      <span className="text-sm text-gray-700 w-48 shrink-0 capitalize">{c.concept}</span>
-                      <div className="flex-1 bg-gray-100 rounded-full h-2">
-                        <div
-                          className="bg-gray-900 h-2 rounded-full"
-                          style={{ width: `${Math.min(c.score, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500 w-12 text-right">{c.score}%</span>
-                    </div>
+          {/* Concept proximity list: label + bar (score% capped 100) + % text */}
+          <Section
+            title={t.topConceptsTitle}
+            right={
+              computedAtLabel !== null ? (
+                <span className="text-label-medium font-medium text-tertiary">
+                  {t.computedAt(computedAtLabel)}
+                </span>
+              ) : undefined
+            }
+          >
+            <Card className="flex flex-col gap-3 p-6">
+              {proximity.concepts.length === 0 ? (
+                <p className="text-paragraph-medium text-tertiary">
+                  {t.noConcepts}
+                </p>
+              ) : (
+                proximity.concepts.map((c: ConceptScore) => (
+                  <div key={c.concept} className="flex items-center gap-3">
+                    <span className="w-48 shrink-0 truncate text-paragraph-medium capitalize text-secondary">
+                      {c.concept}
+                    </span>
+                    <ProgressBar
+                      progress={Math.min(c.score, 100)}
+                      thickness={8}
+                      className="flex-1"
+                      aria-label={t.proximityAria(c.concept)}
+                    />
+                    <span className="w-12 shrink-0 text-right text-label-medium font-medium text-tertiary">
+                      {c.score}%
+                    </span>
+                  </div>
+                ))
+              )}
+            </Card>
+          </Section>
+
+          {/* Semantic gaps: legacy red pills become DS warning Chips, framed
+              as recommendations with an action hint (redesign brief). */}
+          {proximity.gaps.length > 0 && (
+            <Section title={t.gapsTitle}>
+              <Card className="flex flex-col gap-4 p-6">
+                <p className="text-paragraph-medium text-secondary">
+                  {t.gapsDesc}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {proximity.gaps.map((g: ConceptScore) => (
+                    <Chip key={g.concept} type="warning" shape="rounded" size="sm" className="capitalize">
+                      {g.concept}
+                    </Chip>
                   ))}
                 </div>
-              </div>
+                <p className="text-paragraph-medium text-tertiary">
+                  {t.gapsTip}
+                </p>
+              </Card>
+            </Section>
+          )}
 
-              {/* Semantic Gaps */}
-              {proximity.gaps.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-xl p-6">
-                  <h2 className="text-sm font-semibold text-gray-900 mb-1">Semantic Gaps</h2>
-                  <p className="text-xs text-gray-500 mb-4">
-                    Concepts your brand SHOULD be associated with but currently isn't
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {proximity.gaps.map((g) => (
-                      <span
-                        key={g.concept}
-                        className="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs capitalize"
-                      >
-                        {g.concept}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-400 mt-3">
-                    Tip: Create content that naturally associates your brand with these concepts
-                  </p>
-                </div>
-              )}
-
-              {/* Competitor Comparison */}
-              {cooccurrence && cooccurrence.competitorComparison.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-xl p-6">
-                  <h2 className="text-sm font-semibold text-gray-900 mb-4">
-                    Competitor Concept Comparison
-                  </h2>
-                  <div className="space-y-4">
-                    {cooccurrence.competitorComparison.map((comp) => (
-                      <div key={comp.competitor}>
-                        <p className="text-xs font-medium text-gray-700 mb-2 capitalize">
-                          {comp.competitor}
-                        </p>
-                        {comp.concepts.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {comp.concepts.map((c) => (
-                              <span
-                                key={c}
-                                className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs capitalize"
-                              >
-                                {c}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-400">No competitor mentions found in scan data</p>
-                        )}
+          {/* Co-occurrence findings: competitor concept comparison rows */}
+          {cooccurrence !== null && cooccurrence.competitorComparison.length > 0 && (
+            <Section title={t.competitorTitle}>
+              <Card className="flex flex-col divide-y divide-neutral-primary px-6">
+                {cooccurrence.competitorComparison.map((comp: CompetitorComparison) => (
+                  <div key={comp.competitor} className="flex flex-col gap-2 py-4">
+                    <p className="text-label-medium font-medium capitalize text-primary">
+                      {comp.competitor}
+                    </p>
+                    {comp.concepts.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {comp.concepts.map((c: string) => (
+                          <Chip key={c} type="success" shape="rounded" size="sm" className="capitalize">
+                            {c}
+                          </Chip>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="text-paragraph-medium text-tertiary">
+                        {t.noCompetitorMentions}
+                      </p>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
+                ))}
+              </Card>
+            </Section>
           )}
         </>
       )}
 
-      {!loading && !proximity && !error && (
-        <div className="text-center py-16 text-gray-400">
-          <p className="font-medium">Click "Run Analysis" to start</p>
-          <p className="text-sm mt-1">Requires completed scan data</p>
-        </div>
+      {/* Initial state: analysis is never auto-run on mount (inventory §9) */}
+      {!loading && proximity === null && error === '' && (
+        <motion.div variants={fadeUp} className="w-full">
+          <EmptyState
+            icon={<BoostIcon />}
+            title={t.initialTitle}
+            description={t.initialDesc}
+            action={
+              <Button type="primary" size="sm" onClick={() => void analyze()}>
+                {t.runAnalysis}
+              </Button>
+            }
+          />
+        </motion.div>
       )}
-    </div>
+    </PageContainer>
   )
 }

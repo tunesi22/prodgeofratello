@@ -4,9 +4,57 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import Link from 'next/link'
+import { CircleNotch, Eye, EyeSlash } from '@phosphor-icons/react/dist/ssr'
+import { FratelloLogo } from '@/components/onboarding/FratelloLogo'
+import { Button, Input } from '@/components/ui'
+import { useLanguage } from '@/components/providers/LanguageProvider'
+
+/** Page copy, both languages. No dashes; simple words, marketing tone kept. */
+const COPY = {
+  id: {
+    badge: 'Generative Engine Optimization',
+    headline1: 'Lihat seberapa sering',
+    headline2: 'brand Anda muncul di AI.',
+    sub: 'Pantau seberapa sering brand Anda disebut di ChatGPT, Gemini, Perplexity, dan Claude. Temukan celahnya, ikuti trennya, dan buat brand Anda semakin terlihat.',
+    statModels: 'Model AI',
+    statPerPrompt: 'Per prompt',
+    statAutomated: 'Otomatis',
+    welcome: 'Selamat datang kembali',
+    welcomeSub: 'Masuk ke akun Anda untuk melanjutkan',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    hide: 'Sembunyikan password',
+    show: 'Tampilkan password',
+    wrongCredentials: 'Email atau password salah.',
+    connectionError: 'Koneksi bermasalah, coba lagi.',
+    signingIn: 'Sedang masuk…',
+    signIn: 'Masuk',
+  },
+  en: {
+    badge: 'Generative Engine Optimization',
+    headline1: 'See how often your',
+    headline2: 'brand appears in AI.',
+    sub: 'Monitor visibility across ChatGPT, Gemini, Perplexity, and Claude. Identify gaps, track trends, and optimize your presence.',
+    statModels: 'AI Models',
+    statPerPrompt: 'Per prompt',
+    statAutomated: 'Automated',
+    welcome: 'Welcome back',
+    welcomeSub: 'Sign in to your account to continue',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    hide: 'Hide password',
+    show: 'Show password',
+    wrongCredentials: 'Wrong email or password.',
+    connectionError: 'Connection problem, please try again.',
+    signingIn: 'Signing in…',
+    signIn: 'Sign In',
+  },
+} as const
 
 export default function SignInPage() {
   const router = useRouter()
+  const { lang } = useLanguage()
+  const t = COPY[lang]
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -64,14 +112,22 @@ export default function SignInPage() {
       })
 
       if (res.ok) {
-        router.push('/brands')
+        // First-time users (no brands yet) go through onboarding
+        try {
+          const brandsRes = await fetch('/api/brands', { credentials: 'include' })
+          const brands = brandsRes.ok ? await brandsRes.json() : []
+          router.push(Array.isArray(brands) && brands.length === 0 ? '/onboarding' : '/brands')
+        } catch {
+          router.push('/brands')
+        }
       } else {
         const data = await res.json().catch(() => ({}))
-        setError(data.error || 'Email atau password salah.')
+        // API error messages pass through untranslated; only the fallback is ours.
+        setError(data.error || t.wrongCredentials)
         shake()
       }
     } catch {
-      setError('Koneksi bermasalah, coba lagi.')
+      setError(t.connectionError)
       shake()
     }
 
@@ -79,121 +135,119 @@ export default function SignInPage() {
   }
 
   return (
-    <div ref={containerRef} className="min-h-screen flex overflow-hidden">
-      {/* Left — brand panel */}
+    <div ref={containerRef} className="flex min-h-screen overflow-hidden bg-primary">
+      {/* Left: brand panel. Deliberately always-dark marketing surface, so it
+          uses the fixed neutral/brand primitives (not theme-aware tokens). */}
       <div
         ref={leftRef}
-        className="hidden lg:flex lg:w-[56%] relative flex-col justify-between p-14 overflow-hidden bg-gray-950"
+        className="relative hidden flex-col justify-between overflow-hidden bg-neutral-950 p-14 lg:flex lg:w-[56%]"
       >
-        <div ref={blob1Ref} className="absolute top-[18%] left-[12%] w-[420px] h-[420px] bg-emerald-600/20 rounded-full blur-[130px] pointer-events-none" />
-        <div ref={blob2Ref} className="absolute bottom-[18%] right-[8%] w-[360px] h-[360px] bg-teal-400/[0.12] rounded-full blur-[110px] pointer-events-none" />
-        <div ref={blob3Ref} className="absolute top-[52%] left-[48%] w-[280px] h-[280px] bg-blue-500/10 rounded-full blur-[95px] pointer-events-none" />
+        <div ref={blob1Ref} className="pointer-events-none absolute left-[12%] top-[18%] h-[420px] w-[420px] rounded-full bg-brand-500 opacity-20 blur-3xl" />
+        <div ref={blob2Ref} className="pointer-events-none absolute bottom-[18%] right-[8%] h-[360px] w-[360px] rounded-full bg-brand-300 opacity-10 blur-3xl" />
+        <div ref={blob3Ref} className="pointer-events-none absolute left-[48%] top-[52%] h-[280px] w-[280px] rounded-full bg-brand-400 opacity-10 blur-3xl" />
 
         <div className="relative z-10">
-          <Link href="/" className="inline-flex items-center text-white/90 font-semibold text-lg tracking-tight hover:text-white transition-colors">
-            GEO Platform
+          <Link href="/" className="inline-flex items-center gap-2.5 text-h6 font-semibold tracking-tight text-white-remain transition-opacity duration-200 ease-standard hover:opacity-90">
+            <FratelloLogo className="h-7 w-[46px] text-brand-300" />
+            Fratello
           </Link>
         </div>
 
         <div className="relative z-10">
-          <div ref={badgeRef} className="inline-flex items-center gap-2 mb-8">
-            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            <span className="text-emerald-400/80 text-[11px] font-semibold tracking-[0.18em] uppercase">
-              Generative Engine Optimization
+          <div ref={badgeRef} className="mb-8 inline-flex items-center gap-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-brand-300" />
+            <span className="text-label-medium font-semibold uppercase tracking-widest text-brand-300">
+              {t.badge}
             </span>
           </div>
-          <h1 ref={headingRef} className="text-[clamp(30px,3.2vw,50px)] font-bold text-white leading-[1.15] tracking-tight mb-5">
-            See how often your<br />brand appears in AI.
+          <h1 ref={headingRef} className="mb-5 text-h2 font-bold tracking-tight text-white-remain lg:text-h1">
+            {t.headline1}<br />{t.headline2}
           </h1>
-          <p ref={subRef} className="text-gray-400 text-[17px] leading-relaxed max-w-[400px]">
-            Monitor visibility across ChatGPT, Gemini, Perplexity, and Claude.
-            Identify gaps, track trends, and optimize your presence.
+          <p ref={subRef} className="max-w-[400px] text-paragraph-big leading-relaxed text-neutral-400">
+            {t.sub}
           </p>
         </div>
 
         <div ref={statsRef} className="relative z-10 flex items-center gap-10">
           {[
-            { value: '4', label: 'AI Models' },
-            { value: '5×', label: 'Per prompt' },
-            { value: '100%', label: 'Automated' },
+            { value: '4', label: t.statModels },
+            { value: '5×', label: t.statPerPrompt },
+            { value: '100%', label: t.statAutomated },
           ].map(({ value, label }) => (
             <div key={label}>
-              <div className="text-white font-bold text-[22px] leading-none">{value}</div>
-              <div className="text-gray-500 text-xs mt-1.5 tracking-wide">{label}</div>
+              <div className="text-h4 font-bold leading-none text-white-remain">{value}</div>
+              <div className="mt-1.5 text-paragraph-medium tracking-wide text-neutral-500">{label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right — form */}
+      {/* Right: form. Theme-aware surface + design-system components. */}
       <div
         ref={rightRef}
-        className="w-full lg:w-[44%] flex items-center justify-center bg-white p-8 lg:p-14"
+        className="flex w-full items-center justify-center bg-primary p-8 lg:w-[44%] lg:p-14"
       >
         <div className="w-full max-w-[380px]">
-          <div className="lg:hidden mb-10">
-            <span className="font-bold text-xl text-gray-900 tracking-tight">GEO Platform</span>
+          <div className="mb-10 lg:hidden">
+            <span className="inline-flex items-center gap-2.5 text-h5 font-bold tracking-tight text-primary">
+              <FratelloLogo className="h-7 w-[46px] text-icon-brand" />
+              Fratello
+            </span>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-[26px] font-bold text-gray-900 tracking-tight">Welcome back</h2>
-            <p className="text-gray-400 text-sm mt-1.5">Sign in to your account to continue</p>
+            <h2 className="text-h4 font-bold tracking-tight text-primary">{t.welcome}</h2>
+            <p className="mt-1.5 text-paragraph-medium text-tertiary">{t.welcomeSub}</p>
           </div>
 
-          <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setError('') }}
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition-colors"
-              />
-            </div>
+          <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <Input
+              label={t.emailLabel}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              error={Boolean(error)}
+              onChange={(e) => { setEmail(e.target.value); setError('') }}
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError('') }}
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition-colors"
-                />
+            <Input
+              label={t.passwordLabel}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              error={Boolean(error)}
+              onChange={(e) => { setPassword(e.target.value); setError('') }}
+              iconRight={
                 <button
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors text-xs select-none"
                   tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? t.hide : t.show}
+                  className="flex items-center justify-center transition-colors duration-200 ease-standard hover:text-primary"
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword ? <EyeSlash className="size-5" /> : <Eye className="size-5" />}
                 </button>
-              </div>
-            </div>
+              }
+            />
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error !== '' && (
+              <p role="alert" className="text-paragraph-medium text-error-token">
+                {error}
+              </p>
+            )}
 
-            <button
-              type="submit"
+            <Button
+              htmlType="submit"
+              size="lg"
+              className="mt-2 w-full"
               disabled={loading}
-              className="w-full bg-gray-900 hover:bg-gray-700 active:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm py-3 rounded-xl transition-colors mt-2 flex items-center justify-center gap-2"
+              iconLeft={loading ? <CircleNotch className="size-5 animate-spin" aria-hidden="true" /> : undefined}
             >
-              {loading ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Signing in…
-                </>
-              ) : 'Sign In'}
-            </button>
+              {loading ? t.signingIn : t.signIn}
+            </Button>
           </form>
         </div>
       </div>

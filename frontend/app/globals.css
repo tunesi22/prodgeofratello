@@ -1,3 +1,16 @@
+@import './design-tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Print: drop the dashboard chrome so the client report (and any page) prints
+   clean. The "Print / Save PDF" button hides itself via Tailwind's print: variant. */
+@media print {
+  aside {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+  }
+}

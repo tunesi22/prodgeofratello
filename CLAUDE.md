@@ -4,6 +4,20 @@
 
 ---
 
+## ⚠️ DESIGN SYSTEM — WAJIB (baca sebelum nulis UI code apapun)
+
+**Baca `DESIGN_SYSTEM.md` sebelum menyentuh file UI di `/frontend`.** Dua aturan inti:
+
+1. **Semua styling WAJIB pakai design tokens** dari `fratello-DS.json` /
+   `frontend/app/design-tokens.css` / `frontend/tailwind.config.ts` /
+   `frontend/lib/motion.ts`. Dilarang hex literal, arbitrary value, font lain,
+   atau easing/duration di luar token.
+2. **Dilarang bikin komponen UI di luar design system.** Semua UI dibangun dari
+   `frontend/components/ui/` (spec: `.design/specs/`). Kalau komponen belum ada,
+   bilang ke user — jangan improvisasi.
+
+---
+
 ## Project overview
 
 SaaS platform untuk:
@@ -191,7 +205,7 @@ Lihat PHASES.md untuk detail task yang harus dikerjakan.
 
 ---
 
-## GEO framework (Raymond Chin)
+## GEO framework
 
 > SEO ngejar keyword — GEO ngejar questions + semantic proximity.
 

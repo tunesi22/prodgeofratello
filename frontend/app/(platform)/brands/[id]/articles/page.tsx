@@ -1,9 +1,25 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import type { MouseEvent, ReactElement } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { X as PhosphorX } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
-import BrandNav from '@/components/BrandNav'
+import { fadeUp } from '@/lib/motion'
+import { cn } from '@/lib/cn'
+import {
+  PageContainer,
+  PageHeader,
+  Card,
+  EmptyState,
+  ErrorBanner,
+  Skeleton,
+} from '@/components/dashboard/primitives'
+import { Button, Chip, IconButton, Radio, Toggle } from '@/components/ui'
+import { SuggestedIcon } from '@/components/dashboard/nav-icons'
+import { useLanguage } from '@/components/providers/LanguageProvider'
+import { categoryMeta } from '@/lib/categories'
 
 interface Prompt {
   _id: string
@@ -21,40 +37,122 @@ interface Article {
   promptId: { _id: string; text: string; category: string } | null
 }
 
-const CATEGORY_STYLES: Record<string, string> = {
-  discovery: 'bg-blue-50 text-blue-700',
-  comparison: 'bg-purple-50 text-purple-700',
-  recommendation: 'bg-green-50 text-green-700',
-  'use-case': 'bg-amber-50 text-amber-700',
-  'best-of': 'bg-orange-50 text-orange-700',
-  organic: 'bg-teal-50 text-teal-700',
+/** Page copy, both languages. No dashes; plain wording for first-time users. */
+const COPY = {
+  id: {
+    title: 'Artikel AI',
+    subtitle:
+      'Artikel siap publish yang membantu AI menyebut brand Anda lebih sering, dibuat dari prompt Anda',
+    loadFailed: 'Gagal memuat artikel',
+    generateFailed: 'Gagal membuat artikel',
+    exportFailed: 'Gagal export artikel',
+    generateFromPrompt: 'Generate dari prompt',
+    promptCount: (n: number): string => `${n} prompt`,
+    gapToggleAria: 'Tampilkan prompt gap saja',
+    gapsOnly: (n: number): string => `Gap saja (${n})`,
+    showGapsOnly: 'Tampilkan gap saja (prompt yang jawabannya belum menyebut brand Anda)',
+    noPromptsTitle: 'Belum ada prompt',
+    noPromptsDesc: 'Buka halaman Prompts terlebih dahulu untuk membuat atau mengimpor prompt',
+    noGapPromptsTitle: 'Tidak ada prompt gap',
+    noGapPromptsDesc:
+      'Gap adalah prompt yang jawaban AI-nya belum menyebut brand Anda. Jalankan scan terlebih dahulu atau tampilkan semua prompt.',
+    gapChip: 'gap',
+    generating: 'Sedang dibuat...',
+    generateArticle: 'Generate Artikel',
+    generatedArticles: 'Artikel yang Sudah Dibuat',
+    articleCount: (n: number): string => `${n} artikel`,
+    noArticlesTitle: 'Belum ada artikel',
+    noArticlesDesc: 'Pilih prompt di kiri lalu klik Generate.',
+    preview: 'Preview',
+    downloadMd: 'Download .md',
+    downloadHtml: 'Download .html',
+    closePreview: 'Tutup preview',
+  },
+  en: {
+    title: 'AI Articles',
+    subtitle:
+      'Ready-to-publish articles that help AI mention your brand more, generated from your prompts',
+    loadFailed: 'Failed to load articles',
+    generateFailed: 'Failed to generate article',
+    exportFailed: 'Export failed',
+    generateFromPrompt: 'Generate from a prompt',
+    promptCount: (n: number): string => `${n} prompts`,
+    gapToggleAria: 'Show gap prompts only',
+    gapsOnly: (n: number): string => `Gaps only (${n})`,
+    showGapsOnly: 'Show gaps only (prompts where AI answers do not mention your brand yet)',
+    noPromptsTitle: 'No prompts yet',
+    noPromptsDesc: 'Go to Prompts to generate or import prompts first',
+    noGapPromptsTitle: 'No gap prompts found',
+    noGapPromptsDesc:
+      'A gap is a prompt where AI answers do not mention your brand yet. Run a scan first or show all prompts.',
+    gapChip: 'gap',
+    generating: 'Generating...',
+    generateArticle: 'Generate Article',
+    generatedArticles: 'Generated Articles',
+    articleCount: (n: number): string => `${n} articles`,
+    noArticlesTitle: 'No articles yet',
+    noArticlesDesc: 'Pick a prompt on the left and click Generate.',
+    preview: 'Preview',
+    downloadMd: 'Download .md',
+    downloadHtml: 'Download .html',
+    closePreview: 'Close preview',
+  },
+} as const
+
+/** 20px close glyph, same stroke language as dashboard nav-icons. */
+function CloseIcon(): ReactElement {
+  return <PhosphorX aria-hidden="true" />
 }
 
-export default function ArticlesPage() {
+function SuggestedArticlesInner(): ReactElement {
   const { id } = useParams<{ id: string }>()
   const apiFetch = useApiFetch()
+  const { lang } = useLanguage()
+  const t = COPY[lang]
   const [articles, setArticles] = useState<Article[]>([])
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [gapIds, setGapIds] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<Article | null>(null)
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null)
   const [generating, setGenerating] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [showGapsOnly, setShowGapsOnly] = useState(false)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [showGapsOnly, setShowGapsOnly] = useState<boolean>(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  // alert() calls from the legacy page are replaced with these inline ErrorBanners.
+  const [generateError, setGenerateError] = useState<string | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  // Deep-link from the Analytics "Create content" CTA: /articles?promptId=...
+  const searchParams = useSearchParams()
+  const deepLinkPromptId = searchParams.get('promptId')
 
   useEffect(() => {
     Promise.all([
       apiFetch<{ articles: Article[] }>(`/brands/${id}/articles`),
       apiFetch<{ prompts: Prompt[] }>(`/brands/${id}/prompts`),
-      apiFetch<{ gaps: Prompt[] }>(`/brands/${id}/analytics/gaps`).catch(() => ({ gaps: [] })),
-    ]).then(([a, p, g]) => {
-      setArticles(a.articles)
-      setPrompts(p.prompts)
-      setGapIds(new Set(g.gaps.map((gap) => gap._id)))
-    }).finally(() => setLoading(false))
+      // gaps failure stays swallowed, exactly like the legacy page
+      apiFetch<{ gaps: Prompt[] }>(`/brands/${id}/analytics/gaps`).catch(() => ({ gaps: [] as Prompt[] })),
+    ])
+      .then(([a, p, g]) => {
+        setArticles(a.articles)
+        setPrompts(p.prompts)
+        setGapIds(new Set(g.gaps.map((gap) => gap._id)))
+        // Pre-select the deep-linked prompt (and reveal it if it is a gap).
+        if (deepLinkPromptId != null && p.prompts.some((pr) => pr._id === deepLinkPromptId)) {
+          setSelectedPromptId(deepLinkPromptId)
+          if (g.gaps.some((gap) => gap._id === deepLinkPromptId)) setShowGapsOnly(true)
+        }
+      })
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : t.loadFailed)
+      })
+      .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  async function handleGenerate(promptId: string) {
+  async function handleGenerate(promptId: string): Promise<void> {
     setGenerating(promptId)
+    setGenerateError(null)
     try {
       const article = await apiFetch<Article>(`/brands/${id}/articles/generate`, {
         method: 'POST',
@@ -62,19 +160,26 @@ export default function ArticlesPage() {
       })
       setArticles((prev) => [article, ...prev])
       setPreview(article)
-    } catch (e: any) {
-      alert(e.message)
+    } catch (e: unknown) {
+      // legacy used alert(e.message), now an inline ErrorBanner in the left card
+      setGenerateError(e instanceof Error ? e.message : t.generateFailed)
     } finally {
       setGenerating(null)
     }
   }
 
-  async function handleExport(articleId: string, format: 'md' | 'html') {
+  async function handleExport(articleId: string, format: 'md' | 'html'): Promise<void> {
+    setExportError(null)
     try {
+      // Blob download stays a raw fetch (NOT useApiFetch), same endpoint, credentials included.
       const res = await fetch(`/api/brands/${id}/articles/${articleId}/export?format=${format}`, {
         credentials: 'include',
       })
-      if (!res.ok) { alert('Export failed'); return }
+      if (!res.ok) {
+        // legacy used alert('Export failed'), now an inline ErrorBanner
+        setExportError(t.exportFailed)
+        return
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -84,159 +189,258 @@ export default function ArticlesPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (e: any) {
-      alert(e.message)
+    } catch (e: unknown) {
+      setExportError(e instanceof Error ? e.message : t.exportFailed)
     }
   }
 
-  if (loading) return (
-    <div className="p-8 space-y-3">
-      {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-xl animate-pulse" />)}
-    </div>
-  )
-
-  const displayPrompts = showGapsOnly
-    ? prompts.filter((p) => gapIds.has(p._id))
-    : prompts
+  const displayPrompts: Prompt[] = showGapsOnly ? prompts.filter((p) => gapIds.has(p._id)) : prompts
+  const selectionVisible: boolean =
+    selectedPromptId != null && displayPrompts.some((p) => p._id === selectedPromptId)
 
   return (
-    <div className="p-8 max-w-5xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Articles</h1>
-          <p className="text-sm text-gray-500 mt-1">AI-generated GEO content from your prompts</p>
-        </div>
-      </div>
+    <PageContainer wide>
+      <PageHeader
+        title={t.title}
+        subtitle={t.subtitle}
+        icon={<SuggestedIcon className="text-icon-brand" />}
+      />
 
-      <BrandNav id={id} />
+      {loadError != null && (
+        <motion.div variants={fadeUp} className="w-full">
+          <ErrorBanner message={loadError} />
+        </motion.div>
+      )}
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left: prompts to generate from */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-              Prompts ({displayPrompts.length})
-            </h2>
-            {gapIds.size > 0 && (
-              <button
-                onClick={() => setShowGapsOnly(!showGapsOnly)}
-                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                  showGapsOnly
-                    ? 'bg-red-50 text-red-600 border-red-200'
-                    : 'bg-gray-100 text-gray-500 border-gray-200 hover:border-gray-400'
-                }`}
-              >
-                {showGapsOnly ? `Gaps only (${gapIds.size})` : `Show gaps only`}
-              </button>
-            )}
+      {loading ? (
+        <motion.div variants={fadeUp} className="grid w-full items-start gap-6 lg:grid-cols-[1fr_1.4fr]">
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full" />
           </div>
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div variants={fadeUp} className="grid w-full items-start gap-6 lg:grid-cols-[1fr_1.4fr]">
+          {/* LEFT: generate from a prompt */}
+          <Card className="flex min-w-0 flex-col gap-4 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="min-w-0 flex-1 text-h6 font-normal text-primary">{t.generateFromPrompt}</h2>
+              <span className="shrink-0 text-label-medium font-medium text-tertiary">
+                {t.promptCount(displayPrompts.length)}
+              </span>
+            </div>
 
-          {prompts.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400">
-              <p className="font-medium">No prompts yet</p>
-              <p className="mt-1">Go to Prompts tab to generate or import prompts first</p>
-            </div>
-          ) : displayPrompts.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400">
-              No gap prompts found. Run a scan first or show all prompts.
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-              {displayPrompts.map((prompt) => {
-                const isGap = gapIds.has(prompt._id)
-                return (
-                  <div key={prompt._id} className="bg-white border border-gray-200 rounded-xl p-4">
-                    <div className="flex items-start gap-2 mb-3">
-                      {isGap && (
-                        <span className="shrink-0 mt-0.5 text-xs bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full font-medium">
-                          gap
-                        </span>
+            {gapIds.size > 0 && (
+              <div className="flex items-center gap-2">
+                <Toggle
+                  checked={showGapsOnly}
+                  onChange={setShowGapsOnly}
+                  aria-label={t.gapToggleAria}
+                />
+                <span className="text-label-medium font-medium text-secondary">
+                  {showGapsOnly ? t.gapsOnly(gapIds.size) : t.showGapsOnly}
+                </span>
+              </div>
+            )}
+
+            {prompts.length === 0 ? (
+              <EmptyState
+                title={t.noPromptsTitle}
+                description={t.noPromptsDesc}
+              />
+            ) : displayPrompts.length === 0 ? (
+              <EmptyState
+                title={t.noGapPromptsTitle}
+                description={t.noGapPromptsDesc}
+              />
+            ) : (
+              <div className="flex max-h-[600px] flex-col gap-2 overflow-y-auto pr-1">
+                {displayPrompts.map((prompt) => {
+                  const isGap = gapIds.has(prompt._id)
+                  const isSelected = selectedPromptId === prompt._id
+                  return (
+                    // <label> so the whole row is mouse- and keyboard-operable
+                    // via the nested Radio (no clickable-div a11y gap).
+                    <label
+                      key={prompt._id}
+                      className={cn(
+                        'flex cursor-pointer items-start gap-3 rounded-token-12 border bg-card p-3',
+                        'transition-colors duration-200 ease-standard',
+                        isSelected
+                          ? 'border-brand-token'
+                          : 'border-neutral-primary hover:border-neutral-secondary',
                       )}
-                      <p className="text-sm text-gray-700 line-clamp-2">{prompt.text}</p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_STYLES[prompt.category] || 'bg-gray-100 text-gray-500'}`}>
-                        {prompt.category}
-                      </span>
-                      <button
-                        onClick={() => handleGenerate(prompt._id)}
-                        disabled={generating === prompt._id}
-                        className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                      >
-                        {generating === prompt._id ? 'Generating...' : 'Generate Article'}
-                      </button>
+                    >
+                      <Radio
+                        checked={isSelected}
+                        onChange={() => setSelectedPromptId(prompt._id)}
+                        name="suggested-prompt"
+                        value={prompt._id}
+                      />
+                      <div className="flex min-w-0 flex-1 flex-col gap-2">
+                        <p className="line-clamp-2 text-paragraph-medium text-primary">{prompt.text}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Chip size="sm" shape="rounded" type={categoryMeta(prompt.category).tone}>
+                            {categoryMeta(prompt.category).label[lang]}
+                          </Chip>
+                          {isGap && (
+                            <Chip size="sm" shape="rounded" type="error">
+                              {t.gapChip}
+                            </Chip>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+
+            {generateError != null && <ErrorBanner message={generateError} />}
+
+            <Button
+              type="primary"
+              size="md"
+              className="w-full"
+              disabled={generating !== null || !selectionVisible}
+              onClick={() => {
+                if (selectedPromptId != null) void handleGenerate(selectedPromptId)
+              }}
+            >
+              {generating !== null ? t.generating : t.generateArticle}
+            </Button>
+          </Card>
+
+          {/* RIGHT: generated articles + preview */}
+          <div className="flex min-w-0 flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="min-w-0 flex-1 text-h6 font-normal text-primary">{t.generatedArticles}</h2>
+              <span className="shrink-0 text-label-medium font-medium text-tertiary">
+                {t.articleCount(articles.length)}
+              </span>
+            </div>
+
+            {exportError != null && <ErrorBanner message={exportError} />}
+
+            {articles.length === 0 ? (
+              <EmptyState
+                icon={<SuggestedIcon />}
+                title={t.noArticlesTitle}
+                description={t.noArticlesDesc}
+              />
+            ) : (
+              <div className="flex max-h-[600px] flex-col gap-2 overflow-y-auto pr-1">
+                {articles.map((article) => (
+                  <div
+                    key={article._id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={preview?._id === article._id}
+                    onClick={() => setPreview(article)}
+                    onKeyDown={(event) => {
+                      // Only the row itself reacts; nested export buttons keep their own keys.
+                      if (event.target !== event.currentTarget) return
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setPreview(article)
+                      }
+                    }}
+                    className={cn(
+                      'flex cursor-pointer flex-col gap-2 rounded-token-12 border bg-card p-4',
+                      'transition-colors duration-200 ease-standard',
+                      preview?._id === article._id
+                        ? 'border-brand-token'
+                        : 'border-neutral-primary hover:border-neutral-secondary',
+                    )}
+                  >
+                    <p className="line-clamp-2 text-paragraph-medium font-medium text-primary">
+                      {article.title}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Chip
+                          size="sm"
+                          shape="rounded"
+                          type={article.status === 'ready' ? 'success' : 'neutral'}
+                        >
+                          {article.status}
+                        </Chip>
+                        <span className="text-label-medium text-tertiary">
+                          {new Date(article.generatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="ghost"
+                          size="sm"
+                          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation()
+                            void handleExport(article._id, 'md')
+                          }}
+                        >
+                          .md
+                        </Button>
+                        <Button
+                          type="ghost"
+                          size="sm"
+                          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation()
+                            void handleExport(article._id, 'html')
+                          }}
+                        >
+                          .html
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
 
-        {/* Right: generated articles */}
-        <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-            Generated Articles ({articles.length})
-          </h2>
-          {articles.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400">
-              No articles yet. Pick a prompt on the left and click Generate.
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-              {articles.map((article) => (
-                <div
-                  key={article._id}
-                  className={`bg-white border rounded-xl p-4 cursor-pointer transition-all ${preview?._id === article._id ? 'border-gray-900' : 'border-gray-200 hover:border-gray-400'}`}
-                  onClick={() => setPreview(article)}
-                >
-                  <p className="text-sm font-medium text-gray-800 line-clamp-2">{article.title}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-400">
-                      {new Date(article.generatedAt).toLocaleDateString()}
-                    </span>
-                    <div className="flex gap-1.5">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleExport(article._id, 'md') }}
-                        className="text-xs border border-gray-200 px-2.5 py-1 rounded-lg hover:border-gray-900 transition-colors"
-                      >
-                        .md
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleExport(article._id, 'html') }}
-                        className="text-xs border border-gray-200 px-2.5 py-1 rounded-lg hover:border-gray-900 transition-colors"
-                      >
-                        .html
-                      </button>
-                    </div>
+            {preview != null && (
+              <Card className="flex flex-col gap-4 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="min-w-0 flex-1 truncate text-h6 font-normal text-primary">{t.preview}</h3>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button type="ghost" size="sm" onClick={() => void handleExport(preview._id, 'md')}>
+                      {t.downloadMd}
+                    </Button>
+                    <Button type="ghost" size="sm" onClick={() => void handleExport(preview._id, 'html')}>
+                      {t.downloadHtml}
+                    </Button>
+                    <IconButton
+                      type="ghost"
+                      size="sm"
+                      aria-label={t.closePreview}
+                      onClick={() => setPreview(null)}
+                    >
+                      <CloseIcon />
+                    </IconButton>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Article preview */}
-      {preview && (
-        <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-700">Preview</h2>
-            <div className="flex gap-2">
-              <button onClick={() => handleExport(preview._id, 'md')} className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-900 transition-colors">
-                Download .md
-              </button>
-              <button onClick={() => handleExport(preview._id, 'html')} className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:border-gray-900 transition-colors">
-                Download .html
-              </button>
-              <button onClick={() => setPreview(null)} className="text-xs text-gray-400 hover:text-black px-2">✕</button>
-            </div>
+                <div className="max-h-96 overflow-auto rounded-token-8 bg-field p-4">
+                  <div className="whitespace-pre-wrap text-paragraph-medium text-primary">
+                    {preview.content}
+                  </div>
+                </div>
+              </Card>
+            )}
           </div>
-          <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono bg-gray-50 rounded-lg p-4 overflow-auto max-h-96">
-            {preview.content}
-          </pre>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </PageContainer>
+  )
+}
+
+/** useSearchParams (deep-link promptId) requires a Suspense boundary. */
+export default function SuggestedArticlesPage(): ReactElement {
+  return (
+    <Suspense fallback={null}>
+      <SuggestedArticlesInner />
+    </Suspense>
   )
 }

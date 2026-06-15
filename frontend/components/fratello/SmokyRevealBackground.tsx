@@ -115,7 +115,7 @@ void main() {
 `;
 
 /**
- * Density update shader — ping-pong FBO pass.
+ * Density update shader, ping-pong FBO pass.
  * Uses domain-warped FBM for realistic, swirling smoke edges.
  * The heal effect is noise-modulated so fog rolls back in organically.
  */
@@ -198,7 +198,7 @@ float snoise(vec3 v) {
   return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
 }
 
-/* FBM — 6 octaves for rich detail */
+/* FBM, 6 octaves for rich detail */
 float fbm(vec3 p) {
   float val = 0.0;
   float amp = 0.5;
@@ -211,7 +211,7 @@ float fbm(vec3 p) {
   return val;
 }
 
-/* Domain-warped FBM — feeds noise into noise for swirling, cloud-like shapes */
+/* Domain-warped FBM, feeds noise into noise for swirling, cloud-like shapes */
 float warpedFbm(vec3 p) {
   vec3 q = vec3(
     fbm(p + vec3(0.0, 0.0, 0.0)),
@@ -246,15 +246,15 @@ void main() {
     float warp = warpedFbm(vec3(v_uv * 5.0, t));
     float distortedRadius = u_revealRadius * (0.7 + 0.55 * warp);
 
-    // Smooth falloff — wider, softer transition
+    // Smooth falloff, wider, softer transition
     float reveal = smoothstep(distortedRadius, distortedRadius * 0.08, dist);
 
-    // Secondary noise layer — wispy tendrils and smoke trails
+    // Secondary noise layer, wispy tendrils and smoke trails
     float tendrilNoise = fbm(vec3(v_uv * 10.0, t * 1.2 + 5.0));
     float tendrils = smoothstep(distortedRadius * 1.5, distortedRadius * 0.2, dist)
                    * max(0.0, tendrilNoise) * 0.35;
 
-    // Tertiary layer — very fine wisps at the far edge
+    // Tertiary layer, very fine wisps at the far edge
     float fineNoise = snoise(vec3(v_uv * 18.0, t * 2.0 + 12.0));
     float fineWisps = smoothstep(distortedRadius * 2.0, distortedRadius * 0.5, dist)
                     * max(0.0, fineNoise) * 0.15;
@@ -268,7 +268,7 @@ void main() {
 }
 `;
 
-/** Render shader — maps density to fog colour with animated cloud texture */
+/** Render shader, maps density to fog colour with animated cloud texture */
 const RENDER_SHADER = `
 precision highp float;
 
@@ -345,7 +345,7 @@ void main() {
   vec3 bottomColor = vec3(0.012, 0.286, 0.173);
   vec3 fogColor = mix(topColor, bottomColor, v_uv.y);
 
-  // Animated cloud texture — slowly drifting noise adds depth to the fog
+  // Animated cloud texture, slowly drifting noise adds depth to the fog
   float t = u_time * 0.06;
   float cloudA = fbm(vec3(v_uv * 2.5 + vec2(t * 0.3, t * 0.1), t));
   float cloudB = fbm(vec3(v_uv * 4.0 + vec2(-t * 0.2, t * 0.15), t * 0.7 + 5.0));
@@ -543,7 +543,7 @@ export function SmokyRevealBackground() {
 
     startTime.current = performance.now();
 
-    /* GL is ready — show the cards now that the fog canvas will cover them */
+    /* GL is ready, show the cards now that the fog canvas will cover them */
     if (!glReadySet.current) {
       glReadySet.current = true;
       setGlReady(true);

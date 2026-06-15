@@ -1,107 +1,244 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { ReactElement } from 'react'
+import { motion } from 'framer-motion'
 import { useApiFetch } from '@/lib/useApiFetch'
-import Link from 'next/link'
+import { fadeUp } from '@/lib/motion'
+import { cn } from '@/lib/cn'
+import {
+  PageContainer,
+  PageHeader,
+  Section,
+  Card,
+  ErrorBanner,
+  Skeleton,
+} from '@/components/dashboard/primitives'
+import { Button, Chip, Breadcrumb } from '@/components/ui'
+import { CheckCircleIcon } from '@/components/onboarding/icons'
+import { useLanguage } from '@/components/providers/LanguageProvider'
 
-const PLANS = [
-  { key: 'starter', name: 'Starter', price: '$49', priceIDR: 'Rp 750k', prompts: '25 prompts', models: '3 models', articles: '4 articles/mo' },
-  { key: 'pro', name: 'Pro', price: '$149', priceIDR: 'Rp 2.25jt', prompts: '100 prompts', models: 'All 4 models', articles: '8 articles/mo' },
-  { key: 'agency', name: 'Agency', price: '$399', priceIDR: 'Rp 6jt', prompts: 'Unlimited', models: 'All 4 models', articles: 'Unlimited' },
+type PlanKey = 'starter' | 'pro' | 'agency'
+
+interface Plan {
+  key: PlanKey
+  name: string
+  price: string
+  priceIDR: string
+}
+
+// Exact plans/prices from the legacy billing page (parity contract §12).
+// Feature lists live in COPY below so they can be translated.
+const PLANS: Plan[] = [
+  { key: 'starter', name: 'Starter', price: '$49', priceIDR: 'Rp 750k' },
+  { key: 'pro', name: 'Pro', price: '$149', priceIDR: 'Rp 2.25jt' },
+  { key: 'agency', name: 'Agency', price: '$399', priceIDR: 'Rp 6jt' },
 ]
 
-export default function BillingPage() {
+/** Page copy, both languages. No dashes; plain wording for first-time users. */
+const COPY = {
+  id: {
+    breadcrumbSettings: 'Pengaturan Akun',
+    breadcrumbBilling: 'Tagihan',
+    title: 'Tagihan',
+    currentPlanPrefix: 'Paket Anda saat ini:',
+    currentPlanChip: 'Paket aktif',
+    perMonth: '/bln',
+    features: {
+      starter: ['25 prompt', '3 model AI', '4 artikel per bulan'],
+      pro: ['100 prompt', 'Semua 4 model AI', '8 artikel per bulan'],
+      agency: ['Prompt tanpa batas', 'Semua 4 model AI', 'Artikel tanpa batas'],
+    },
+    payCardUSD: 'Bayar dengan Kartu (USD)',
+    payIDR: 'Bayar (IDR)',
+    redirecting: 'Mengalihkan…',
+    checkoutFailed: 'Pembayaran gagal diproses',
+  },
+  en: {
+    breadcrumbSettings: 'Settings',
+    breadcrumbBilling: 'Billing',
+    title: 'Billing & Subscription',
+    currentPlanPrefix: 'Current plan:',
+    currentPlanChip: 'Current plan',
+    perMonth: '/mo',
+    features: {
+      starter: ['25 prompts', '3 AI models', '4 articles per month'],
+      pro: ['100 prompts', 'All 4 AI models', '8 articles per month'],
+      agency: ['Unlimited prompts', 'All 4 AI models', 'Unlimited articles'],
+    },
+    payCardUSD: 'Pay with Card (USD)',
+    payIDR: 'Pay in IDR',
+    redirecting: 'Redirecting…',
+    checkoutFailed: 'Checkout failed',
+  },
+} as const
+
+export default function BillingPage(): ReactElement {
   const apiFetch = useApiFetch()
+  const { lang } = useLanguage()
+  const t = COPY[lang]
   const [currentPlan, setCurrentPlan] = useState<string>('starter')
-  const [loading, setLoading] = useState<string | null>(null)
+  const [planLoading, setPlanLoading] = useState<boolean>(true)
+  // Keyed `stripe-{plan}` / `midtrans-{plan}` while a checkout redirect is in flight.
+  const [redirecting, setRedirecting] = useState<string | null>(null)
+  // Parity change: checkout failures now render an inline ErrorBanner instead of alert().
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     apiFetch<{ plan: string }>('/user/me')
-      .then((u) => setCurrentPlan(u.plan))
+      .then((u) => {
+        if (!cancelled) setCurrentPlan(u.plan || 'starter')
+      })
+      // Parity: legacy page swallowed /user/me failures (console.error) and
+      // kept the 'starter' default. Same here.
       .catch(console.error)
+      .finally(() => {
+        if (!cancelled) setPlanLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function handleStripe(plan: string) {
-    setLoading(`stripe-${plan}`)
+  async function handleStripe(plan: string): Promise<void> {
+    setCheckoutError(null)
+    setRedirecting(`stripe-${plan}`)
     try {
       const { url } = await apiFetch<{ url: string }>('/payment/stripe/checkout', {
         method: 'POST',
         body: JSON.stringify({ plan }),
       })
       window.location.href = url
-    } catch (e: any) { alert(e.message) }
-    finally { setLoading(null) }
+    } catch (e) {
+      setCheckoutError(e instanceof Error ? e.message : t.checkoutFailed)
+    } finally {
+      // Parity with legacy: redirect state clears in finally (navigation takes over on success).
+      setRedirecting(null)
+    }
   }
 
-  async function handleMidtrans(plan: string) {
-    setLoading(`midtrans-${plan}`)
+  async function handleMidtrans(plan: string): Promise<void> {
+    setCheckoutError(null)
+    setRedirecting(`midtrans-${plan}`)
     try {
       const { redirectUrl } = await apiFetch<{ redirectUrl: string }>('/payment/midtrans/checkout', {
         method: 'POST',
         body: JSON.stringify({ plan }),
       })
       window.location.href = redirectUrl
-    } catch (e: any) { alert(e.message) }
-    finally { setLoading(null) }
+    } catch (e) {
+      setCheckoutError(e instanceof Error ? e.message : t.checkoutFailed)
+    } finally {
+      setRedirecting(null)
+    }
   }
 
   return (
-    <div className="p-8 max-w-4xl">
-      <div className="mb-8">
-        <Link href="/settings" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Settings</Link>
-        <h1 className="text-2xl font-bold text-white mt-4 tracking-tight">Billing & Subscription</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Current plan: <span className="font-semibold text-gray-300 capitalize">{currentPlan}</span>
-        </p>
+    <PageContainer>
+      <div className="flex w-full flex-col gap-3">
+        {/* "← Settings" back link from the legacy page, as a DS Breadcrumb trail. */}
+        <motion.div variants={fadeUp}>
+          <Breadcrumb
+            separator="/"
+            items={[
+              { label: t.breadcrumbSettings, href: '/settings' },
+              { label: t.breadcrumbBilling },
+            ]}
+          />
+        </motion.div>
+        <PageHeader
+          title={t.title}
+          subtitle={
+            <>
+              {t.currentPlanPrefix}{' '}
+              <span className="font-medium capitalize text-primary">
+                {planLoading ? '…' : currentPlan}
+              </span>
+            </>
+          }
+        />
       </div>
 
-      <div className="grid grid-cols-3 gap-5">
-        {PLANS.map((plan) => {
-          const isCurrent = currentPlan === plan.key
-          return (
-            <div
-              key={plan.key}
-              className={`bg-gray-900 border rounded-2xl p-5 transition-colors ${
-                isCurrent ? 'border-emerald-600/60' : 'border-gray-800'
-              }`}
-            >
-              {isCurrent && (
-                <span className="inline-block bg-emerald-600/20 text-emerald-400 border border-emerald-700/40 text-xs px-2.5 py-1 rounded-full font-semibold mb-3">
-                  Current plan
-                </span>
-              )}
-              <h3 className="font-bold text-lg text-white">{plan.name}</h3>
-              <p className="text-2xl font-bold text-white mt-1">
-                {plan.price}<span className="text-sm font-normal text-gray-500">/mo</span>
-              </p>
-              <p className="text-sm text-gray-600 mb-4">{plan.priceIDR}/mo</p>
-              <ul className="text-sm text-gray-400 space-y-1.5 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> {plan.prompts}</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> {plan.models}</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> {plan.articles}</li>
-              </ul>
-              {!isCurrent && (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handleStripe(plan.key)}
-                    disabled={!!loading}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+      {checkoutError != null && (
+        <motion.div variants={fadeUp}>
+          <ErrorBanner message={checkoutError} />
+        </motion.div>
+      )}
+
+      <Section>
+        <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-3">
+          {planLoading
+            ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-[280px]" />)
+            : PLANS.map((plan) => {
+                const isCurrent = currentPlan === plan.key
+                return (
+                  <Card
+                    key={plan.key}
+                    className={cn('flex flex-col gap-4 p-5', isCurrent && 'border-brand-token')}
                   >
-                    {loading === `stripe-${plan.key}` ? 'Redirecting…' : 'Pay with Card (USD)'}
-                  </button>
-                  <button
-                    onClick={() => handleMidtrans(plan.key)}
-                    disabled={!!loading}
-                    className="w-full border border-gray-700 hover:border-gray-500 text-gray-400 hover:text-gray-200 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                  >
-                    {loading === `midtrans-${plan.key}` ? 'Redirecting…' : 'Bayar (IDR)'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-h6 font-medium text-primary transition-colors duration-200 ease-standard">
+                        {plan.name}
+                      </h3>
+                      {isCurrent && (
+                        <Chip type="success" shape="rounded" size="sm">
+                          {t.currentPlanChip}
+                        </Chip>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <p className="text-h3 font-normal text-primary transition-colors duration-200 ease-standard">
+                        {plan.price}
+                        <span className="text-paragraph-medium font-normal text-tertiary">
+                          {t.perMonth}
+                        </span>
+                      </p>
+                      <p className="text-paragraph-medium text-secondary">
+                        {plan.priceIDR}
+                        {t.perMonth}
+                      </p>
+                    </div>
+
+                    <ul className="flex flex-col gap-2">
+                      {t.features[plan.key].map((feature) => (
+                        <li key={feature} className="flex items-center gap-2">
+                          <CheckCircleIcon className="size-5 shrink-0 text-icon-brand" />
+                          <span className="text-paragraph-medium text-secondary">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Current plan shows no checkout actions (parity with legacy page). */}
+                    {!isCurrent && (
+                      <div className="mt-auto flex flex-col gap-2 pt-2">
+                        <Button
+                          type="primary"
+                          size="sm"
+                          className="w-full"
+                          disabled={redirecting !== null}
+                          onClick={() => void handleStripe(plan.key)}
+                        >
+                          {redirecting === `stripe-${plan.key}` ? t.redirecting : t.payCardUSD}
+                        </Button>
+                        <Button
+                          type="primary-outlined"
+                          size="sm"
+                          className="w-full"
+                          disabled={redirecting !== null}
+                          onClick={() => void handleMidtrans(plan.key)}
+                        >
+                          {redirecting === `midtrans-${plan.key}` ? t.redirecting : t.payIDR}
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                )
+              })}
+        </div>
+      </Section>
+    </PageContainer>
   )
 }

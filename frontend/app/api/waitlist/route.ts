@@ -5,6 +5,36 @@ import path from "path";
 
 const WAITLIST_FILE = path.join(process.cwd(), "waitlist.json");
 
+// Simple in-memory, per-IP fixed-window rate limit. This is a single-instance
+// mitigation (resets on redeploy and is not shared across instances); it exists
+// to blunt email/SMTP-quota abuse, not as a hard guarantee. For a stronger
+// guarantee move this to Redis or a managed limiter.
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const ipHits = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimitOk(ip: string): boolean {
+  const now = Date.now();
+  // Opportunistic cleanup so the map cannot grow unbounded across many IPs.
+  if (ipHits.size > 5000) {
+    for (const [key, entry] of ipHits) if (now > entry.resetAt) ipHits.delete(key);
+  }
+  const existing = ipHits.get(ip);
+  if (!existing || now > existing.resetAt) {
+    ipHits.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (existing.count >= RATE_LIMIT_MAX) return false;
+  existing.count += 1;
+  return true;
+}
+
+function clientIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.headers.get("x-real-ip") || "unknown";
+}
+
 async function getWaitlist(): Promise<string[]> {
   try {
     const data = await fs.readFile(WAITLIST_FILE, "utf-8");
@@ -104,15 +134,30 @@ function userEmailHtml(email: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json();
+  if (!rateLimitOk(clientIp(req))) {
+    return NextResponse.json(
+      { error: "Terlalu banyak percobaan. Silakan coba lagi nanti." },
+      { status: 429 },
+    );
+  }
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+  let email: unknown;
+  try {
+    ({ email } = await req.json());
+  } catch {
     return NextResponse.json({ error: "Email tidak valid." }, { status: 400 });
   }
 
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return NextResponse.json({ error: "Email tidak valid." }, { status: 400 });
+  }
+
+  // Uniform success response whether or not the email is already registered, so
+  // the endpoint cannot be used to enumerate which addresses exist. Already
+  // registered addresses short-circuit here (no duplicate emails sent).
   const waitlist = await getWaitlist();
   if (waitlist.includes(email.toLowerCase())) {
-    return NextResponse.json({ error: "Email ini sudah terdaftar." }, { status: 409 });
+    return NextResponse.json({ success: true });
   }
 
   try {
@@ -120,7 +165,7 @@ export async function POST(req: NextRequest) {
       transporter.sendMail({
         from: `"Fratello" <${process.env.GMAIL_USER}>`,
         to: process.env.GMAIL_USER,
-        subject: `New Waitlist Sign-up — ${email}`,
+        subject: `New Waitlist Sign-up, ${email}`,
         html: ownerEmailHtml(email),
       }),
       transporter.sendMail({

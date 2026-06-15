@@ -1,8 +1,35 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useApiFetch } from '@/lib/useApiFetch'
+import { Button } from '@/components/ui'
+import {
+  PageContainer,
+  PageHeader,
+  Section,
+  Card,
+  EmptyState,
+  ErrorBanner,
+  Skeleton,
+} from '@/components/dashboard/primitives'
+import { DeltaBadge } from '@/components/dashboard/DeltaBadge'
+import { PlusSmallIcon, ProjectsIcon } from '@/components/dashboard/nav-icons'
+import { useLanguage } from '@/components/providers/LanguageProvider'
+import { type Analytics, type Delta, weekOverWeekDelta } from '@/lib/analytics'
+import { cn } from '@/lib/cn'
+
+/**
+ * All Projects (sidebar: Admin > All Projects), redesigned /brands page.
+ * Parity contract (.design/specs/feature-inventory.md §1):
+ * - GET /brands → Brand[] (same endpoint, same shape)
+ * - Onboarding CTA → /onboarding; create CTA → /brands/new (header + empty state)
+ * - Whole project card links to /brands/{_id}; avatar initial, name, industry,
+ *   competitor count (only when > 0), loading/error/empty states preserved.
+ * Header copy follows the redesign spec ("All Projects") instead of the legacy
+ * "Dashboard / Brands" eyebrow+title.
+ */
 
 interface Brand {
   _id: string
@@ -13,88 +40,226 @@ interface Brand {
   createdAt: string
 }
 
-export default function BrandsPage() {
+/** Page copy, both languages. No dashes; plain wording for first-time users. */
+const COPY = {
+  id: {
+    title: 'Semua Project',
+    subtitle:
+      'Kelola project GEO Anda. Setiap project memantau seberapa sering AI seperti ChatGPT dan Gemini menyebut sebuah brand.',
+    onboarding: 'Onboarding',
+    newProject: 'Project baru',
+    projectsSection: 'Daftar Project',
+    projectCount: (n: number): string => `${n} project`,
+    emptyTitle: 'Belum ada project',
+    emptyDescription:
+      'Tambahkan brand pertama Anda untuk mulai memantau seberapa sering AI menyebutnya.',
+    competitorCount: (n: number): string => `${n} kompetitor`,
+    noScan: 'Belum di-scan',
+    rateCaption: 'Mention rate · semua waktu',
+    vsLastWeek: 'vs minggu lalu',
+  },
+  en: {
+    title: 'All Projects',
+    subtitle:
+      'Manage your GEO projects. Each project tracks how often AI models like ChatGPT and Gemini mention one brand.',
+    onboarding: 'Onboarding',
+    newProject: 'New project',
+    projectsSection: 'Projects',
+    projectCount: (n: number): string => `${n} project${n === 1 ? '' : 's'}`,
+    emptyTitle: 'No projects yet',
+    emptyDescription: 'Add your first brand to start tracking how often AI mentions it.',
+    competitorCount: (n: number): string => `${n} competitor${n === 1 ? '' : 's'}`,
+    noScan: 'Not scanned yet',
+    rateCaption: 'Mention rate · all time',
+    vsLastWeek: 'vs last week',
+  },
+} as const
+
+/** Per-brand metrics fetched client-side from each brand's /analytics. */
+interface BrandMetrics {
+  mentionRate: number | null
+  delta: Delta | null
+  totalQueries: number
+}
+
+/** Mention-rate text color, matching the score tiers used elsewhere. */
+function rateText(rate: number): string {
+  if (rate >= 60) return 'text-brand-token'
+  if (rate >= 30) return 'text-warning-token'
+  return 'text-error-token'
+}
+
+/** Bare domain for display, e.g. "https://www.example.com/x" → "example.com". */
+function websiteDomain(website: string): string {
+  try {
+    return new URL(website).hostname.replace(/^www\./, '')
+  } catch {
+    return website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0] ?? website
+  }
+}
+
+export default function AllProjectsPage(): ReactElement {
   const apiFetch = useApiFetch()
+  const router = useRouter()
+  const { lang } = useLanguage()
+  const t = COPY[lang]
   const [brands, setBrands] = useState<Brand[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [metrics, setMetrics] = useState<Record<string, BrandMetrics>>({})
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string>('')
 
   useEffect(() => {
     apiFetch<Brand[]>('/brands')
       .then(setBrands)
-      .catch((e) => setError(e.message))
+      .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Per-brand metrics, fetched client-side (one /analytics call per brand, like
+  // the Usage page). This portfolio roll-up is a frontend stopgap; a dedicated
+  // roll-up endpoint would be cleaner (see docs/README-BACKEND.md).
+  useEffect(() => {
+    if (brands.length === 0) return
+    let cancelled = false
+    Promise.all(
+      brands.map(async (b): Promise<readonly [string, BrandMetrics]> => {
+        try {
+          const a = await apiFetch<Analytics>(`/brands/${b._id}/analytics`)
+          const hasData = a.overall.totalQueries > 0
+          return [
+            b._id,
+            {
+              mentionRate: hasData ? a.overall.mentionRate : null,
+              delta: hasData ? weekOverWeekDelta(a.trends) : null,
+              totalQueries: a.overall.totalQueries,
+            },
+          ] as const
+        } catch {
+          return [b._id, { mentionRate: null, delta: null, totalQueries: 0 }] as const
+        }
+      }),
+    ).then((entries) => {
+      if (!cancelled) setMetrics(Object.fromEntries(entries))
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brands])
+
   return (
-    <div className="p-8 max-w-5xl">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <p className="text-[11px] text-gray-600 font-semibold tracking-[0.15em] uppercase mb-1">Dashboard</p>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Brands</h1>
-          <p className="text-sm text-gray-500 mt-1">Track your brand visibility across AI models</p>
-        </div>
-        <Link
-          href="/brands/new"
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 transition-colors text-white text-sm font-medium px-4 py-2.5 rounded-lg"
-        >
-          <span className="text-base leading-none font-light">+</span>
-          Add Brand
-        </Link>
-      </div>
+    <PageContainer wide>
+      <PageHeader
+        title={t.title}
+        actions={
+          <>
+            <Button type="ghost" size="md" onClick={() => router.push('/onboarding')}>
+              {t.onboarding}
+            </Button>
+            <Button
+              type="primary"
+              size="md"
+              iconLeft={<PlusSmallIcon />}
+              onClick={() => router.push('/brands/new')}
+            >
+              {t.newProject}
+            </Button>
+          </>
+        }
+      />
 
-      {loading && (
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 bg-gray-800 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      )}
+      <Section
+        title={t.projectsSection}
+        right={
+          !loading && !error ? (
+            <span className="text-label-medium font-medium text-tertiary">
+              {t.projectCount(brands.length)}
+            </span>
+          ) : undefined
+        }
+      >
+        {loading && (
+          <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+        )}
 
-      {error && (
-        <div className="bg-red-900/30 border border-red-700/50 text-red-400 rounded-xl p-4 text-sm">
-          {error}
-        </div>
-      )}
+        {!loading && error !== '' && <ErrorBanner message={error} />}
 
-      {!loading && !error && brands.length === 0 && (
-        <div className="text-center py-20 border-2 border-dashed border-gray-800 rounded-2xl">
-          <p className="text-gray-500 text-lg font-medium">No brands yet</p>
-          <p className="text-gray-600 text-sm mt-1">Add your first brand to start tracking</p>
-          <Link
-            href="/brands/new"
-            className="inline-flex items-center gap-1.5 mt-5 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-          >
-            + Add Brand
-          </Link>
-        </div>
-      )}
+        {!loading && error === '' && brands.length === 0 && (
+          <EmptyState
+            icon={<ProjectsIcon />}
+            title={t.emptyTitle}
+            description={t.emptyDescription}
+            action={
+              <Button
+                type="primary"
+                size="md"
+                iconLeft={<PlusSmallIcon />}
+                onClick={() => router.push('/brands/new')}
+              >
+                {t.newProject}
+              </Button>
+            }
+          />
+        )}
 
-      <div className="space-y-3">
-        {brands.map((brand) => (
-          <Link
-            key={brand._id}
-            href={`/brands/${brand._id}`}
-            className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-600 hover:bg-gray-800/50 transition-all group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-emerald-600/20 border border-emerald-700/30 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
-                {brand.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="font-semibold text-white group-hover:text-white">{brand.name}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{brand.industry}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-gray-500">
-              {brand.competitors.length > 0 && (
-                <span>{brand.competitors.length} competitor{brand.competitors.length > 1 ? 's' : ''}</span>
-              )}
-              <span className="text-gray-600 group-hover:text-gray-400 transition-colors">→</span>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
+        {!loading && error === '' && brands.length > 0 && (
+          <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
+            {brands.map((brand: Brand) => (
+              <Link key={brand._id} href={`/brands/${brand._id}`} className="group block">
+                <Card className="flex items-center gap-4 p-5 transition-colors duration-200 ease-standard hover:border-neutral-secondary">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-token-8 bg-display-brand text-label-big font-medium text-brand-token"
+                  >
+                    {brand.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="truncate text-label-big font-medium text-primary">
+                      {brand.name}
+                    </span>
+                    <span className="truncate text-paragraph-medium text-tertiary">
+                      {brand.industry}
+                      {brand.competitors.length > 0 &&
+                        ` · ${t.competitorCount(brand.competitors.length)}`}
+                    </span>
+                    <span className="truncate text-paragraph-medium text-tertiary">
+                      {websiteDomain(brand.website)}
+                    </span>
+                  </span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {metrics[brand._id]?.mentionRate == null ? (
+                      <span className="text-label-medium text-tertiary">{t.noScan}</span>
+                    ) : (
+                      <>
+                        <span
+                          className={cn(
+                            'text-h5 font-semibold tabular-nums',
+                            rateText(metrics[brand._id]!.mentionRate!),
+                          )}
+                        >
+                          {metrics[brand._id]!.mentionRate}%
+                        </span>
+                        <span className="text-label-medium text-tertiary">{t.rateCaption}</span>
+                        {metrics[brand._id]?.delta?.value != null && (
+                          <span className="flex items-center gap-1.5">
+                            <DeltaBadge delta={metrics[brand._id]!.delta!} />
+                            <span className="text-label-medium text-tertiary">{t.vsLastWeek}</span>
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Section>
+    </PageContainer>
   )
 }
