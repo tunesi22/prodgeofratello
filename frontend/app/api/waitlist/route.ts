@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import fs from "fs/promises";
-import path from "path";
+import { MongoClient } from "mongodb";
 
-const WAITLIST_FILE = path.join(process.cwd(), "waitlist.json");
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/geo-platform";
 
-// Simple in-memory, per-IP fixed-window rate limit. This is a single-instance
-// mitigation (resets on redeploy and is not shared across instances); it exists
-// to blunt email/SMTP-quota abuse, not as a hard guarantee. For a stronger
-// guarantee move this to Redis or a managed limiter.
+let client: MongoClient | null = null;
+
+async function getCollection() {
+  if (!client) {
+    client = new MongoClient(MONGODB_URI);
+    await client.connect();
+  }
+  return client.db().collection("waitlist");
+}
+
 const RATE_LIMIT_MAX = 5;
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const ipHits = new Map<string, { count: number; resetAt: number }>();
 
 function rateLimitOk(ip: string): boolean {
   const now = Date.now();
-  // Opportunistic cleanup so the map cannot grow unbounded across many IPs.
   if (ipHits.size > 5000) {
     for (const [key, entry] of ipHits) if (now > entry.resetAt) ipHits.delete(key);
   }
@@ -33,21 +37,6 @@ function clientIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0].trim();
   return req.headers.get("x-real-ip") || "unknown";
-}
-
-async function getWaitlist(): Promise<string[]> {
-  try {
-    const data = await fs.readFile(WAITLIST_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-async function addToWaitlist(email: string): Promise<void> {
-  const list = await getWaitlist();
-  list.push(email);
-  await fs.writeFile(WAITLIST_FILE, JSON.stringify(list, null, 2));
 }
 
 const transporter = nodemailer.createTransport({
@@ -152,35 +141,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email tidak valid." }, { status: 400 });
   }
 
-  // Uniform success response whether or not the email is already registered, so
-  // the endpoint cannot be used to enumerate which addresses exist. Already
-  // registered addresses short-circuit here (no duplicate emails sent).
-  const waitlist = await getWaitlist();
-  if (waitlist.includes(email.toLowerCase())) {
-    return NextResponse.json({ success: true });
-  }
+  const normalizedEmail = email.toLowerCase();
 
   try {
+    const col = await getCollection();
+
+    const existing = await col.findOne({ email: normalizedEmail });
+    if (existing) {
+      return NextResponse.json({ error: "Email ini sudah terdaftar." }, { status: 409 });
+    }
+
     await Promise.all([
       transporter.sendMail({
         from: `"Fratello" <${process.env.GMAIL_USER}>`,
         to: process.env.GMAIL_USER,
-        subject: `New Waitlist Sign-up, ${email}`,
-        html: ownerEmailHtml(email),
+        subject: `New Waitlist Sign-up, ${normalizedEmail}`,
+        html: ownerEmailHtml(normalizedEmail),
       }),
       transporter.sendMail({
         from: `"Fratello" <${process.env.GMAIL_USER}>`,
-        to: email,
+        to: normalizedEmail,
         subject: "Kamu udah masuk waitlist Fratello! 🎉",
-        html: userEmailHtml(email),
+        html: userEmailHtml(normalizedEmail),
       }),
     ]);
 
-    await addToWaitlist(email.toLowerCase());
+    await col.insertOne({ email: normalizedEmail, registeredAt: new Date() });
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("SMTP error:", err);
-    return NextResponse.json({ error: "Gagal mengirim email." }, { status: 500 });
+    console.error("[WAITLIST] Error:", err);
+    return NextResponse.json({ error: "Gagal daftar, coba lagi." }, { status: 500 });
   }
 }
