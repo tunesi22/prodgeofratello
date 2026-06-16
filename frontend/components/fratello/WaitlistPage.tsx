@@ -12,7 +12,7 @@ import { SmokyRevealBackground } from "@/components/fratello/SmokyRevealBackgrou
 
 gsap.registerPlugin(TextPlugin);
 
-const IS_CLOSED = true
+const IS_CLOSED = false
 
 export function WaitlistPage() {
   const [email, setEmail] = useState("");
