@@ -4,7 +4,115 @@ import Waitlist from '../models/Waitlist'
 
 const router = Router()
 
+// ─── Rate limiting (in-memory, per IP) ───────────────────────────────────────
+const RATE_LIMIT_MAX = 5
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
+const ipHits = new Map<string, { count: number; resetAt: number }>()
+
+function rateLimitOk(ip: string): boolean {
+  const now = Date.now()
+  if (ipHits.size > 5000) {
+    for (const [key, entry] of ipHits) if (now > entry.resetAt) ipHits.delete(key)
+  }
+  const existing = ipHits.get(ip)
+  if (!existing || now > existing.resetAt) {
+    ipHits.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return true
+  }
+  if (existing.count >= RATE_LIMIT_MAX) return false
+  existing.count += 1
+  return true
+}
+
+function clientIp(req: Request): string {
+  const fwd = req.headers['x-forwarded-for']
+  if (fwd) return String(fwd).split(',')[0].trim()
+  return String(req.headers['x-real-ip'] || req.ip || 'unknown')
+}
+
+// ─── Email templates ─────────────────────────────────────────────────────────
+function ownerEmailHtml(email: string) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f0;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#599e81,#03492c);padding:32px 40px;text-align:center;">
+            <p style="margin:0;color:rgba(255,255,255,0.7);font-size:12px;letter-spacing:2px;text-transform:uppercase;">Fratello</p>
+            <h1 style="margin:8px 0 0;color:#ffffff;font-size:28px;font-weight:400;">New Sign-up 🎉</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:36px 40px;">
+            <p style="margin:0 0 8px;color:#666;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Email Pendaftar</p>
+            <p style="margin:0 0 28px;color:#03492c;font-size:20px;font-weight:600;">${email}</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:0 0 24px;">
+            <p style="margin:0;color:#999;font-size:13px;">Dikirim otomatis dari Fratello Waitlist System</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+function userEmailHtml(email: string) {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f0;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#599e81,#03492c);padding:40px;text-align:center;">
+            <p style="margin:0 0 12px;color:rgba(255,255,255,0.75);font-size:12px;letter-spacing:3px;text-transform:uppercase;">Coming June</p>
+            <h1 style="margin:0;color:#ffffff;font-size:48px;font-weight:300;font-style:italic;font-family:Georgia,'Times New Roman',serif;">Fratello</h1>
+            <p style="margin:16px 0 0;color:rgba(255,255,255,0.85);font-size:15px;line-height:1.5;">Bikin brand kamu direkomendasiin sama AI,<br>dipilih sama manusia.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:40px;">
+            <h2 style="margin:0 0 12px;color:#1a1a1a;font-size:22px;font-weight:600;">Kamu udah masuk waitlist! 🎉</h2>
+            <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.7;">Hei <strong>${email}</strong>,<br><br>
+            Makasih udah daftar waitlist Fratello. Kamu jadi salah satu dari yang pertama tahu saat kami launch.<br><br>
+            Kami bakal hubungi kamu langsung begitu Fratello siap. Stay tuned!</p>
+            <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
+              <tr>
+                <td style="background:linear-gradient(135deg,#599e81,#03492c);border-radius:100px;padding:14px 32px;">
+                  <a href="https://hifratello.com" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">Lihat Halaman Fratello →</a>
+                </td>
+              </tr>
+            </table>
+            <hr style="border:none;border-top:1px solid #eee;margin:0 0 24px;">
+            <p style="margin:0;color:#bbb;font-size:12px;line-height:1.6;">Email ini dikirim karena kamu mendaftar di waitlist Fratello.<br>Kamu tidak perlu melakukan apa-apa lagi.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f9f9f7;padding:20px 40px;text-align:center;">
+            <p style="margin:0;color:#bbb;font-size:12px;">© 2026 Fratello · Nineten Studios</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+// ─── Route ────────────────────────────────────────────────────────────────────
 router.post('/', async (req: Request, res: Response) => {
+  if (!rateLimitOk(clientIp(req))) {
+    res.status(429).json({ error: 'Terlalu banyak percobaan. Silakan coba lagi nanti.' })
+    return
+  }
+
   const { email } = req.body as { email?: string }
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
@@ -40,49 +148,20 @@ router.post('/', async (req: Request, res: Response) => {
       },
     })
 
-    // 1. Notif ke admin
-    transporter.sendMail({
-      from: `"Fratello Waitlist" <${process.env.GMAIL_USER}>`,
-      to: process.env.GMAIL_USER,
-      subject: 'New Waitlist Sign-up — Fratello',
-      html: `
-        <div style="font-family:sans-serif;padding:24px;max-width:480px">
-          <h2 style="color:#03492c">New Waitlist Sign-up</h2>
-          <p>Ada yang baru daftar waitlist Fratello:</p>
-          <p style="font-size:20px;font-weight:bold;color:#03492c">${normalizedEmail}</p>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0"/>
-          <p style="font-size:13px;color:#6b7280">Sent automatically by Fratello backend</p>
-        </div>
-      `,
-    }).catch((err) => console.error('[WAITLIST] Admin email error:', err.message))
-
-    // 2. Konfirmasi ke pendaftar
-    transporter.sendMail({
-      from: `"Fratello" <${process.env.GMAIL_USER}>`,
-      to: normalizedEmail,
-      subject: 'Kamu sudah masuk waitlist Fratello!',
-      html: `
-        <div style="font-family:sans-serif;padding:32px;max-width:480px;background:#ffffff">
-          <div style="margin-bottom:24px">
-            <svg width="39" height="29" viewBox="0 0 39.2442 28.5414" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="7.13534" height="28.5414" fill="#03492c"/>
-              <path d="M39.2441 28.541H10.7031V0H39.2441V28.541ZM16.0547 14.2705H29.4336V18.7305H16.0547V23.1895H33.8926V5.35156H16.0547V14.2705Z" fill="#03492c"/>
-            </svg>
-          </div>
-          <h1 style="color:#03492c;font-size:28px;margin:0 0 12px">Kamu sudah masuk waitlist!</h1>
-          <p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px">
-            Makasih udah daftar. Kami akan kasih tau kamu duluan begitu Fratello siap diluncurkan.
-          </p>
-          <p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 32px">
-            Fratello bantu brand kamu direkomendasiin sama AI — ChatGPT, Gemini, Perplexity, dan Claude.
-          </p>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 20px"/>
-          <p style="color:#9ca3af;font-size:13px;margin:0">
-            Made possible by <strong>Nine Ten Studios</strong>
-          </p>
-        </div>
-      `,
-    }).catch((err) => console.error('[WAITLIST] Confirmation email error:', err.message))
+    Promise.all([
+      transporter.sendMail({
+        from: `"Fratello" <${process.env.GMAIL_USER}>`,
+        to: process.env.GMAIL_USER,
+        subject: `New Waitlist Sign-up, ${normalizedEmail}`,
+        html: ownerEmailHtml(normalizedEmail),
+      }),
+      transporter.sendMail({
+        from: `"Fratello" <${process.env.GMAIL_USER}>`,
+        to: normalizedEmail,
+        subject: 'Kamu udah masuk waitlist Fratello! 🎉',
+        html: userEmailHtml(normalizedEmail),
+      }),
+    ]).catch((err) => console.error('[WAITLIST] Email error:', err.message))
   }
 
   res.json({ success: true })
