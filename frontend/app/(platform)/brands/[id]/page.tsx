@@ -29,6 +29,19 @@ import {
   modelLabel, weekOverWeekDelta, aggregateSentiment, rateForModel, rateChipType, topOpportunities,
 } from '@/lib/analytics'
 
+interface ScanRun {
+  _id: string
+  startedAt: string
+  completedAt?: string
+  status: 'running' | 'completed' | 'failed'
+  totalJobs: number
+  completedJobs: number
+  summary?: {
+    overall: { total: number; mentioned: number; mentionRate: number }
+    byModel: { model: string; total: number; mentioned: number; mentionRate: number }[]
+  }
+}
+
 /**
  * Brand Overview, the "AI Visibility Report Card" (sidebar: Brand Insights >
  * Overview, ID "Ringkasan"). Leads with a headline visibility number + week
@@ -159,6 +172,7 @@ export default function BrandOverviewPage(): ReactElement {
 
   const [brand, setBrand] = useState<Brand | null>(null)
   const [data, setData] = useState<Analytics | null>(null)
+  const [scanHistory, setScanHistory] = useState<ScanRun[]>([])
   const [guidedLoading, setGuidedLoading] = useState<boolean>(false)
   const [scanning, setScanning] = useState<boolean>(false)
   const [scan, setScan] = useState<ScanState>({ status: 'idle', baseline: 0, target: 0, done: 0 })
@@ -167,6 +181,14 @@ export default function BrandOverviewPage(): ReactElement {
   const [error, setError] = useState<string>('')
   const pollsRef = useRef<number>(0)
 
+  const loadScanHistory = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ scans: ScanRun[] }>(`/brands/${id}/scans`)
+      setScanHistory(res.scans)
+    } catch { /* fail silently */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
   const loadData = useCallback(async (): Promise<Analytics | null> => {
     const [b, a] = await Promise.all([
       apiFetch<Brand>(`/brands/${id}`),
@@ -174,6 +196,7 @@ export default function BrandOverviewPage(): ReactElement {
     ])
     setBrand(b)
     setData(a)
+    void loadScanHistory()
     return a
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
@@ -191,15 +214,17 @@ export default function BrandOverviewPage(): ReactElement {
       pollsRef.current += 1
       apiFetch<Analytics>(`/brands/${id}/analytics`)
         .then((a) => {
-          if (ignore) return // guard against setState after unmount / status change
+          if (ignore) return
           const done = Math.max(0, a.overall.totalQueries - scan.baseline)
           if (a.overall.totalQueries >= scan.target) {
             setData(a)
             setScan((s) => ({ ...s, status: 'done', done: s.target - s.baseline }))
+            void loadScanHistory()
           } else if (pollsRef.current >= MAX_POLLS) {
             setData(a)
             setScan((s) => ({ ...s, status: 'slow', done }))
             setScanNotice(t.scanSlow)
+            void loadScanHistory()
           } else {
             setScan((s) => ({ ...s, done }))
           }
@@ -210,8 +235,6 @@ export default function BrandOverviewPage(): ReactElement {
       ignore = true
       clearInterval(timer)
     }
-    // apiFetch/t intentionally omitted: apiFetch identity changes each render
-    // (would reset the interval); id + scan fields fully key this effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scan.status, scan.baseline, scan.target, id])
 
@@ -500,6 +523,67 @@ export default function BrandOverviewPage(): ReactElement {
             }
           />
         </motion.div>
+      )}
+
+      {/* Scan History */}
+      {scanHistory.length > 0 && (
+        <Section title={lang === 'id' ? 'Riwayat Scan' : 'Scan History'}>
+          <Card className="w-full divide-y divide-neutral-primary">
+            {scanHistory.map((s) => {
+              const date = new Date(s.startedAt)
+              const dateStr = date.toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', {
+                day: 'numeric', month: 'short', year: 'numeric',
+              })
+              const timeStr = date.toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-US', {
+                hour: '2-digit', minute: '2-digit',
+              })
+              const isRunning = s.status === 'running'
+              const progress = s.totalJobs > 0 ? Math.round((s.completedJobs / s.totalJobs) * 100) : 0
+
+              return (
+                <div key={s._id} className="flex flex-wrap items-center gap-4 px-4 py-3">
+                  <div className="flex min-w-[160px] flex-1 flex-col gap-0.5">
+                    <span className="text-label-medium font-medium text-primary">{dateStr} · {timeStr}</span>
+                    {isRunning ? (
+                      <div className="flex items-center gap-2">
+                        <CircleNotch className="size-3 animate-spin text-brand-token" aria-hidden="true" />
+                        <span className="text-paragraph-small text-secondary">
+                          {s.completedJobs}/{s.totalJobs} checks
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-paragraph-small text-tertiary">{s.completedJobs}/{s.totalJobs} checks</span>
+                    )}
+                  </div>
+
+                  {s.summary && !isRunning ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {s.summary.byModel.map((m) => (
+                        <span key={m.model} className="flex items-center gap-1 text-paragraph-small text-secondary">
+                          <ModelLogo model={m.model as any} className="size-3.5" />
+                          <span className="tabular-nums">{m.mentionRate}%</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : isRunning ? (
+                    <div className="w-24"><ProgressBar progress={progress} thickness={4} /></div>
+                  ) : null}
+
+                  {s.summary && (
+                    <Chip
+                      type={s.summary.overall.mentionRate >= 60 ? 'success' : s.summary.overall.mentionRate >= 30 ? 'warning' : 'error'}
+                      size="sm"
+                      shape="rounded"
+                      className="tabular-nums"
+                    >
+                      {s.summary.overall.mentionRate}%
+                    </Chip>
+                  )}
+                </div>
+              )
+            })}
+          </Card>
+        </Section>
       )}
     </PageContainer>
   )

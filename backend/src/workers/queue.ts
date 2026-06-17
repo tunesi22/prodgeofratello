@@ -5,6 +5,7 @@ import type { LLMModel } from '../../../shared/constants'
 export interface LLMQueryJobData {
   promptId: string
   brandId: string
+  scanId: string
   brandName: string
   model: LLMModel
   promptText: string

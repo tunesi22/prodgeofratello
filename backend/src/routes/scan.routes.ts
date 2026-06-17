@@ -2,6 +2,7 @@ import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { triggerScan } from '../services/scan.service'
 import QueryResult from '../models/QueryResult'
+import Scan from '../models/Scan'
 import { LLM_MODELS } from '../../../shared/constants'
 import type { LLMModel } from '../../../shared/constants'
 
@@ -17,14 +18,66 @@ const scanLimiter = rateLimit({
 // POST /api/brands/:id/scan — trigger full scan
 router.post('/scan', scanLimiter, async (req, res) => {
   try {
-    const { jobsEnqueued } = await triggerScan(req.params.id)
-    res.status(202).json({
-      message: 'Scan started',
-      jobsEnqueued,
-    })
+    const { jobsEnqueued, scanId } = await triggerScan(req.params.id)
+    res.status(202).json({ message: 'Scan started', jobsEnqueued, scanId })
   } catch (err: any) {
     console.error('[SCAN ROUTE] POST /api/brands/:id/scan:', err.message)
     res.status(500).json({ error: err.message || 'Failed to start scan' })
+  }
+})
+
+// GET /api/brands/:id/scans — scan history
+router.get('/scans', async (req, res) => {
+  try {
+    const brandId = req.params.id
+    const limit = Math.min(parseInt((req.query.limit as string) || '20', 10), 50)
+
+    const scans = await Scan.find({ brandId })
+      .sort({ startedAt: -1 })
+      .limit(limit)
+      .lean()
+
+    // Attach per-scan mention summary
+    const withSummary = await Promise.all(
+      scans.map(async (scan) => {
+        const byModel = await Promise.all(
+          LLM_MODELS.map(async (model: LLMModel) => {
+            const [total, mentioned] = await Promise.all([
+              QueryResult.countDocuments({ scanId: scan._id, model }),
+              QueryResult.countDocuments({ scanId: scan._id, model, mentioned: true }),
+            ])
+            return {
+              model,
+              total,
+              mentioned,
+              mentionRate: total > 0 ? Math.round((mentioned / total) * 100) : 0,
+            }
+          })
+        )
+
+        const overall = byModel.reduce(
+          (acc, m) => ({ total: acc.total + m.total, mentioned: acc.mentioned + m.mentioned }),
+          { total: 0, mentioned: 0 }
+        )
+
+        return {
+          ...scan,
+          summary: {
+            overall: {
+              total: overall.total,
+              mentioned: overall.mentioned,
+              mentionRate: overall.total > 0 ? Math.round((overall.mentioned / overall.total) * 100) : 0,
+            },
+            byModel,
+          },
+        }
+      })
+    )
+
+    res.json({ scans: withSummary })
+  } catch (err: any) {
+    console.error('[SCAN ROUTE] GET /api/brands/:id/scans:', err.message)
+    res.status(500).json({ error: 'Failed to fetch scan history' })
   }
 })
 
@@ -32,12 +85,13 @@ router.post('/scan', scanLimiter, async (req, res) => {
 router.get('/results', async (req, res) => {
   try {
     const brandId = req.params.id
-    const { model, page = '1', limit = '50', mentioned } = req.query
+    const { model, page = '1', limit = '50', mentioned, scanId } = req.query
 
     const filter: any = { brandId }
     if (model) filter.model = model
     if (mentioned === 'true') filter.mentioned = true
     if (mentioned === 'false') filter.mentioned = false
+    if (scanId) filter.scanId = scanId
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string)
 
@@ -57,7 +111,7 @@ router.get('/results', async (req, res) => {
   }
 })
 
-// GET /api/brands/:id/mention-rate — mention rate per model
+// GET /api/brands/:id/mention-rate — mention rate per model (all time)
 router.get('/mention-rate', async (req, res) => {
   try {
     const brandId = req.params.id
