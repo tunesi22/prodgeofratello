@@ -1,5 +1,55 @@
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { FratelloLogo } from '@/components/onboarding/FratelloLogo'
 
-export default function RootPage() {
-  redirect('/brands')
+export default async function RootPage() {
+  const cookieStore = await cookies()
+  if (cookieStore.get('geo_token')) {
+    redirect('/brands')
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-primary px-6 text-center">
+      <div className="flex flex-col items-center gap-8 max-w-lg">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <FratelloLogo className="h-8 w-12" />
+          <span className="font-serif text-[28px] tracking-[-0.5px] text-primary">Fratello</span>
+        </div>
+
+        {/* Hero copy */}
+        <div className="flex flex-col gap-3">
+          <h1 className="text-h2 font-semibold text-primary leading-tight">
+            Brand kamu disebut AI?
+          </h1>
+          <p className="text-paragraph-big text-secondary">
+            Track seberapa sering brand kamu muncul di jawaban ChatGPT, Gemini, Perplexity, dan Claude.
+            Generate konten yang menutup gap — otomatis.
+          </p>
+        </div>
+
+        {/* CTA */}
+        <div className="flex flex-col items-center gap-3 w-full">
+          <Link
+            href="/sign-in"
+            className="inline-flex w-full max-w-xs items-center justify-center rounded-token-8 bg-brand-green px-6 py-3 text-action-medium font-medium text-white transition-opacity hover:opacity-90"
+          >
+            Masuk ke Platform
+          </Link>
+          <Link
+            href="/sign-up"
+            className="text-paragraph-medium text-brand-token underline-offset-2 hover:underline transition-colors"
+          >
+            Belum punya akun? Daftar gratis
+          </Link>
+        </div>
+
+        {/* Models */}
+        <p className="text-label-medium text-tertiary">
+          Didukung oleh ChatGPT · Gemini · Perplexity · Claude
+        </p>
+      </div>
+    </main>
+  )
 }
