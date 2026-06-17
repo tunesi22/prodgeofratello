@@ -30,7 +30,11 @@ export function useActiveProject(): {
   const pathname = usePathname()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [storedId, setStoredId] = useState<string | null>(null)
+  // Read synchronously so the first render already has the right id,
+  // avoiding the flash where every nav item resolves to /brands.
+  const [storedId, setStoredId] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
+  )
 
   const load = useCallback((): void => {
     fetch('/api/brands', { credentials: 'include' })
@@ -41,7 +45,6 @@ export function useActiveProject(): {
   }, [])
 
   useEffect(() => {
-    setStoredId(localStorage.getItem(STORAGE_KEY))
     load()
   }, [load])
 
@@ -60,9 +63,11 @@ export function useActiveProject(): {
 
   const activeId = useMemo(() => {
     if (urlId) return urlId
-    if (storedId && projects.some((p) => p._id === storedId)) return storedId
+    // While projects are still loading, trust storedId without validation
+    // so nav items resolve to real hrefs instead of all collapsing to /brands.
+    if (storedId && (loading || projects.some((p) => p._id === storedId))) return storedId
     return projects[0]?._id ?? null
-  }, [urlId, storedId, projects])
+  }, [urlId, storedId, projects, loading])
 
   const setActive = useCallback((id: string): void => {
     localStorage.setItem(STORAGE_KEY, id)
