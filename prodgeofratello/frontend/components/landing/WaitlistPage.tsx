@@ -48,6 +48,7 @@ export function WaitlistPage() {
     if (/\s/.test(normalizedEmail)) { setValidationMessage("Email tidak boleh memakai spasi."); animateValidationError(); return; }
     if (!emailPattern.test(normalizedEmail)) { setValidationMessage("Masukkan format email yang valid."); animateValidationError(); return; }
 
+    let alreadyRegistered = false;
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
@@ -55,6 +56,8 @@ export function WaitlistPage() {
         body: JSON.stringify({ email: normalizedEmail }),
       });
       if (!res.ok) { setValidationMessage("Gagal daftar, coba lagi."); animateValidationError(); return; }
+      const data = await res.json();
+      alreadyRegistered = !!data.alreadyRegistered;
     } catch {
       setValidationMessage("Gagal daftar, coba lagi.");
       animateValidationError();
@@ -62,7 +65,7 @@ export function WaitlistPage() {
     }
 
     setValidationMessage("");
-    setSuccessMessage("Berhasil. Kamu sudah masuk waitlist.");
+    setSuccessMessage(alreadyRegistered ? "Email kamu sudah terdaftar di waitlist." : "Berhasil. Kamu sudah masuk waitlist.");
     setEmail("");
     if (restoreFormTimer.current) window.clearTimeout(restoreFormTimer.current);
 
