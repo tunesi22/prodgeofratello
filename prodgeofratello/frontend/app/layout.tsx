@@ -20,9 +20,49 @@ const lora = Lora({
   display: 'swap',
 })
 
+const BASE_URL = 'https://hifratello.com'
+
 export const metadata: Metadata = {
-  title: 'Fratello, GEO Platform',
-  description: 'Track and optimize your brand visibility across LLMs',
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: 'Fratello — GEO Platform',
+    template: '%s | Fratello',
+  },
+  description: 'Track seberapa sering brand kamu disebut oleh ChatGPT, Gemini, Perplexity, dan Claude. Otomatis generate konten yang menutup gap — dan buat AI merekomendasikan brandmu.',
+  keywords: ['GEO', 'Generative Engine Optimization', 'brand visibility', 'AI mentions', 'ChatGPT', 'Gemini', 'Perplexity', 'brand tracking', 'LLM optimization'],
+  authors: [{ name: 'Fratello', url: BASE_URL }],
+  creator: 'Fratello',
+  publisher: 'Fratello',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
+  openGraph: {
+    type: 'website',
+    url: BASE_URL,
+    siteName: 'Fratello',
+    title: 'Fratello — GEO Platform',
+    description: 'Track seberapa sering brand kamu disebut AI. Generate konten otomatis yang menutup gap visibilitas brandmu di ChatGPT, Gemini, dan Perplexity.',
+    locale: 'id_ID',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Fratello GEO Platform',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Fratello — GEO Platform',
+    description: 'Track seberapa sering brand kamu disebut AI. Generate konten otomatis yang menutup gap visibilitas brandmu.',
+    images: ['/og-image.png'],
+  },
+  alternates: {
+    canonical: BASE_URL,
+  },
 }
 
 // Applies the persisted theme before first paint to avoid a flash.
