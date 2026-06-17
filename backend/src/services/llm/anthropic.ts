@@ -5,7 +5,7 @@ import { rateLimiters } from '../../utils/rate-limiter'
 const BASE_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-haiku-4-5-20251001'
 
-export async function query(prompt: string): Promise<string> {
+export async function query(prompt: string, maxTokens = 1024): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('[ANTHROPIC] ANTHROPIC_API_KEY is not set')
 
@@ -16,7 +16,7 @@ export async function query(prompt: string): Promise<string> {
       BASE_URL,
       {
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }],
       },
       {

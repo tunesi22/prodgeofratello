@@ -5,3 +5,7 @@ dist/
 *.log
 .DS_Store
 .env.local
+prodgeofratello/frontend/node_modules
+prodgeofratello/frontend/.next
+prodgeofratello/backend/node_modules
+prodgeofratello/backend/dist
