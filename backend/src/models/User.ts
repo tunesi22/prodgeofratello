@@ -23,7 +23,7 @@ const UserSchema = new Schema<IUserDoc>(
   {
     clerkUserId: { type: String, required: true, unique: true, index: true },
     email: { type: String, default: '' },
-    plan: { type: String, enum: ['starter', 'pro', 'agency'], default: 'starter' },
+    plan: { type: String, enum: ['waitlist', 'starter', 'pro', 'agency'], default: 'starter' },
     stripeCustomerId: { type: String },
     stripeSubscriptionId: { type: String },
     midtransOrderId: { type: String },

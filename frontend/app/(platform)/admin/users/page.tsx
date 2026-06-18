@@ -21,7 +21,7 @@ import { Button, Chip, IconButton, Input } from '@/components/ui'
 import { PlusSmallIcon, UsersIcon } from '@/components/dashboard/nav-icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 
-type Plan = 'starter' | 'pro' | 'agency'
+type Plan = 'waitlist' | 'starter' | 'pro' | 'agency'
 
 interface AdminUser {
   _id: string
@@ -139,12 +139,14 @@ function relativeTime(t: Copy, date?: string): string {
  * starter → neutral, pro → brand, agency → warning.
  */
 const PLAN_AVATAR: Record<Plan, string> = {
+  waitlist: 'bg-display-info text-info-token',
   starter: 'bg-display-neutral text-primary',
   pro: 'bg-display-brand text-brand-token',
   agency: 'bg-display-warning text-warning-token',
 }
 
 const PLAN_SELECT: Record<Plan, string> = {
+  waitlist: 'bg-display-info text-info-token border-info-token',
   starter: 'bg-display-neutral text-primary border-neutral-tertiary',
   pro: 'bg-display-brand text-brand-token border-brand-token',
   agency: 'bg-display-warning text-warning-token border-warning-token',
@@ -153,6 +155,7 @@ const PLAN_SELECT: Record<Plan, string> = {
 // Plan names stay untranslated; the "all" label comes from COPY (label: null).
 const PLAN_FILTERS: Array<{ value: 'all' | Plan; label: string | null }> = [
   { value: 'all', label: null },
+  { value: 'waitlist', label: 'Waitlist' },
   { value: 'starter', label: 'Starter' },
   { value: 'pro', label: 'Pro' },
   { value: 'agency', label: 'Agency' },
@@ -193,7 +196,7 @@ export default function AdminUsersPage(): ReactElement {
   const [showCreate, setShowCreate] = useState<boolean>(false)
   const [newEmail, setNewEmail] = useState<string>('')
   const [newPassword, setNewPassword] = useState<string>('')
-  const [newPlan, setNewPlan] = useState<Plan>('starter')
+  const [newPlan, setNewPlan] = useState<Plan>('waitlist')
   const [creating, setCreating] = useState<boolean>(false)
   const [createError, setCreateError] = useState<string>('')
   // Per-row in-flight ids (blocks double-submit + disables the row controls).
@@ -497,6 +500,7 @@ export default function AdminUsersPage(): ReactElement {
                             PLAN_SELECT[user.plan],
                           )}
                         >
+                          <option value="waitlist">Waitlist</option>
                           <option value="starter">Starter</option>
                           <option value="pro">Pro</option>
                           <option value="agency">Agency</option>
@@ -619,6 +623,7 @@ export default function AdminUsersPage(): ReactElement {
                         'transition-colors duration-200 ease-standard focus:border-brand-token focus-visible:outline-none',
                       )}
                     >
+                      <option value="waitlist">Waitlist</option>
                       <option value="starter">Starter</option>
                       <option value="pro">Pro</option>
                       <option value="agency">Agency</option>

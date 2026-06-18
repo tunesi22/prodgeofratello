@@ -10,10 +10,11 @@ export type ArticleFormat = (typeof ARTICLE_FORMATS)[number]
 export const ARTICLE_STATUSES = ['draft', 'ready'] as const
 export type ArticleStatus = (typeof ARTICLE_STATUSES)[number]
 
-export const PLAN_TIERS = ['starter', 'pro', 'agency'] as const
+export const PLAN_TIERS = ['waitlist', 'starter', 'pro', 'agency'] as const
 export type PlanTier = (typeof PLAN_TIERS)[number]
 
 export const PLAN_LIMITS: Record<PlanTier, { prompts: number | null; models: number; articlesPerMonth: number | null }> = {
+  waitlist: { prompts: 0, models: 0, articlesPerMonth: 0 },
   starter: { prompts: 25, models: 3, articlesPerMonth: 4 },
   pro: { prompts: 100, models: 4, articlesPerMonth: 8 },
   agency: { prompts: null, models: 4, articlesPerMonth: null },
