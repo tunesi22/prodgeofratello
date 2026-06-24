@@ -6,16 +6,12 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/geo-pl
 
 let client: MongoClient | null = null;
 
-async function getDb() {
+async function getCollection() {
   if (!client) {
     client = new MongoClient(MONGODB_URI);
     await client.connect();
   }
-  return client.db();
-}
-
-async function getCollection() {
-  return (await getDb()).collection("waitlist");
+  return client.db().collection("waitlist");
 }
 
 const RATE_LIMIT_MAX = 5;
@@ -170,26 +166,7 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    const db = await getDb();
-    const now = new Date();
-
-    await col.insertOne({ email: normalizedEmail, registeredAt: now });
-
-    const usersCol = db.collection("users");
-    const existingUser = await usersCol.findOne({ email: normalizedEmail });
-    if (!existingUser) {
-      await usersCol.insertOne({
-        clerkUserId: `waitlist_${normalizedEmail}`,
-        email: normalizedEmail,
-        plan: "waitlist",
-        isAdmin: false,
-        alertThreshold: 20,
-        alertEmail: true,
-        alertWhatsApp: false,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
+    await col.insertOne({ email: normalizedEmail, registeredAt: new Date() });
 
     return NextResponse.json({ success: true });
   } catch (err) {

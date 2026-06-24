@@ -18,6 +18,7 @@ import paymentRoutes from './src/routes/payment.routes'
 import publicationRoutes from './src/routes/publication.routes'
 import adminRoutes from './src/routes/admin.routes'
 import authRoutes from './src/routes/auth.routes'
+import waitlistRoutes from './src/routes/waitlist.routes'
 
 dotenv.config({ path: '../.env' })
 
@@ -53,6 +54,7 @@ app.get('/health', (_req, res) => {
 })
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+app.use('/api/waitlist', waitlistRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/payment', paymentRoutes)

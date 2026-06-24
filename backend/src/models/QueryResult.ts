@@ -4,6 +4,7 @@ import type { LLMModel, Sentiment } from '../../../shared/constants'
 export interface IQueryResultDoc extends Document {
   promptId: mongoose.Types.ObjectId
   brandId: mongoose.Types.ObjectId
+  scanId: mongoose.Types.ObjectId
   model: LLMModel
   response: string
   mentioned: boolean
@@ -16,6 +17,7 @@ const QueryResultSchema = new Schema<IQueryResultDoc>(
   {
     promptId: { type: Schema.Types.ObjectId, ref: 'Prompt', required: true, index: true },
     brandId: { type: Schema.Types.ObjectId, ref: 'Brand', required: true, index: true },
+    scanId: { type: Schema.Types.ObjectId, ref: 'Scan', required: true, index: true },
     model: {
       type: String,
       enum: ['openai', 'gemini', 'perplexity', 'anthropic'],

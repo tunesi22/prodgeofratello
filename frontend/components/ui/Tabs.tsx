@@ -10,7 +10,7 @@ import { DURATION, EASE_STANDARD } from '@/lib/motion'
  *
  * Tab item states (single `Style` variant):
  * - Active:   label `text-brand-token` + 1px bottom underline in `icon-brand`.
- * - Idle:     label `text-secondary-invert`, no underline.
+ * - Idle:     label `text-secondary`, no underline.
  * - Disabled: label `text-disabled`, no underline, no pointer/press response.
  *
  * Anatomy per spec: flex row, centered; padding 16px × 8px (wrap-16 / wrap-8);
@@ -140,7 +140,7 @@ export function Tabs({
                 ? 'text-brand-token'
                 : item.disabled
                   ? 'text-disabled'
-                  : 'text-secondary-invert'
+                  : 'text-secondary'
             )}
           >
             {item.label}

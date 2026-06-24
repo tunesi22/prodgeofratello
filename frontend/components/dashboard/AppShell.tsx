@@ -5,7 +5,6 @@ import type { ReactElement, ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Chip } from '@/components/ui/Chip'
 import { FratelloLogo } from '@/components/onboarding/FratelloLogo'
 import { CloseIcon } from '@/components/onboarding/icons'
 import { ProgressRing } from './ProgressRing'
@@ -20,21 +19,23 @@ import {
   SquaresFourIcon,
   PromptsIcon,
   CitationsIcon,
+  CitationIcon,
   ChartBarsIcon,
   ResearchIcon,
   ToolsIcon,
   SuggestedIcon,
-  TodoIcon,
+  KnowledgeIcon,
+  PublicationsIcon,
   ProjectsIcon,
   BillingIcon,
   UsageIcon,
   BoostIcon,
   GearIcon,
   UsersIcon,
-  LogoutIcon,
   ChevronUpDownIcon,
   PlusSmallIcon,
 } from './nav-icons'
+import { AccountSettingsModal } from './AccountSettingsModal'
 
 interface CurrentUser {
   _id: string
@@ -77,6 +78,7 @@ const SECTIONS: NavSection[] = [
       { labelKey: 'overview', icon: SquaresFourIcon, href: projectHref('') },
       { labelKey: 'prompts', icon: PromptsIcon, href: projectHref('/prompts') },
       { labelKey: 'citations', icon: CitationsIcon, href: projectHref('/results') },
+      { labelKey: 'citation', icon: CitationIcon, href: projectHref('/citations') },
       { labelKey: 'agentsInsights', icon: ChartBarsIcon, href: projectHref('/analytics') },
     ],
   },
@@ -84,17 +86,18 @@ const SECTIONS: NavSection[] = [
     headingKey: 'aiVisibility',
     items: [
       { labelKey: 'research', icon: ResearchIcon, href: projectHref('/research') },
-      { labelKey: 'tools', icon: ToolsIcon, href: projectHref('/tools') },
+      { labelKey: 'suggested', icon: SuggestedIcon, href: projectHref('/articles') },
+      { labelKey: 'knowledge', icon: KnowledgeIcon, href: projectHref('/knowledge') },
     ],
   },
   {
     headingKey: 'recommendations',
     items: [
+      { labelKey: 'tools', icon: ToolsIcon, href: projectHref('/tools') },
       // "Boost your AI Ranking" elevated here from Admin: it is a core
       // recommendation engine (semantic gaps -> how to improve), not account admin.
       { labelKey: 'boost', icon: BoostIcon, href: projectHref('/semantic') },
-      { labelKey: 'suggested', icon: SuggestedIcon, href: projectHref('/articles') },
-      { labelKey: 'todo', icon: TodoIcon, href: projectHref('/distribution') },
+      { labelKey: 'publications', icon: PublicationsIcon, href: projectHref('/distribution') },
     ],
   },
   {
@@ -133,12 +136,13 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
   const [collapsed, setCollapsed] = useState(false)
   const [gsDismissed, setGsDismissed] = useState(false)
   const [switcherOpen, setSwitcherOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   // Route transitions aren't instant; highlighting the clicked target right
   // away (instead of waiting for the new page) removes the double-highlight
   // flash where the old item stayed active during the load.
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const switcherRef = useRef<HTMLDivElement>(null)
-  const { projects, activeId, activeProject, setActive } = useActiveProject()
+  const { projects, loading, activeId, activeProject, setActive } = useActiveProject()
   const progress = useGettingStartedProgress(activeId, projects.length > 0)
 
   useEffect(() => {
@@ -159,12 +163,15 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
     setGsDismissed(true)
   }
 
+  // Fetch the user once and keep it across navigations. Refetch only while it is
+  // still missing (e.g. right after login) instead of on every pathname change.
   useEffect(() => {
+    if (user != null) return
     fetch('/api/user/me', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then(setUser)
       .catch(() => {})
-  }, [pathname])
+  }, [pathname, user])
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent): void {
@@ -185,13 +192,29 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
 
   async function logout(): Promise<void> {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    setUser(null)
     router.push('/sign-in')
   }
 
-  // Unauthenticated (e.g. /sign-in renders inside this layout): no shell.
-  if (!user) return <>{children}</>
+  // Auth pages (/sign-in, /sign-up) never get the dashboard shell, even when a
+  // session already exists; unauthenticated views get no shell either.
+  const isAuthRoute = pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up')
+  if (isAuthRoute || !user) return <>{children}</>
 
   const userName = user.email.split('@')[0]
+  // No name field on the user yet; derive a readable name from the email handle.
+  const displayName = userName
+    .split(/[._-]+/)
+    .map((s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s))
+    .join(' ')
+  const planLabel = PLAN_LABELS[user.plan] ?? user.plan
+
+  // All Projects (no project selected yet): no sidebar and no top navbar. The
+  // page itself carries the account controls (in its welcome banner).
+  const isAllProjects = pathname === '/brands' || pathname === '/brands/new'
+  if (isAllProjects) {
+    return <div className="min-h-screen bg-primary transition-colors duration-300 ease-standard">{children}</div>
+  }
 
   return (
     <div className="flex min-h-screen bg-primary transition-colors duration-300 ease-standard">
@@ -368,12 +391,38 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
                   )}
                   <div className="flex w-full flex-col gap-1">
                     {visible.map((item) => {
+                      const isProjectScoped = typeof item.href === 'function'
+                      // No active project (e.g. a fresh account): the project-scoped
+                      // destinations don't exist yet, so they all fall back to /brands.
+                      // Don't let them light up as active; disable them once loading
+                      // settles (plain during load so there is no flash).
+                      const noProject = isProjectScoped && activeId === null
+                      const disabled = noProject && !loading
                       const href = resolveHref(item, activeId)
                       const label = copy.nav[item.labelKey]
                       // pendingHref makes the clicked target active immediately,
                       // so the old item never stays highlighted during the load.
-                      const active = isItemActive(href, pendingHref ?? pathname ?? '')
+                      const active = !noProject && isItemActive(href, pendingHref ?? pathname ?? '')
                       const Icon = item.icon
+
+                      if (disabled) {
+                        return (
+                          <span
+                            key={item.labelKey}
+                            aria-disabled="true"
+                            title={collapsed ? label : undefined}
+                            className={cn(
+                              'flex w-full cursor-not-allowed items-center gap-2 rounded-lg px-2 py-1',
+                              'text-action-small font-medium text-tertiary',
+                              collapsed && 'justify-center px-0',
+                            )}
+                          >
+                            <Icon className="size-5 shrink-0" />
+                            {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
+                          </span>
+                        )
+                      }
+
                       return (
                         <Link
                           key={item.labelKey}
@@ -402,65 +451,60 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
           </nav>
         </div>
 
-        {/* Footer card: user + tier, account settings, logout.
-            Collapsed rail is 64px; margins/padding tighten so the avatar fits. */}
+        {/* Footer: avatar + name + plan; the gear opens the account settings
+            modal (which also holds logout). */}
         <div
           className={cn(
-            'mt-0 flex shrink-0 flex-col rounded-token-16 border border-neutral-primary',
-            collapsed ? 'm-2 gap-2 p-2' : 'm-4 gap-3 p-3',
+            'mt-0 flex shrink-0 items-center gap-2.5',
+            collapsed ? 'mx-2 mb-2 justify-center p-2' : 'mx-4 mb-4 p-2',
           )}
         >
-          <div className={cn('flex w-full items-center gap-2', collapsed && 'justify-center')}>
-            {collapsed ? (
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-circle bg-display-brand text-label-medium font-medium text-brand-token">
-                {userName.charAt(0).toUpperCase()}
-              </span>
-            ) : (
-              <>
-                <span className="min-w-0 flex-1 truncate text-label-big font-medium text-primary" title={user.email}>
-                  {userName}
-                </span>
-                <Chip type="neutral" size="sm" shape="squared">
-                  {copy.footer.tier(PLAN_LABELS[user.plan] ?? user.plan)}
-                </Chip>
-              </>
-            )}
-          </div>
-          <div className="flex w-full flex-col gap-1">
-            <Link
-              href="/settings"
-              onClick={() => beginNav('/settings')}
-              title={collapsed ? copy.footer.accountSettings : undefined}
-              className={cn(
-                'flex w-full items-center gap-2 rounded-lg py-1 text-action-small font-medium transition-colors duration-200 ease-standard',
-                collapsed && 'justify-center',
-                (pendingHref ?? pathname)?.startsWith('/settings')
-                  ? 'text-brand-token'
-                  : 'text-primary hover:bg-btn-ghost-pressed',
-              )}
-            >
-              <GearIcon className="size-5 shrink-0" />
-              {!collapsed && <span>{copy.footer.accountSettings}</span>}
-            </Link>
+          {collapsed ? (
             <button
               type="button"
-              onClick={() => void logout()}
-              title={collapsed ? copy.footer.logout : undefined}
-              className={cn(
-                'flex w-full items-center gap-2 rounded-lg py-1 text-left text-action-small font-medium text-primary',
-                'transition-colors duration-200 ease-standard hover:bg-btn-ghost-pressed',
-                collapsed && 'justify-center',
-              )}
+              onClick={() => setSettingsOpen(true)}
+              title={user.email}
+              aria-label={copy.footer.accountSettings}
+              className="flex size-7 shrink-0 items-center justify-center rounded-circle bg-display-brand text-label-medium font-medium text-brand-token"
             >
-              <LogoutIcon className="size-5 shrink-0" />
-              {!collapsed && <span>{copy.footer.logout}</span>}
+              {userName.charAt(0).toUpperCase()}
             </button>
-          </div>
+          ) : (
+            <>
+              <span
+                aria-hidden="true"
+                className="flex size-9 shrink-0 items-center justify-center rounded-circle bg-display-brand text-label-big font-medium text-brand-token"
+              >
+                {userName.charAt(0).toUpperCase()}
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col" title={user.email}>
+                <span className="truncate text-action-small font-semibold text-primary">{displayName}</span>
+                <span className="truncate text-label-medium text-tertiary">{planLabel}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                aria-label={copy.footer.accountSettings}
+                className="flex size-8 shrink-0 items-center justify-center rounded-token-8 text-icon-dark-gray transition-colors duration-200 ease-standard hover:bg-btn-ghost-pressed hover:text-primary"
+              >
+                <GearIcon className="size-5" />
+              </button>
+            </>
+          )}
         </div>
       </aside>
 
       {/* ---------- Content ---------- */}
       <main className="min-h-screen min-w-0 flex-1 overflow-y-auto">{children}</main>
+
+      {settingsOpen && (
+        <AccountSettingsModal
+          email={user.email}
+          plan={user.plan}
+          onLogout={() => void logout()}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   )
 }

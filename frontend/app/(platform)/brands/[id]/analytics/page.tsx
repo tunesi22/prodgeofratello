@@ -17,6 +17,7 @@ import {
 } from '@/components/dashboard/primitives'
 import { SortableTable, type Column } from '@/components/dashboard/SortableTable'
 import { DeltaBadge } from '@/components/dashboard/DeltaBadge'
+import { DataFreshness } from '@/components/dashboard/DataFreshness'
 import { ModelLogo, modelKeyByLabel, getModelMark } from '@/components/dashboard/ModelLogo'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Button, Chip, Popover } from '@/components/ui'
@@ -138,7 +139,7 @@ const COPY = {
     statBest: 'Model Terbaik',
     statWorst: 'Model Terlemah',
     vsLastWeek: 'vs minggu lalu',
-    reportButton: 'Laporan',
+    reportButton: 'Buat Laporan',
     gapSuffix: (g: number): string => `selisih ${g}% antar model`,
     secByModel: 'Mention Rate per Model',
     secByModelHint: 'Seberapa sering brand Anda disebut dalam jawaban tiap model AI.',
@@ -192,7 +193,7 @@ const COPY = {
     statBest: 'Best Model',
     statWorst: 'Worst Model',
     vsLastWeek: 'vs last week',
-    reportButton: 'Report',
+    reportButton: 'Generate Report',
     gapSuffix: (g: number): string => `${g}% spread across models`,
     secByModel: 'Mention Rate by Model',
     secByModelHint: 'How often your brand shows up in the answers from each AI model.',
@@ -360,21 +361,26 @@ export default function AgentsInsightsPage(): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  // Filters + report only make sense once there is data to filter/report on.
+  const hasData = data != null && data.overall.totalQueries > 0
   const header = (
     <PageHeader
       title={t.title}
       subtitle={t.subtitle}
       actions={
-        <>
-          <Button
-            type="primary-outlined"
-            size="sm"
-            onClick={() => router.push(`/brands/${id}/report`)}
-          >
-            {t.reportButton}
-          </Button>
-          <TimeframeSelector t={t} />
-        </>
+        hasData ? (
+          <>
+            <DataFreshness brandId={id} />
+            <Button
+              type="primary-outlined"
+              size="sm"
+              onClick={() => router.push(`/brands/${id}/report`)}
+            >
+              {t.reportButton}
+            </Button>
+            <TimeframeSelector t={t} />
+          </>
+        ) : undefined
       }
     />
   )

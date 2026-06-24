@@ -159,6 +159,8 @@ function RouteLoadingWatcher({ start, done }: TopLoadingContextValue): null {
       if (url.origin !== window.location.origin) return
       // Same path + query means no navigation (or just a hash) -> no bar.
       if (url.pathname === window.location.pathname && url.search === window.location.search) return
+      // No top bar on the auth screens (sign-in/sign-up); they animate in-page.
+      if (/^\/sign-(in|up)(\/|$)/.test(url.pathname)) return
       start()
     }
     document.addEventListener('click', onClick, { capture: true })

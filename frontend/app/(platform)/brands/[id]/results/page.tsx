@@ -20,6 +20,7 @@ import {
 import { Button, Chip, IconButton, Popover, Tabs } from '@/components/ui'
 import type { ChipType, TabItem } from '@/components/ui'
 import { CitationsIcon } from '@/components/dashboard/nav-icons'
+import { DataFreshness } from '@/components/dashboard/DataFreshness'
 import { LockIcon } from '@/components/onboarding/icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import { ModelLogo } from '@/components/dashboard/ModelLogo'
@@ -57,7 +58,18 @@ const MODEL_LABELS: Record<string, string> = {
 /** Page copy, both languages. No dashes; plain wording for first-time users. */
 const COPY = {
   id: {
-    title: 'Jawaban AI',
+    title: 'Penyebutan Brand',
+    tabMentions: 'Penyebutan Brand',
+    tabCitations: 'Sitasi',
+    viewTabsAria: 'Penyebutan brand atau sitasi',
+    citTitle: 'Sitasi (Sumber AI)',
+    citSubtitle: 'Sumber dan URL yang dirujuk AI saat menjawab, berbeda dari penyebutan brand.',
+    citSoon: 'Segera hadir',
+    citHeading: 'Lihat sumber yang dirujuk AI',
+    citBody:
+      'Sitasi menampilkan situs dan URL yang AI ambil sebagai rujukan dalam jawabannya, misalnya sumber yang dikutip Perplexity atau ChatGPT. Berbeda dari Penyebutan Brand: brand Anda bisa disebut tanpa situs Anda dirujuk, atau sebaliknya.',
+    citNote:
+      'Tampilan ini sedang disiapkan. Backend perlu mengekstrak tautan sitasi dari jawaban AI yang sudah tersimpan sebelum data ini bisa muncul.',
     subtitleBase: 'Jawaban asli dari AI tempat brand Anda muncul.',
     subtitleWithData: (total: number): string =>
       `Jawaban asli dari AI tempat brand Anda muncul. Total ${total} jawaban terkumpul. Klik baris mana saja untuk melihat jawaban lengkapnya.`,
@@ -99,7 +111,18 @@ const COPY = {
       ] ?? s,
   },
   en: {
-    title: 'Citations',
+    title: 'Mentions',
+    tabMentions: 'Mentions',
+    tabCitations: 'Citations',
+    viewTabsAria: 'Brand mentions or citations',
+    citTitle: 'Citations (AI Sources)',
+    citSubtitle: 'The sources and URLs the AI references when it answers, different from brand mentions.',
+    citSoon: 'Coming soon',
+    citHeading: 'See the sources AI references',
+    citBody:
+      'Citations show the websites and URLs the AI pulls from as references in its answers, for example the sources Perplexity or ChatGPT cite. This is different from Mentions: your brand can be mentioned without your site being cited, or the other way around.',
+    citNote:
+      'This view is being built. The backend needs to extract citation links from the stored AI answers before this data can appear.',
     subtitleBase: 'The actual AI answers where your brand shows up.',
     subtitleWithData: (total: number): string =>
       `The actual AI answers where your brand shows up. ${total} answers collected. Click any row to see the full answer.`,
@@ -372,7 +395,7 @@ function ResultPanel({
   )
 }
 
-export default function CitationsPage(): ReactElement {
+export default function MentionsPage(): ReactElement {
   const { id } = useParams<{ id: string }>()
   const apiFetch = useApiFetch()
   const { lang } = useLanguage()
@@ -453,6 +476,7 @@ export default function CitationsPage(): ReactElement {
       <PageHeader
         title={t.title}
         subtitle={data ? t.subtitleWithData(data.total) : t.subtitleBase}
+        actions={<DataFreshness brandId={id} />}
       />
 
       {/* Model tab bar (with baseline) + locked upcoming models; mention filter below */}
@@ -467,7 +491,7 @@ export default function CitationsPage(): ReactElement {
           />
           {LOCKED_MODELS.map((name) => (
             <Popover key={name} label={name} content={t.modelLocked} side="bottom">
-              <span className="inline-flex items-center gap-1.5 px-4 py-2 text-label-big font-medium">
+              <span className="inline-flex items-center gap-1.5 px-4 py-2 text-label-big font-medium text-tertiary">
                 <LockIcon className="size-4" />
                 {name}
               </span>

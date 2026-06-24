@@ -27,6 +27,12 @@ export interface InputProps
   iconRight?: React.ReactNode
   /** Trailing inline suffix text inside the field (e.g. a unit like "CDD"). */
   additionalText?: string
+  /**
+   * Interactive trailing control (e.g. a show/hide password button). Unlike
+   * `iconRight`, this slot is NOT wrapped in aria-hidden, so a focusable button
+   * placed here stays in the accessibility tree and the keyboard tab order.
+   */
+  trailingAction?: React.ReactNode
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -39,6 +45,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       iconLeft,
       iconRight,
       additionalText,
+      trailingAction,
       className,
       id,
       'aria-describedby': ariaDescribedBy,
@@ -114,6 +121,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               className="flex size-5 shrink-0 items-center justify-center text-icon-dark-gray"
             >
               {iconRight}
+            </span>
+          )}
+
+          {trailingAction != null && (
+            <span className="flex shrink-0 items-center justify-center text-icon-dark-gray">
+              {trailingAction}
             </span>
           )}
         </div>

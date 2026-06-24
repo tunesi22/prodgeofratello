@@ -1,10 +1,11 @@
-node_modules/
 .env
-.env.local
-.env*.local
-dist/
-build/
+node_modules/
 .next/
+dist/
 *.log
-npm-debug.log*
 .DS_Store
+.env.local
+prodgeofratello/frontend/node_modules
+prodgeofratello/frontend/.next
+prodgeofratello/backend/node_modules
+prodgeofratello/backend/dist

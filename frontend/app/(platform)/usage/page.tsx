@@ -4,7 +4,8 @@ import type { ReactElement } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Button, Chip, ProgressBar } from '@/components/ui'
+import { Button, Popover } from '@/components/ui'
+import { cn } from '@/lib/cn'
 import {
   PageContainer,
   PageHeader,
@@ -16,6 +17,7 @@ import {
   Skeleton,
 } from '@/components/dashboard/primitives'
 import { ProjectsIcon } from '@/components/dashboard/nav-icons'
+import { QuestionIcon } from '@/components/onboarding/icons'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { fadeUp } from '@/lib/motion'
 import { useLanguage } from '@/components/providers/LanguageProvider'
@@ -171,22 +173,32 @@ function QuotaCard({
 }): ReactElement {
   const { lang } = useLanguage()
   const t = COPY[lang]
+  // Solid bar, matching the project dashboard usage panel. Unlimited metrics
+  // fill against a soft cap so a bar is still visible.
+  const effLimit = limit ?? Math.max(used * 2, 10)
+  const pct = effLimit > 0 ? Math.min(100, Math.round((used / effLimit) * 100)) : 0
+  const atLimit = limit !== null && used >= limit
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-label-medium font-medium text-primary">{label}</span>
-        {limit === null ? (
-          <Chip type="success" size="sm">
-            {t.unlimited}
-          </Chip>
-        ) : (
-          <span className="whitespace-nowrap text-label-medium font-medium text-tertiary">
-            {used} / {limit}
-          </span>
-        )}
+    <Card className="flex flex-col gap-2.5 p-4">
+      <div className="flex items-center justify-between gap-2 text-action-small font-medium">
+        <span className="flex items-center gap-1.5 text-primary">
+          {label}
+          <Popover label={label} content={caption} side="bottom">
+            <span className="inline-flex cursor-help text-tertiary transition-colors duration-200 ease-standard hover:text-primary">
+              <QuestionIcon className="size-4" />
+            </span>
+          </Popover>
+        </span>
+        <span className={cn('whitespace-nowrap tabular-nums', atLimit ? 'text-error-token' : 'text-tertiary')}>
+          {limit === null ? `${used} · ${t.unlimited}` : `${used}/${limit}`}
+        </span>
       </div>
-      {limit !== null && <ProgressBar progress={(used / limit) * 100} thickness={4} />}
-      <span className="text-paragraph-medium text-tertiary">{caption}</span>
+      <div className="h-2 w-full overflow-hidden rounded-circle bg-tertiary">
+        <div
+          className={cn('h-full rounded-circle transition-[width] duration-500 ease-standard', atLimit ? 'bg-btn-error' : 'bg-brand-600')}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </Card>
   )
 }
@@ -259,6 +271,10 @@ export default function MonitorUsagePage(): ReactElement {
       prompts: list.reduce((sum, row) => sum + (row.prompts ?? 0), 0),
       articles: list.reduce((sum, row) => sum + (row.articles ?? 0), 0),
       partial: list.some((row) => row.prompts === null || row.articles === null),
+      // Per-project bars are scaled relative to the busiest project (min 1 so a
+      // lone project still fills its bar); plan limits are account-wide, not per-project.
+      maxPrompts: Math.max(1, ...list.map((row) => row.prompts ?? 0)),
+      maxArticles: Math.max(1, ...list.map((row) => row.articles ?? 0)),
     }
   }, [rows])
 
@@ -289,9 +305,9 @@ export default function MonitorUsagePage(): ReactElement {
         subtitle={t.subtitle}
         actions={
           plan !== null ? (
-            <Chip type="success" size="sm">
-              {t.planChip(PLAN_LABELS[plan])}
-            </Chip>
+            <span className="inline-flex items-center rounded-token-8 border border-brand-token bg-display-brand px-2.5 py-0.5 text-label-medium font-medium text-brand-token">
+              {PLAN_LABELS[plan]}
+            </span>
           ) : undefined
         }
       />
@@ -396,35 +412,36 @@ export default function MonitorUsagePage(): ReactElement {
           )}
 
           <Section title={t.byProjectTitle}>
-            <Card className="w-full overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-neutral-primary">
-                    <th className="px-4 py-3 text-left text-label-medium font-medium text-tertiary">
-                      {t.tableProject}
-                    </th>
-                    <th className="px-4 py-3 text-right text-label-medium font-medium text-tertiary">
-                      {t.tablePrompts}
-                    </th>
-                    <th className="px-4 py-3 text-right text-label-medium font-medium text-tertiary">
-                      {t.tableArticles}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.brandId} className="border-b border-neutral-primary last:border-b-0">
-                      <td className="px-4 py-3 text-paragraph-medium text-primary">{row.name}</td>
-                      <td className="px-4 py-3 text-right text-paragraph-medium text-primary">
-                        {row.prompts !== null ? row.prompts : <span className="text-tertiary">-</span>}
-                      </td>
-                      <td className="px-4 py-3 text-right text-paragraph-medium text-primary">
-                        {row.articles !== null ? row.articles : <span className="text-tertiary">-</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <Card className="flex w-full flex-col">
+              {rows.map((row) => (
+                <div key={row.brandId} className="flex flex-col gap-2.5 border-b border-neutral-primary px-5 py-4 last:border-b-0">
+                  <span className="text-paragraph-medium font-medium text-primary">{row.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="w-14 shrink-0 text-label-medium text-tertiary">{t.tablePrompts}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-circle bg-tertiary">
+                      <div
+                        className="h-full rounded-circle bg-brand-600 transition-[width] duration-500 ease-standard"
+                        style={{ width: `${row.prompts !== null ? Math.round((row.prompts / totals.maxPrompts) * 100) : 0}%` }}
+                      />
+                    </div>
+                    <span className="w-8 shrink-0 text-right text-label-medium font-medium tabular-nums text-primary">
+                      {row.prompts !== null ? row.prompts : <span className="text-tertiary">-</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-14 shrink-0 text-label-medium text-tertiary">{t.tableArticles}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-circle bg-tertiary">
+                      <div
+                        className="h-full rounded-circle bg-brand-600 transition-[width] duration-500 ease-standard"
+                        style={{ width: `${row.articles !== null ? Math.round((row.articles / totals.maxArticles) * 100) : 0}%` }}
+                      />
+                    </div>
+                    <span className="w-8 shrink-0 text-right text-label-medium font-medium tabular-nums text-primary">
+                      {row.articles !== null ? row.articles : <span className="text-tertiary">-</span>}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </Card>
             {totals.partial && (
               <p className="text-paragraph-medium text-warning-token">

@@ -167,9 +167,10 @@
   --text-secondary: var(--color-neutral-300);
   --text-tertiary: var(--color-neutral-500);
   --text-disabled: var(--color-neutral-800);
-  --text-error: var(--color-error-500);
-  --text-warning: var(--color-warning-500);
-  --text-brand: var(--color-brand-400);
+  /* error/warning text sit lighter than the -500/-600 light pattern for AA contrast on the -800 chip backgrounds */
+  --text-error: var(--color-error-300);
+  --text-warning: var(--color-warning-400);
+  --text-brand: var(--color-brand-300);
   --text-white-remain: var(--color-neutral-0);
   --text-primary-invert: var(--color-neutral-900);
   --text-primary-remain: var(--color-neutral-900);
@@ -195,7 +196,7 @@
   --border-neutral-tertiary: var(--color-neutral-600);
   --border-error: var(--color-error-500);
   --border-warning: var(--color-warning-500);
-  --border-brand: var(--color-brand-400);
+  --border-brand: var(--color-brand-300);
   --border-white: var(--color-neutral-0);
   --border-disabled: var(--color-neutral-900);
   --border-neutral-primary-invert: var(--color-neutral-50);
@@ -225,7 +226,7 @@
   --icon-error: var(--color-error-500);
   --icon-warning: var(--color-warning-500);
   --icon-black-remain: var(--color-neutral-900);
-  --icon-brand: var(--color-brand-400);
+  --icon-brand: var(--color-brand-300);
   --icon-disabled: var(--color-neutral-800);
   --icon-black-invert: var(--color-neutral-25);
   --icon-white-invert: var(--color-neutral-900);

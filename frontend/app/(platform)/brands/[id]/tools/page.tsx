@@ -512,13 +512,10 @@ export default function ToolsPage(): ReactElement {
       <PageHeader title={t.title} subtitle={t.subtitle} />
 
       {/* ── HERO: GEO Score Audit ─────────────────────────────────────── */}
-      <Section title={t.geoSection}>
+      <Section title={t.geoSection} help={t.geoDesc}>
         <Card variant="brand" className="flex flex-col gap-6 p-6 lg:p-8">
           <div className="grid w-full items-center gap-6 lg:grid-cols-[1fr_auto]">
             <div className="flex flex-col gap-4">
-              <p className="max-w-[560px] text-paragraph-medium text-secondary transition-colors duration-200 ease-standard">
-                {t.geoDesc}
-              </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <Input
                   label={t.urlLabel}
@@ -690,9 +687,6 @@ export default function ToolsPage(): ReactElement {
 
       {/* ── Secondary: generators for the website developer ───────────── */}
       <Section title={t.devSection}>
-        <p className="text-paragraph-medium text-tertiary transition-colors duration-200 ease-standard">
-          {t.devDesc}
-        </p>
         <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-2">
           {/* llms.txt */}
           <div className="flex flex-col gap-3">

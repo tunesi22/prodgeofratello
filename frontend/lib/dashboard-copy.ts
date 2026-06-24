@@ -14,13 +14,15 @@ export interface DashboardCopy {
     overview: string
     prompts: string
     citations: string
+    citation: string
     agentsInsights: string
     aiVisibility: string
     research: string
     tools: string
     recommendations: string
     suggested: string
-    todo: string
+    knowledge: string
+    publications: string
     admin: string
     allProjects: string
     billing: string
@@ -51,14 +53,16 @@ export const DASHBOARD_COPY: Record<Lang, DashboardCopy> = {
       brandInsights: 'Insight Brand',
       overview: 'Ringkasan',
       prompts: 'Prompts',
-      citations: 'Jawaban AI',
+      citations: 'Penyebutan Brand',
+      citation: 'Sitasi',
       agentsInsights: 'Analitik AI',
-      aiVisibility: 'Visibilitas AI',
+      aiVisibility: 'AI Agents',
       research: 'Riset Pertanyaan',
       tools: 'Tools Audit GEO',
       recommendations: 'Rekomendasi',
       suggested: 'Artikel AI',
-      todo: 'Daftar Tugas',
+      knowledge: 'Basis Pengetahuan',
+      publications: 'Publikasi',
       admin: 'Admin',
       allProjects: 'Semua Project',
       billing: 'Tagihan',
@@ -69,7 +73,7 @@ export const DASHBOARD_COPY: Record<Lang, DashboardCopy> = {
     footer: {
       accountSettings: 'Pengaturan Akun',
       logout: 'Keluar',
-      tier: (plan: string): string => `Paket ${plan}`,
+      tier: (plan: string): string => plan,
     },
     switcher: {
       selectProject: 'Pilih project',
@@ -87,14 +91,16 @@ export const DASHBOARD_COPY: Record<Lang, DashboardCopy> = {
       brandInsights: 'Brand Insights',
       overview: 'Overview',
       prompts: 'Prompts',
-      citations: 'Citations',
+      citations: 'Mentions',
+      citation: 'Citations',
       agentsInsights: 'Agents Insights',
-      aiVisibility: 'AI Visibility',
+      aiVisibility: 'AI Agents',
       research: 'AI Prompt Research',
       tools: 'GEO Audit Tools',
       recommendations: 'Recommendations',
       suggested: 'AI Articles',
-      todo: 'To-Do',
+      knowledge: 'Knowledge Base',
+      publications: 'Publications',
       admin: 'Admin',
       allProjects: 'All Projects',
       billing: 'Billing',
@@ -105,7 +111,7 @@ export const DASHBOARD_COPY: Record<Lang, DashboardCopy> = {
     footer: {
       accountSettings: 'Account Settings',
       logout: 'Log out',
-      tier: (plan: string): string => `${plan} Tier`,
+      tier: (plan: string): string => plan,
     },
     switcher: {
       selectProject: 'Select a project',

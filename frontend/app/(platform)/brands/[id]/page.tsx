@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, CircleNotch } from '@phosphor-icons/react/dist/ssr'
+import { ArrowRight, CircleNotch, MagnifyingGlass } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { fadeUp } from '@/lib/motion'
 import { Button, Chip, ProgressBar } from '@/components/ui'
@@ -20,6 +20,7 @@ import {
   StatCard,
 } from '@/components/dashboard/primitives'
 import { DeltaBadge } from '@/components/dashboard/DeltaBadge'
+import { DataFreshness } from '@/components/dashboard/DataFreshness'
 import { ModelLogo } from '@/components/dashboard/ModelLogo'
 import { ActionQueue } from '@/components/dashboard/ActionQueue'
 import { useLanguage } from '@/components/providers/LanguageProvider'
@@ -106,7 +107,7 @@ const COPY = {
     fullAnalytics: 'Lihat analitik lengkap',
     emptyTitle: 'Belum ada hasil scan',
     emptyDescription:
-      'Saat scan, kami menanyakan prompts Anda ke AI lalu memeriksa apakah jawabannya menyebut brand Anda. Mulai dengan menyiapkan prompts.',
+      'Jalankan scan untuk melihat seberapa sering AI menyebut brand Anda di ChatGPT, Gemini, Perplexity, dan lainnya.',
     generatePrompts: 'Buat Prompts dengan AI',
     researchPrompts: 'Riset Pertanyaan Asli',
     guidedSetup: 'Siapkan otomatis',
@@ -146,7 +147,7 @@ const COPY = {
     fullAnalytics: 'See full analytics',
     emptyTitle: 'No scan results yet',
     emptyDescription:
-      'A scan asks AI your prompts, then checks if the answers mention your brand. Start by setting up prompts.',
+      'Run a scan to see how often AI mentions your brand across ChatGPT, Gemini, Perplexity, and more.',
     generatePrompts: 'AI-Generate Prompts',
     researchPrompts: 'Research Real Questions',
     guidedSetup: 'Set up automatically',
@@ -164,7 +165,6 @@ interface ScanState {
 
 export default function BrandOverviewPage(): ReactElement {
   const { id } = useParams<{ id: string }>()
-  const router = useRouter()
   const apiFetch = useApiFetch()
   const { lang } = useLanguage()
   const { start, done } = useTopLoading()
@@ -353,9 +353,14 @@ export default function BrandOverviewPage(): ReactElement {
           </>
         }
         actions={
-          <Button type="primary" size="sm" disabled={scanning || scan.status === 'running'} onClick={handleScan}>
-            {scanning ? t.startingScan : t.runScan}
-          </Button>
+          <>
+            <DataFreshness brandId={id} />
+            {hasData && (
+              <Button type="primary" size="sm" disabled={scanning || scan.status === 'running'} onClick={handleScan}>
+                {scanning ? t.startingScan : t.runScan}
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -498,28 +503,18 @@ export default function BrandOverviewPage(): ReactElement {
       ) : (
         <motion.div variants={fadeUp} className="w-full">
           <EmptyState
+            icon={<MagnifyingGlass />}
             title={t.emptyTitle}
             description={t.emptyDescription}
             action={
-              <div className="flex flex-col items-center gap-3">
-                <Button
-                  type="primary"
-                  size="md"
-                  disabled={guidedLoading || scanning}
-                  onClick={handleGuidedSetup}
-                >
-                  {guidedLoading ? t.settingUp : t.guidedSetup}
-                </Button>
-                <span className="text-paragraph-medium text-tertiary">{t.orManual}</span>
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <Button type="ghost" size="sm" onClick={() => router.push(`/brands/${id}/prompts`)}>
-                    {t.generatePrompts}
-                  </Button>
-                  <Button type="ghost" size="sm" onClick={() => router.push(`/brands/${id}/research`)}>
-                    {t.researchPrompts}
-                  </Button>
-                </div>
-              </div>
+              <Button
+                type="primary"
+                size="md"
+                disabled={guidedLoading || scanning}
+                onClick={handleGuidedSetup}
+              >
+                {guidedLoading || scanning ? t.startingScan : t.runScan}
+              </Button>
             }
           />
         </motion.div>

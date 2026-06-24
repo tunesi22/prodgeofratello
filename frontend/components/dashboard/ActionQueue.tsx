@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from '@phosphor-icons/react/dist/ssr'
@@ -99,12 +99,12 @@ export function ActionQueue({
   const { lang } = useLanguage()
   const t = COPY[lang]
   const [actions, setActions] = useState<Action[]>([])
-  const [enriching, setEnriching] = useState<boolean>(true)
+  const [enriching, setEnriching] = useState<boolean>(false)
+  const [inView, setInView] = useState<boolean>(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
+  // Content gaps render immediately (already loaded by the Overview).
   useEffect(() => {
-    let cancelled = false
-
-    // 1) Content gaps render immediately (already loaded by the Overview).
     const gapActions: Action[] = gaps
       .filter((g) => g.text.trim() !== '')
       .slice(0, 5)
@@ -115,9 +115,33 @@ export function ActionQueue({
         href: `/brands/${brandId}/articles?promptId=${g.promptId}`,
       }))
     setActions(gapActions)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId, gaps, lang])
+
+  // The audit + semantic-proximity calls are among the slowest backend
+  // endpoints, so defer them until this section scrolls into view.
+  useEffect(() => {
+    const el = containerRef.current
+    if (el == null || inView) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [inView])
+
+  // 2) + 3) Audit + semantic stream in (once visible) as they resolve.
+  useEffect(() => {
+    if (!inView) return
+    let cancelled = false
     setEnriching(true)
 
-    // 2) + 3) Audit + semantic stream in as they resolve.
     const auditPromise = website
       ? apiFetch<GeoResult>(`/brands/${brandId}/articles/tools/geo-score`, {
           method: 'POST',
@@ -159,39 +183,41 @@ export function ActionQueue({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandId, website, gaps, lang])
+  }, [inView, brandId, website, lang])
 
   const ranked = [...actions].sort((a, b) => IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact]).slice(0, 8)
 
   return (
-    <Section
-      title={t.title}
-      help={t.hint}
-      right={enriching ? <LoadingCircle size="sm" /> : undefined}
-    >
-      <Card className="flex flex-col divide-y divide-neutral-primary">
-        {ranked.length === 0 && !enriching ? (
-          <div className="px-5 py-4 text-paragraph-medium text-tertiary">{t.allClear}</div>
-        ) : (
-          ranked.map((a) => (
-            <Link
-              key={a.id}
-              href={a.href}
-              className="group flex items-center gap-3 px-5 py-3 outline-none transition-colors duration-200 ease-standard hover:bg-secondary focus-visible:bg-secondary"
-            >
-              <span className={cn('size-2 shrink-0 rounded-circle', IMPACT_DOT[a.impact])} aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate text-paragraph-medium text-primary">{a.title}</span>
-              <Chip type={IMPACT_CHIP[a.impact]} size="sm" shape="rounded" className="shrink-0">
-                {t.impact[a.impact]}
-              </Chip>
-              <ArrowRight
-                className="size-4 shrink-0 text-tertiary transition-colors duration-200 ease-standard group-hover:text-primary"
-                aria-hidden="true"
-              />
-            </Link>
-          ))
-        )}
-      </Card>
-    </Section>
+    <div ref={containerRef} className="w-full">
+      <Section
+        title={t.title}
+        help={t.hint}
+        right={enriching ? <LoadingCircle size="sm" /> : undefined}
+      >
+        <Card className="flex flex-col divide-y divide-neutral-primary">
+          {ranked.length === 0 && !enriching && inView ? (
+            <div className="px-5 py-4 text-paragraph-medium text-tertiary">{t.allClear}</div>
+          ) : (
+            ranked.map((a) => (
+              <Link
+                key={a.id}
+                href={a.href}
+                className="group flex items-center gap-3 px-5 py-3 outline-none transition-colors duration-200 ease-standard hover:bg-secondary focus-visible:bg-secondary"
+              >
+                <span className={cn('size-2 shrink-0 rounded-circle', IMPACT_DOT[a.impact])} aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate text-paragraph-medium text-primary">{a.title}</span>
+                <Chip type={IMPACT_CHIP[a.impact]} size="sm" shape="rounded" className="shrink-0">
+                  {t.impact[a.impact]}
+                </Chip>
+                <ArrowRight
+                  className="size-4 shrink-0 text-tertiary transition-colors duration-200 ease-standard group-hover:text-primary"
+                  aria-hidden="true"
+                />
+              </Link>
+            ))
+          )}
+        </Card>
+      </Section>
+    </div>
   )
 }
