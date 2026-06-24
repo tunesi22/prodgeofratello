@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/backend/index.js"
   },
   "dependencies": {
     "@sentry/node": "^10.55.0",
@@ -21,6 +21,7 @@
     "marked": "^18.0.4",
     "mongoose": "^8.9.0",
     "node-cron": "^4.2.1",
+    "nodemailer": "^6.9.16",
     "resend": "^6.12.4",
     "stripe": "^22.2.0",
     "zod": "^4.4.3"
@@ -33,6 +34,7 @@
     "@types/marked": "^5.0.2",
     "@types/node": "^22.10.7",
     "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^6.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   },
