@@ -374,6 +374,15 @@ Catatan: dua pemeriksaan saat ini lemah dan layak diperkuat: "Brand definition
 present" dan "Sitemap reference" hanya regex substring sederhana (nomor 4 dan 3
 di atas menggantikannya dengan sinyal yang lebih kuat).
 
+**Spec lengkap siap pakai (24 Juni 2026):** kode deteksi siap-tempel untuk 9
+pemeriksaan baru (robots.txt izin bot AI, judul deskriptif, satu `<h1>` + hierarki
+heading, OpenGraph, cakupan alt text gambar, kedalaman konten, heading gaya tanya
+jawab, canonical, HTTPS) beserta tier impact dan copy rekomendasi (Inggris) ada di
+`docs/GEO-AUDIT-SCORING-SPEC.md`. Tinggal di-`checks.push(...)` ke dalam `runGEOAudit`;
+formula skor berbobot tidak berubah (otomatis menghitung ulang), audit naik dari 7
+menjadi 16 pemeriksaan, dan frontend merender check baru tanpa perubahan. Kirimkan
+label/rekomendasi baru ke tim frontend untuk ditambahkan ke peta terjemahan Indonesia.
+
 ## Insights: pemilih rentang waktu + model AI tambahan (15 Juni 2026)
 
 ### 1. Granularitas tren (Harian / Mingguan / Bulanan)
@@ -448,6 +457,12 @@ tidak terduplikasi.
    mengambil jawabannya" (FB-6). Ini pembeda terbesar, datanya sudah ada di Mongo.
    Catatan: CLAUDE.md menyarankan tidak menyimpan response panjang selamanya, jadi
    setelah ekstraksi Anda bisa menyimpan hanya sitasinya.
+   **Update frontend (21 Juni 2026):** halaman `/results` sekarang dipisah jadi dua
+   tab, "Penyebutan Brand" (Mentions, data lama) dan "Sitasi" (Citations). Tab Sitasi
+   sudah ada di UI dengan keadaan "Segera hadir" yang menjelaskan bedanya dengan
+   penyebutan. Begitu endpoint `GET /brands/{id}/citations` siap, tinggal isi tab itu;
+   strukturnya sudah menunggu. Label menu sidebar juga diganti dari "Citations" yang
+   menyesatkan menjadi "Penyebutan Brand" karena halaman itu memang mention tracking.
 
 3. **Agregasi mention rate per intent/kategori.** Tiap prompt punya `category`
    (discovery/comparison/recommendation/use-case/best-of/organic). Tambahkan
@@ -513,3 +528,24 @@ tidak terduplikasi.
     - Auto-enqueue scan pertama saat brand dibuat. Frontend sekarang memicu scan
       sendiri lewat tombol "Siapkan otomatis" (generate prompt lalu scan). Enqueue
       otomatis di sisi backend akan lebih rapi. Mengoptimalkan FN-4 (sudah live).
+
+11. **Basis Pengetahuan (Knowledge Base) per brand.** Halaman frontend baru
+    `/brands/{id}/knowledge` sudah live, tetapi entrinya (panduan konten + tautan
+    folder) baru tersimpan di localStorage browser. Backend perlu: (a) model plus
+    endpoint CRUD untuk menyimpan entri KB per brand secara permanen, (b) opsi
+    unggah berkas/folder (bukan sekadar tautan), dan yang terpenting (c) memasukkan
+    panduan KB ini ke dalam prompt saat `article.service.ts` membuat artikel, agar
+    output mengikuti gaya dan fakta brand. Tanpa (c), KB hanya jadi catatan dan belum
+    memengaruhi hasil artikel.
+
+12. **Endpoint registrasi (POST /api/auth/register) untuk halaman daftar beta.**
+    Halaman frontend baru `/sign-up` (desain "Welcome beta users") sudah dibuat:
+    form Email, Password, dan Konfirmasi Password dengan validasi syarat password
+    langsung di sisi klien (minimal 8 karakter, 1 huruf kapital, 1 angka, password
+    cocok). Form mengirim POST ke `/api/auth/register`, tetapi backend baru punya
+    `/login`, `/logout`, dan `/me` (belum ada `/register`). Backend perlu menambahkan
+    endpoint registrasi yang: (a) memvalidasi email ada di waitlist/beta sebelum
+    membuat akun (sesuai copy "hanya menerima pengguna waitlist"), (b) hash password
+    dan membuat user, lalu (c) mengeluarkan cookie sesi yang sama seperti `/login`
+    agar pengguna langsung masuk. Sampai endpoint ini ada, tombol "Buat akun" akan
+    menampilkan pesan error.

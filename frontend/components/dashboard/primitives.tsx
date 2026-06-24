@@ -18,10 +18,13 @@ import { QuestionIcon } from '@/components/onboarding/icons'
 export function PageContainer({
   children,
   wide = false,
+  full = false,
   className,
 }: {
   children: ReactNode
   wide?: boolean
+  /** Full-bleed: no max-width, for data-dense tables. Overrides `wide`. */
+  full?: boolean
   className?: string
 }): ReactElement {
   return (
@@ -31,7 +34,7 @@ export function PageContainer({
       variants={staggerContainer}
       className={cn(
         'mx-auto flex w-full flex-col gap-6 px-6 py-8',
-        wide ? 'max-w-[1100px]' : 'max-w-[756px] py-12',
+        full ? 'max-w-none' : wide ? 'max-w-[1100px]' : 'max-w-[756px] py-12',
         className,
       )}
     >

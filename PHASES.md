@@ -174,7 +174,6 @@
 ## Fase 5 — Semantic Intelligence Layer
 **Target: 2–3 minggu | Status: ✅ Done**
 
-> Inspired by Raymond Chin's GEO framework: GEO bukan soal keyword tapi questions + semantic proximity.
 > Brand harus muncul dekat secara semantik dengan konsep-konsep related, bukan cuma disebut namanya.
 
 ### 5.1 Semantic Proximity Analysis

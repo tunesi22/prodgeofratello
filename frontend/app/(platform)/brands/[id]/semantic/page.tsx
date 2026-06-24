@@ -166,15 +166,7 @@ export default function BoostAiRankingPage(): ReactElement {
 
   return (
     <PageContainer wide>
-      <PageHeader
-        title={t.title}
-        subtitle={t.subtitle}
-        actions={
-          <Button type="primary" size="sm" onClick={() => void analyze()} disabled={loading}>
-            {loading ? t.analyzing : t.runAnalysis}
-          </Button>
-        }
-      />
+      <PageHeader title={t.title} subtitle={t.subtitle} />
 
       {error !== '' && (
         <motion.div variants={fadeUp} className="w-full">

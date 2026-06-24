@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactElement } from 'react'
 import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Trash as PhosphorTrash } from '@phosphor-icons/react/dist/ssr'
+import { Trash as PhosphorTrash, Plus } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { fadeUp } from '@/lib/motion'
 import {
@@ -29,7 +29,7 @@ import {
 } from '@/components/dashboard/primitives'
 import { Button, Chip, IconButton, Input } from '@/components/ui'
 import type { ChipType } from '@/components/ui'
-import { TodoIcon } from '@/components/dashboard/nav-icons'
+import { PublicationsIcon } from '@/components/dashboard/nav-icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 
 type PlatformType = 'reddit' | 'medium' | 'forum' | 'blog' | 'directory' | 'other'
@@ -87,10 +87,10 @@ const EMPTY_FORM: PublicationForm = {
  */
 const COPY = {
   id: {
-    title: 'Daftar Tugas',
+    title: 'Publikasi',
     subtitle:
       'Catat di mana Anda publish konten, lalu lihat apakah AI menyebut brand Anda lebih sering setelahnya.',
-    addPublication: '+ Tambah Publikasi',
+    addPublication: 'Tambah Publikasi',
     newPublication: 'Publikasi Baru',
     articleTitle: 'Judul Artikel',
     articleTitlePlaceholder: 'contoh: Lapangan Padel Terbaik di Jakarta',
@@ -130,9 +130,9 @@ const COPY = {
     deleteFailed: 'Gagal menghapus publikasi',
   },
   en: {
-    title: 'To-Do',
+    title: 'Publications',
     subtitle: 'Log where you publish your content, then see if AI mentions your brand more afterwards.',
-    addPublication: '+ Add Publication',
+    addPublication: 'Add Publication',
     newPublication: 'New Publication',
     articleTitle: 'Article Title',
     articleTitlePlaceholder: 'e.g. Best Padel Courts in Jakarta',
@@ -259,11 +259,13 @@ export default function TodoPage(): ReactElement {
   return (
     <PageContainer wide>
       <PageHeader
-        icon={<TodoIcon className="h-[30px] w-[30px] text-icon-brand" />}
+        icon={<PublicationsIcon className="h-[30px] w-[30px] text-icon-brand" />}
         title={t.title}
         subtitle={t.subtitle}
         actions={
-          <Button onClick={() => setShowForm((prev) => !prev)}>{t.addPublication}</Button>
+          <Button iconLeft={<Plus className="size-5" aria-hidden="true" />} onClick={() => setShowForm((prev) => !prev)}>
+            {t.addPublication}
+          </Button>
         }
       />
 
@@ -389,10 +391,14 @@ export default function TodoPage(): ReactElement {
           </div>
         ) : publications.length === 0 ? (
           <EmptyState
-            icon={<TodoIcon />}
+            icon={<PublicationsIcon />}
             title={t.emptyTitle}
             description={t.emptyDesc}
-            action={<Button onClick={() => setShowForm(true)}>{t.addPublication}</Button>}
+            action={
+              <Button iconLeft={<Plus className="size-5" aria-hidden="true" />} onClick={() => setShowForm(true)}>
+                {t.addPublication}
+              </Button>
+            }
           />
         ) : (
           <div className="flex flex-col gap-2">
@@ -492,9 +498,6 @@ export default function TodoPage(): ReactElement {
           </div>
         )}
 
-        <p className="text-paragraph-medium text-tertiary">
-          {t.footnote}
-        </p>
       </Section>
     </PageContainer>
   )

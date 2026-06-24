@@ -1,9 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { ReactElement, ReactNode } from 'react'
+import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
 import { CaretUp, CaretDown, CaretUpDown } from '@phosphor-icons/react/dist/ssr'
-import { Button } from '@/components/ui'
+import { Button, Popover } from '@/components/ui'
+import { QuestionIcon } from '@/components/onboarding/icons'
 import { cn } from '@/lib/cn'
 
 export type SortDir = 'asc' | 'desc'
@@ -19,6 +20,8 @@ export interface Column<T> {
   align?: 'left' | 'right'
   /** Tailwind width/!min-width hint for the header cell. */
   className?: string
+  /** Optional explainer shown as a "?" popover beside the header text. */
+  help?: ReactNode
 }
 
 export interface SortableTableProps<T> {
@@ -34,6 +37,10 @@ export interface SortableTableProps<T> {
   emptyMessage?: string
   /** Localized "Page X of Y" + prev/next labels for the footer. */
   paginationLabels?: { pageOf: (page: number, total: number) => string; prev: string; next: string }
+  /** 'fixed' lets columns be sized by their header `className` and one flex column. */
+  layout?: 'auto' | 'fixed'
+  /** When set, rows become interactive (click + keyboard) and call this. */
+  onRowClick?: (row: T) => void
 }
 
 /**
@@ -52,6 +59,8 @@ export function SortableTable<T>({
   caption,
   emptyMessage,
   paginationLabels,
+  layout = 'auto',
+  onRowClick,
 }: SortableTableProps<T>): ReactElement {
   const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(initialSort ?? null)
   const [page, setPage] = useState(0)
@@ -86,7 +95,7 @@ export function SortableTable<T>({
   return (
     <div className="w-full">
       <div className="w-full overflow-x-auto">
-        <table className="w-full">
+        <table className={cn('w-full', layout === 'fixed' && 'table-fixed')}>
           {caption != null && <caption className="sr-only">{caption}</caption>}
           <thead className="bg-secondary transition-colors duration-200 ease-standard">
             <tr>
@@ -106,31 +115,38 @@ export function SortableTable<T>({
                     aria-sort={ariaSort}
                     className={cn('px-4 py-3', col.align === 'right' ? 'text-right' : 'text-left', col.className)}
                   >
-                    {col.sortValue != null ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(col.key)}
-                        className={cn(
-                          'inline-flex items-center gap-1 text-label-medium font-medium text-tertiary',
-                          'rounded transition-colors duration-200 ease-standard hover:text-primary',
-                          'focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--border-brand)]',
-                          col.align === 'right' && 'flex-row-reverse',
-                        )}
-                      >
-                        {col.header}
-                        {isSorted ? (
-                          sort?.dir === 'asc' ? (
-                            <CaretUp className="size-3.5" aria-hidden="true" />
+                    <span className={cn('inline-flex items-center gap-1', col.align === 'right' && 'flex-row-reverse')}>
+                      {col.sortValue != null ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleSort(col.key)}
+                          className={cn(
+                            'inline-flex items-center gap-1 text-label-medium font-medium text-tertiary',
+                            'rounded transition-colors duration-200 ease-standard hover:text-primary',
+                            'focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--border-brand)]',
+                            col.align === 'right' && 'flex-row-reverse',
+                          )}
+                        >
+                          {col.header}
+                          {isSorted ? (
+                            sort?.dir === 'asc' ? (
+                              <CaretUp className="size-3.5" aria-hidden="true" />
+                            ) : (
+                              <CaretDown className="size-3.5" aria-hidden="true" />
+                            )
                           ) : (
-                            <CaretDown className="size-3.5" aria-hidden="true" />
-                          )
-                        ) : (
-                          <CaretUpDown className="size-3.5 opacity-50" aria-hidden="true" />
-                        )}
-                      </button>
-                    ) : (
-                      <span className="text-label-medium font-medium text-tertiary">{col.header}</span>
-                    )}
+                            <CaretUpDown className="size-3.5 opacity-50" aria-hidden="true" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-label-medium font-medium text-tertiary">{col.header}</span>
+                      )}
+                      {col.help != null && (
+                        <Popover side="bottom" label={col.header} content={col.help} panelClassName="w-64">
+                          <QuestionIcon className="size-3.5" />
+                        </Popover>
+                      )}
+                    </span>
                   </th>
                 )
               })}
@@ -150,7 +166,22 @@ export function SortableTable<T>({
               pageRows.map((row) => (
                 <tr
                   key={rowKey(row)}
-                  className="border-t border-neutral-primary transition-colors duration-200 ease-standard hover:bg-secondary"
+                  {...(onRowClick != null
+                    ? {
+                        onClick: () => onRowClick(row),
+                        onKeyDown: (e: KeyboardEvent<HTMLTableRowElement>) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            onRowClick(row)
+                          }
+                        },
+                        tabIndex: 0,
+                      }
+                    : {})}
+                  className={cn(
+                    'border-t border-neutral-primary transition-colors duration-200 ease-standard hover:bg-secondary',
+                    onRowClick != null && 'cursor-pointer outline-none focus-visible:bg-secondary',
+                  )}
                 >
                   {columns.map((col) => (
                     <td

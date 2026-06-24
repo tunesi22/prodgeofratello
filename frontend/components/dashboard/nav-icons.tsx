@@ -4,6 +4,9 @@ import {
   SquaresFour,
   ChatCircleText,
   Quotes,
+  Megaphone,
+  LinkSimple,
+  BookOpen,
   ChartBar,
   MagnifyingGlass,
   Wrench,
@@ -52,6 +55,16 @@ export function CitationsIcon({ className }: IconProps): ReactElement {
   return <Quotes className={className} aria-hidden="true" />
 }
 
+/** Citation sources / URLs the AI references (Phosphor: LinkSimple). */
+export function CitationIcon({ className }: IconProps): ReactElement {
+  return <LinkSimple className={className} aria-hidden="true" />
+}
+
+/** Knowledge base, brand content guidelines (Phosphor: BookOpen). */
+export function KnowledgeIcon({ className }: IconProps): ReactElement {
+  return <BookOpen className={className} aria-hidden="true" />
+}
+
 /** Agents Insights (Phosphor: ChartBar). */
 export function ChartBarsIcon({ className }: IconProps): ReactElement {
   return <ChartBar className={className} aria-hidden="true" />
@@ -75,6 +88,11 @@ export function SuggestedIcon({ className }: IconProps): ReactElement {
 /** To-Do (Phosphor: CheckSquare). */
 export function TodoIcon({ className }: IconProps): ReactElement {
   return <CheckSquare className={className} aria-hidden="true" />
+}
+
+/** Publications (Phosphor: Megaphone). */
+export function PublicationsIcon({ className }: IconProps): ReactElement {
+  return <Megaphone className={className} aria-hidden="true" />
 }
 
 /** All Projects (Phosphor: Folder). */
