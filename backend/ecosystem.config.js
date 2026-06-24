@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'prodgeo-backend',
-      script: 'dist/index.js',
+      script: 'dist/backend/index.js',
       instances: 1,
       autorestart: true,
       watch: false,
