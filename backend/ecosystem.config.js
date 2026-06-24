@@ -1,8 +1,9 @@
 module.exports = {
   apps: [
     {
-      name: 'geo-backend',
-      script: 'dist/index.js',
+      name: 'prodgeo-backend',
+      script: 'node_modules/.bin/tsx',
+      args: 'index.ts',
       instances: 1,
       autorestart: true,
       watch: false,
