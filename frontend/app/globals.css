@@ -4,6 +4,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Marketing "search ticker" marquee — two rows scrolling opposite directions.
+   Content is duplicated, so translating 50% loops seamlessly. */
+@keyframes fr-marquee-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes fr-marquee-right {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.fr-marquee-left {
+  animation: fr-marquee-left 48s linear infinite;
+}
+.fr-marquee-right {
+  animation: fr-marquee-right 48s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fr-marquee-left,
+  .fr-marquee-right {
+    animation: none;
+  }
+}
+
 /* Print: drop the dashboard chrome so the client report (and any page) prints
    clean. The "Print / Save PDF" button hides itself via Tailwind's print: variant. */
 @media print {

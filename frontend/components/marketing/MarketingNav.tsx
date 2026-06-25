@@ -1,116 +1,128 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CaretDown, List, X } from '@phosphor-icons/react/dist/ssr'
+import { List, X, Globe } from '@phosphor-icons/react/dist/ssr'
 import { FratelloLogo } from '@/components/onboarding/FratelloLogo'
 import { cn } from '@/lib/cn'
-import { NAV, SITE } from '@/lib/marketing/site'
+import { SITE } from '@/lib/marketing/site'
+import { MARKETING_COPY } from '@/lib/marketing/copy'
+import { useDemoModal } from '@/components/marketing/DemoModal'
+import { useLanguage } from '@/components/providers/LanguageProvider'
+
+// Section ids are language-independent, so derive scroll-spy targets once.
+const NAV_IDS = MARKETING_COPY.id.nav.items.map((i) => i.href.replace('#', ''))
 
 /**
- * Public marketing top nav. Transparent over the green hero, gains a solid dark
- * green bar on scroll. The centered pill holds the four nav groups; Fitur /
- * Solusi / Sumber Daya open mega-menus on hover (with a small close delay so the
- * cursor can cross into the panel), Harga is a direct link.
- *
- * Note: uses solid brand/neutral tokens only. Tailwind alpha modifiers (bg-x/40)
- * do not render against this project's CSS-variable color tokens.
+ * Public marketing top nav: a floating, contained dark-glass bar (rounded, with
+ * side margins) that reads cleanly over both the green hero and the light
+ * content. Centered anchor links with scroll-spy; the bar hides on scroll down
+ * and reappears on scroll up. "Book a demo" opens the demo modal.
  */
 export function MarketingNav(): ReactElement {
   const pathname = usePathname()
+  const { openDemo } = useDemoModal()
+  const { lang, toggleLang } = useLanguage()
+  const t = MARKETING_COPY[lang].nav
   const [scrolled, setScrolled] = useState(false)
-  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [hidden, setHidden] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [active, setActive] = useState<string>('')
 
   useEffect(() => {
+    let lastY = window.scrollY
     function onScroll(): void {
-      setScrolled(window.scrollY > 24)
+      const y = window.scrollY
+      setScrolled(y > 24)
+      if (y > lastY && y > 280) setHidden(true)
+      else if (y < lastY - 4) setHidden(false)
+      lastY = y
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  useEffect(() => setMobileOpen(false), [pathname])
+
+  // Scroll-spy: highlight the nav item for the section currently in view.
   useEffect(() => {
-    setOpenMenu(null)
-    setMobileOpen(false)
-  }, [pathname])
-
-  function open(label: string): void {
-    if (closeTimer.current) clearTimeout(closeTimer.current)
-    setOpenMenu(label)
-  }
-  function scheduleClose(): void {
-    if (closeTimer.current) clearTimeout(closeTimer.current)
-    closeTimer.current = setTimeout(() => setOpenMenu(null), 140)
-  }
-
-  const active = NAV.find((g) => g.label === openMenu)
-  const solid = scrolled || openMenu !== null
+    const sections = NAV_IDS
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el != null)
+    if (sections.length === 0) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        if (visible) setActive(`#${visible.target.id}`)
+      },
+      { rootMargin: '-45% 0px -50% 0px', threshold: [0, 0.25, 0.5, 1] },
+    )
+    sections.forEach((s) => observer.observe(s))
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-50 border-b pt-4 transition-colors duration-300 ease-standard',
-        solid ? 'border-brand-700 bg-brand-900' : 'border-transparent',
+        'fixed inset-x-0 top-0 z-50 px-4 pt-3 transition-transform duration-300 ease-standard',
+        hidden && !mobileOpen ? '-translate-y-[130%]' : 'translate-y-0',
       )}
-      onMouseLeave={scheduleClose}
     >
-      <div className="mx-auto flex h-[72px] w-full max-w-[1280px] items-center justify-between px-6 lg:px-8">
-        <Link href="/" className="inline-flex items-center gap-2.5" aria-label="Fratello, beranda">
-          <FratelloLogo className="h-8 w-[52px] text-white-remain" />
-          <span className="font-serif text-[24px] tracking-[-0.5px] text-white-remain">Fratello</span>
+      <div
+        className={cn(
+          'mx-auto flex max-w-[1180px] items-center justify-between gap-4 rounded-token-16 px-3 py-2.5 backdrop-blur-md transition-colors duration-300 ease-standard sm:px-4',
+          scrolled ? 'bg-[#02120b]/85' : 'bg-[#02120b]/55',
+        )}
+      >
+        <Link href="/" className="inline-flex items-center gap-2.5 pl-1" aria-label="Fratello, beranda">
+          <FratelloLogo className="h-7 w-[46px] text-white-remain" />
+          <span className="font-serif text-[22px] tracking-[-0.5px] text-white-remain">Fratello</span>
         </Link>
 
-        {/* Center pill (desktop) */}
-        <nav className="hidden items-center gap-1 rounded-circle bg-neutral-950 px-2 py-1.5 lg:flex">
-          {NAV.map((group) =>
-            group.columns.length === 0 ? (
-              <Link
-                key={group.label}
-                href={group.href}
-                className="rounded-circle px-3.5 py-1.5 text-paragraph-medium font-medium text-white-remain transition-colors duration-200 ease-standard hover:bg-neutral-800"
-              >
-                {group.label}
-              </Link>
-            ) : (
-              <button
-                key={group.label}
-                type="button"
-                onMouseEnter={() => open(group.label)}
-                onFocus={() => open(group.label)}
-                aria-expanded={openMenu === group.label}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-circle px-3.5 py-1.5 text-paragraph-medium font-medium text-white-remain transition-colors duration-200 ease-standard',
-                  openMenu === group.label ? 'bg-neutral-800' : 'hover:bg-neutral-800',
-                )}
-              >
-                {group.label}
-                <CaretDown
-                  className={cn('size-4 transition-transform duration-200', openMenu === group.label && 'rotate-180')}
-                  aria-hidden="true"
-                />
-              </button>
-            ),
-          )}
+        {/* Center links (desktop) */}
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
+          {t.items.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ease-standard',
+                active === item.href ? 'bg-white/10 text-white-remain' : 'text-brand-100 hover:bg-white/10 hover:text-white-remain',
+              )}
+            >
+              {item.label}
+            </a>
+          ))}
         </nav>
 
         {/* Right actions (desktop) */}
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-1.5 lg:flex">
+          <button
+            type="button"
+            onClick={toggleLang}
+            aria-label={lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold text-brand-100 transition-colors duration-200 ease-standard hover:bg-white/10 hover:text-white-remain"
+          >
+            <Globe className="size-4" />
+            {lang === 'id' ? 'EN' : 'ID'}
+          </button>
           <Link
             href={SITE.loginHref}
-            className="rounded-circle px-4 py-2 text-paragraph-medium font-medium text-brand-100 transition-colors duration-200 ease-standard hover:text-white-remain"
+            className="rounded-lg px-3.5 py-2 text-[14px] font-medium text-brand-100 transition-colors duration-200 ease-standard hover:text-white-remain"
           >
-            Masuk
+            {t.login}
           </Link>
-          <Link
-            href={SITE.demoHref}
-            className="rounded-circle bg-white-remain px-4 py-2 text-paragraph-medium font-semibold text-brand-token transition-colors duration-200 ease-standard hover:bg-brand-50"
+          <button
+            type="button"
+            onClick={openDemo}
+            className="rounded-lg bg-white px-4 py-2 text-[14px] font-semibold text-brand-700 transition-colors duration-200 ease-standard hover:bg-brand-10"
           >
-            Book a demo
-          </Link>
+            {t.demo}
+          </button>
         </div>
 
         {/* Mobile toggle */}
@@ -119,75 +131,51 @@ export function MarketingNav(): ReactElement {
           onClick={() => setMobileOpen((v) => !v)}
           aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
           aria-expanded={mobileOpen}
-          className="flex size-10 items-center justify-center rounded-token-8 text-white-remain lg:hidden"
+          className="flex size-9 items-center justify-center rounded-lg text-white-remain transition-colors hover:bg-white/10 lg:hidden"
         >
           {mobileOpen ? <X className="size-6" /> : <List className="size-6" />}
         </button>
       </div>
 
-      {/* Desktop mega-menu panel */}
-      {active && active.columns.length > 0 && (
-        <div
-          onMouseEnter={() => open(active.label)}
-          onMouseLeave={scheduleClose}
-          className="absolute inset-x-0 top-[88px] hidden lg:block"
-        >
-          <div className="mx-auto w-full max-w-[1280px] px-6 lg:px-8">
-            <div className="ml-auto mr-0 w-full max-w-3xl rounded-token-16 border border-neutral-primary bg-card p-6 shadow-lg">
-              <div className={cn('grid gap-x-8 gap-y-6', active.columns.length > 1 ? 'sm:grid-cols-3' : 'sm:grid-cols-1')}>
-                {active.columns.map((col) => (
-                  <div key={col.title}>
-                    <p className="mb-3 text-label-medium font-semibold uppercase tracking-wider text-tertiary">{col.title}</p>
-                    <ul className="flex flex-col gap-1">
-                      {col.links.map((link) => (
-                        <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            className="block rounded-token-8 px-2 py-1.5 transition-colors duration-200 ease-standard hover:bg-secondary"
-                          >
-                            <span className="block text-paragraph-medium font-medium text-primary">{link.label}</span>
-                            {link.desc && <span className="mt-0.5 block text-label-medium leading-snug text-tertiary">{link.desc}</span>}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="max-h-[calc(100vh-88px)] overflow-y-auto border-t border-brand-700 bg-brand-900 px-6 py-6 lg:hidden">
-          <nav className="flex flex-col gap-6">
-            {NAV.map((group) => (
-              <div key={group.label}>
-                <Link href={group.href} className="text-label-big font-semibold text-white-remain">
-                  {group.label}
-                </Link>
-                {group.columns.length > 0 && (
-                  <ul className="mt-2 flex flex-col gap-1 pl-1">
-                    {group.columns.flatMap((c) => c.links).map((link) => (
-                      <li key={link.href}>
-                        <Link href={link.href} className="block py-1 text-paragraph-medium text-brand-100">
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+        <div className="mx-auto mt-2 max-w-[1180px] rounded-token-16 border border-white/10 bg-[#02120b]/95 px-4 py-4 backdrop-blur-md lg:hidden">
+          <nav className="flex flex-col gap-1">
+            {t.items.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-3 text-[16px] font-medium text-white-remain transition-colors hover:bg-white/10"
+              >
+                {item.label}
+              </a>
             ))}
-            <div className="flex flex-col gap-2 border-t border-brand-700 pt-5">
-              <Link href={SITE.loginHref} className="rounded-circle border border-brand-300 px-4 py-2.5 text-center text-paragraph-medium font-semibold text-white-remain">
-                Masuk
+            <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-4">
+              <button
+                type="button"
+                onClick={toggleLang}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-3 text-center text-[15px] font-semibold text-white-remain transition-colors hover:bg-white/10"
+              >
+                <Globe className="size-4" />
+                {lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
+              </button>
+              <Link
+                href={SITE.loginHref}
+                className="rounded-lg border border-white/30 px-4 py-3 text-center text-[15px] font-semibold text-white-remain"
+              >
+                {t.login}
               </Link>
-              <Link href={SITE.demoHref} className="rounded-circle bg-white-remain px-4 py-2.5 text-center text-paragraph-medium font-semibold text-brand-token">
-                Book a demo
-              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false)
+                  openDemo()
+                }}
+                className="rounded-lg bg-white px-4 py-3 text-center text-[15px] font-semibold text-brand-700"
+              >
+                {t.demo}
+              </button>
             </div>
           </nav>
         </div>

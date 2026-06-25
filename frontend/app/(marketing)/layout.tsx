@@ -1,6 +1,8 @@
 import type { ReactElement, ReactNode } from 'react'
 import { MarketingNav } from '@/components/marketing/MarketingNav'
 import { MarketingFooter } from '@/components/marketing/MarketingFooter'
+import { SmoothAnchors } from '@/components/marketing/SmoothAnchors'
+import { DemoModalProvider } from '@/components/marketing/DemoModal'
 
 /**
  * Public marketing shell (hifratello.com). Sits inside the root layout (theme +
@@ -11,10 +13,15 @@ import { MarketingFooter } from '@/components/marketing/MarketingFooter'
 export default function MarketingLayout({ children }: { children: ReactNode }): ReactElement {
   return (
     // Public marketing pages are always light, regardless of the saved theme.
-    <div data-theme="light" className="flex min-h-screen flex-col bg-primary">
-      <MarketingNav />
-      <main className="flex-1">{children}</main>
-      <MarketingFooter />
+    <div data-theme="light" className="relative flex min-h-screen flex-col bg-white">
+      <DemoModalProvider>
+        <SmoothAnchors />
+        <MarketingNav />
+        <div className="relative z-10 flex flex-1 flex-col">
+          <main className="flex-1">{children}</main>
+          <MarketingFooter />
+        </div>
+      </DemoModalProvider>
     </div>
   )
 }

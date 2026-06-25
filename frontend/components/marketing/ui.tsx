@@ -42,11 +42,10 @@ export function Eyebrow({ children, onDark }: { children: ReactNode; onDark?: bo
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 text-label-medium font-semibold uppercase tracking-widest',
-        onDark ? 'text-brand-200' : 'text-brand-token',
+        'inline-flex items-center font-serif text-h6 font-medium',
+        onDark ? 'text-brand-100' : 'text-brand-token',
       )}
     >
-      <span className={cn('h-1.5 w-1.5 rounded-circle', onDark ? 'bg-brand-200' : 'bg-icon-brand')} />
       {children}
     </span>
   )
@@ -81,7 +80,7 @@ export function SectionHeading({
         <p
           className={cn(
             'max-w-2xl text-paragraph-big leading-relaxed',
-            onDark ? 'text-brand-100' : 'text-tertiary',
+            onDark ? 'text-brand-100' : 'text-neutral-500',
             align === 'center' && 'mx-auto',
           )}
         >
@@ -92,7 +91,36 @@ export function SectionHeading({
   )
 }
 
-type ButtonVariant = 'primary' | 'light' | 'ghost' | 'outline-light'
+export type ButtonVariant = 'primary' | 'light' | 'ghost' | 'outline-light'
+
+// Variant-aware: dark (brand) focus ring on light surfaces, white ring on the
+// dark-green hero/CTA surfaces — so the keyboard focus ring is always visible.
+const CTA_STYLES: Record<ButtonVariant, string> = {
+  // Deep-green pill for light surfaces (footer / CTA).
+  primary: 'bg-brand-600 text-white ring-1 ring-inset ring-brand-500 hover:bg-brand-700 focus-visible:outline-brand-600',
+  // Solid white pill — the primary action on the dark-green hero / CTA.
+  light: 'bg-white text-brand-700 ring-1 ring-inset ring-brand-25 hover:bg-brand-10 focus-visible:outline-white',
+  // Quiet bordered button for light surfaces.
+  ghost: 'border border-neutral-primary bg-card text-primary hover:border-brand-token hover:bg-secondary focus-visible:outline-brand-600',
+  // Outlined glass secondary that sits on the dark-green hero / CTA surfaces.
+  'outline-light': 'bg-white/10 text-white ring-1 ring-inset ring-white/50 backdrop-blur-sm hover:bg-white/20 hover:ring-white focus-visible:outline-white',
+}
+const CTA_SIZES: Record<'md' | 'lg', string> = {
+  md: 'px-5 py-2.5 text-paragraph-medium',
+  lg: 'px-7 py-3.5 text-paragraph-big',
+}
+
+/** Shared CTA class builder so link CTAs and the demo button render identically. */
+export function ctaButtonClasses(variant: ButtonVariant = 'primary', size: 'md' | 'lg' = 'md', className?: string): string {
+  return cn(
+    'group inline-flex items-center justify-center gap-2 rounded-token-12 font-semibold',
+    CTA_SIZES[size],
+    'transition-all duration-200 ease-standard hover:-translate-y-0.5',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+    CTA_STYLES[variant],
+    className,
+  )
+}
 
 /** Marketing CTA link button (renders an anchor via next/link). */
 export function CTAButton({
@@ -102,6 +130,7 @@ export function CTAButton({
   size = 'md',
   className,
   iconRight,
+  iconLeft,
 }: {
   href: string
   children: ReactNode
@@ -109,32 +138,19 @@ export function CTAButton({
   size?: 'md' | 'lg'
   className?: string
   iconRight?: boolean
+  iconLeft?: ReactNode
 }): ReactElement {
-  const styles: Record<ButtonVariant, string> = {
-    primary: 'bg-btn-primary text-white-remain hover:bg-btn-primary-pressed',
-    light: 'bg-white-remain text-brand-token shadow-lg hover:bg-brand-50',
-    ghost: 'border border-neutral-primary text-primary hover:bg-secondary',
-    // For use on the dark green hero surfaces (solid tokens, no alpha modifiers).
-    // Bright white border + fills white on hover so it reads as a real button.
-    'outline-light': 'border-2 border-white-remain text-white-remain hover:bg-white-remain hover:text-brand-token',
-  }
-  const sizes = {
-    md: 'px-5 py-2.5 text-paragraph-medium',
-    lg: 'px-7 py-3.5 text-paragraph-big',
-  }
   return (
-    <Link
-      href={href}
-      className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-circle font-semibold',
-        sizes[size],
-        'transition-colors duration-200 ease-standard focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-token',
-        styles[variant],
-        className,
-      )}
-    >
+    <Link href={href} className={ctaButtonClasses(variant, size, className)}>
+      {iconLeft}
       {children}
-      {iconRight && <ArrowRight className="size-4" aria-hidden="true" weight="bold" />}
+      {iconRight && (
+        <ArrowRight
+          className="size-4 transition-transform duration-200 ease-standard group-hover:translate-x-0.5"
+          aria-hidden="true"
+          weight="bold"
+        />
+      )}
     </Link>
   )
 }
@@ -157,7 +173,7 @@ export function FeatureCard({
         {icon}
       </span>
       <h3 className="mt-5 text-label-big font-semibold text-primary">{title}</h3>
-      <p className="mt-2 text-paragraph-medium leading-relaxed text-tertiary">{children}</p>
+      <p className="mt-2 text-paragraph-medium leading-relaxed text-neutral-500">{children}</p>
       {href && (
         <span className="mt-4 inline-flex items-center gap-1.5 text-paragraph-medium font-semibold text-brand-token">
           Pelajari
@@ -196,7 +212,7 @@ export function Stat({
       </div>
       <div className={cn('text-label-big font-semibold', onDark ? 'text-brand-100' : 'text-primary')}>{label}</div>
       {children && (
-        <p className={cn('text-paragraph-medium leading-relaxed', onDark ? 'text-brand-200' : 'text-tertiary')}>
+        <p className={cn('text-paragraph-medium leading-relaxed', onDark ? 'text-brand-200' : 'text-neutral-500')}>
           {children}
         </p>
       )}

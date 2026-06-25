@@ -1,23 +1,15 @@
 import type { ReactElement } from 'react'
-import { Skeleton } from '@/components/dashboard/primitives'
+import { LoadingCircle } from '@/components/ui'
 
 /**
  * Route-level fallback for top-level platform pages (projects list, usage,
- * settings). Shows instantly during route compilation / chunk load instead of
- * a blank content area.
+ * settings) and the post-sign-in redirect. A centered brand spinner reads
+ * cleaner than skeleton placeholders during route compilation / chunk load.
  */
 export default function Loading(): ReactElement {
   return (
-    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-4 w-80 max-w-full" />
-      </div>
-      <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-44" />
-        <Skeleton className="h-44" />
-        <Skeleton className="h-44" />
-      </div>
+    <div className="flex min-h-screen w-full items-center justify-center p-6">
+      <LoadingCircle size="lg" />
     </div>
   )
 }
