@@ -85,18 +85,19 @@ export function MarketingNav(): ReactElement {
 
         {/* Center links (desktop) */}
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
-          {t.items.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ease-standard',
-                active === item.href ? 'bg-white/10 text-white-remain' : 'text-brand-100 hover:bg-white/10 hover:text-white-remain',
-              )}
-            >
-              {item.label}
-            </a>
-          ))}
+          {t.items.map((item) => {
+            const isPage = !item.href.startsWith('#')
+            const isActive = isPage ? pathname === item.href : active === item.href
+            const cls = cn(
+              'rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ease-standard',
+              isActive ? 'bg-white/10 text-white-remain' : 'text-brand-100 hover:bg-white/10 hover:text-white-remain',
+            )
+            return isPage ? (
+              <Link key={item.href} href={item.href} className={cls}>{item.label}</Link>
+            ) : (
+              <a key={item.href} href={item.href} className={cls}>{item.label}</a>
+            )
+          })}
         </nav>
 
         {/* Right actions (desktop) */}
@@ -141,16 +142,15 @@ export function MarketingNav(): ReactElement {
       {mobileOpen && (
         <div className="mx-auto mt-2 max-w-[1180px] rounded-token-16 border border-white/10 bg-[#02120b]/95 px-4 py-4 backdrop-blur-md lg:hidden">
           <nav className="flex flex-col gap-1">
-            {t.items.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-3 text-[16px] font-medium text-white-remain transition-colors hover:bg-white/10"
-              >
-                {item.label}
-              </a>
-            ))}
+            {t.items.map((item) => {
+              const isPage = !item.href.startsWith('#')
+              const cls = 'rounded-lg px-3 py-3 text-[16px] font-medium text-white-remain transition-colors hover:bg-white/10'
+              return isPage ? (
+                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cls}>{item.label}</Link>
+              ) : (
+                <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cls}>{item.label}</a>
+              )
+            })}
             <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-4">
               <button
                 type="button"
