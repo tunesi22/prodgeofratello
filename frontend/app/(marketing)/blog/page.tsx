@@ -1,38 +1,12 @@
 import type { ReactElement } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { posts } from './_posts'
 
 export const metadata: Metadata = {
   title: 'Blog - Fratello',
   description: 'Insight, strategi, dan panduan seputar GEO (Generative Engine Optimization) dari tim Fratello.',
 }
-
-const posts = [
-  {
-    slug: 'apa-itu-geo',
-    category: 'Panduan',
-    date: '20 Juni 2026',
-    title: 'Apa itu GEO? Panduan Lengkap Generative Engine Optimization',
-    excerpt:
-      'GEO adalah praktik mengoptimalkan konten brand agar direkomendasikan oleh mesin AI seperti ChatGPT, Gemini, dan Perplexity -- bukan hanya muncul di hasil pencarian Google.',
-  },
-  {
-    slug: 'mengapa-brand-harus-peduli-ai',
-    category: 'Strategi',
-    date: '14 Juni 2026',
-    title: 'Mengapa Brand Harus Mulai Peduli dengan Visibilitas AI Sekarang',
-    excerpt:
-      'Setiap bulan lebih dari 2,4 juta pertanyaan tentang produk diajukan ke mesin AI. Jika brand Anda tidak terlihat di sana, pesaing Anda yang akan direkomendasikan.',
-  },
-  {
-    slug: 'cara-kerja-audit-geo',
-    category: 'Produk',
-    date: '7 Juni 2026',
-    title: 'Bagaimana Audit GEO Fratello Bekerja di Balik Layar',
-    excerpt:
-      'Kami mengirim ratusan prompt ke empat mesin AI setiap minggu untuk mengukur seberapa sering dan seberapa positif brand Anda disebut -- inilah cara kami melakukannya.',
-  },
-]
 
 export default function BlogPage(): ReactElement {
   return (
@@ -57,8 +31,9 @@ export default function BlogPage(): ReactElement {
       <section className="mx-auto max-w-[1180px] px-6 py-16">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
-            <article
+            <Link
               key={post.slug}
+              href={`/blog/${post.slug}`}
               className="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow duration-200 hover:shadow-md"
             >
               <div className="mb-4 flex items-center gap-3">
@@ -76,11 +51,10 @@ export default function BlogPage(): ReactElement {
                   Baca selengkapnya &rarr;
                 </span>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
 
-        {/* Empty state placeholder for future posts */}
         <p className="mt-16 text-center text-[14px] text-gray-400">
           Artikel baru akan hadir setiap minggu.{' '}
           <Link href="/#faq" className="text-brand-600 hover:underline">
