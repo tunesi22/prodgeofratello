@@ -21,6 +21,7 @@ const lora = Lora({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://hifratello.com'),
   title: 'Fratello, GEO Platform',
   description: 'Track and optimize your brand visibility across LLMs',
 }
