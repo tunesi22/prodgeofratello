@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { ArrowRight, CircleNotch, MagnifyingGlass } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { fadeUp } from '@/lib/motion'
@@ -25,6 +26,7 @@ import { ModelLogo } from '@/components/dashboard/ModelLogo'
 import { ActionQueue } from '@/components/dashboard/ActionQueue'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import { useTopLoading } from '@/components/providers/TopLoadingBar'
+import { useScanProgress } from '@/components/providers/ScanProgressProvider'
 import {
   type Analytics,
   modelLabel, weekOverWeekDelta, aggregateSentiment, rateForModel, rateChipType, topOpportunities,
@@ -60,9 +62,6 @@ const SENTIMENT_COLORS = {
   neutral: 'var(--icon-light-gray)',
   negative: 'var(--icon-error)',
 } as const
-
-const POLL_INTERVAL_MS = 9000
-const MAX_POLLS = 40 // ~6 minutes safety cap
 
 interface Brand {
   _id: string
@@ -156,18 +155,14 @@ const COPY = {
   },
 } as const
 
-interface ScanState {
-  status: 'idle' | 'running' | 'done' | 'slow'
-  baseline: number
-  target: number
-  done: number
-}
-
 export default function BrandOverviewPage(): ReactElement {
   const { id } = useParams<{ id: string }>()
   const apiFetch = useApiFetch()
   const { lang } = useLanguage()
   const { start, done } = useTopLoading()
+  // Scan progress lives in a global provider so a sticky banner can follow the
+  // user across pages while the scan runs (it no longer lives on this page).
+  const { scan: globalScan, startScan } = useScanProgress()
   const t = COPY[lang]
 
   const [brand, setBrand] = useState<Brand | null>(null)
@@ -175,11 +170,12 @@ export default function BrandOverviewPage(): ReactElement {
   const [scanHistory, setScanHistory] = useState<ScanRun[]>([])
   const [guidedLoading, setGuidedLoading] = useState<boolean>(false)
   const [scanning, setScanning] = useState<boolean>(false)
-  const [scan, setScan] = useState<ScanState>({ status: 'idle', baseline: 0, target: 0, done: 0 })
   const [scanNotice, setScanNotice] = useState<string>('')
   const [scanError, setScanError] = useState<string>('')
   const [error, setError] = useState<string>('')
-  const pollsRef = useRef<number>(0)
+
+  /** True while a scan for THIS brand is running (drives the disabled button). */
+  const scanRunning = globalScan?.brandId === id && globalScan.status === 'running'
 
   const loadScanHistory = useCallback(async () => {
     try {
@@ -206,56 +202,32 @@ export default function BrandOverviewPage(): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // Poll for scan completion while a scan is running.
+  // When the global scan finishes for this brand, refresh analytics + history so
+  // the new numbers replace the pre-scan snapshot.
   useEffect(() => {
-    if (scan.status !== 'running') return
-    let ignore = false
-    const timer = setInterval(() => {
-      pollsRef.current += 1
-      apiFetch<Analytics>(`/brands/${id}/analytics`)
-        .then((a) => {
-          if (ignore) return
-          const done = Math.max(0, a.overall.totalQueries - scan.baseline)
-          if (a.overall.totalQueries >= scan.target) {
-            setData(a)
-            setScan((s) => ({ ...s, status: 'done', done: s.target - s.baseline }))
-            void loadScanHistory()
-          } else if (pollsRef.current >= MAX_POLLS) {
-            setData(a)
-            setScan((s) => ({ ...s, status: 'slow', done }))
-            setScanNotice(t.scanSlow)
-            void loadScanHistory()
-          } else {
-            setScan((s) => ({ ...s, done }))
-          }
-        })
-        .catch(() => {})
-    }, POLL_INTERVAL_MS)
-    return () => {
-      ignore = true
-      clearInterval(timer)
+    if (globalScan?.brandId === id && globalScan.status === 'done') {
+      loadData().catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scan.status, scan.baseline, scan.target, id])
+  }, [globalScan?.status, globalScan?.brandId, id])
 
   async function handleScan(): Promise<void> {
     setScanning(true)
     setScanError('')
     setScanNotice('')
     start()
-    const baseline = data?.overall.totalQueries ?? 0
     try {
       const res = await apiFetch<{ message: string; jobsEnqueued: number }>(`/brands/${id}/scan`, {
         method: 'POST',
       })
       if (res.jobsEnqueued <= 0) {
         // No active prompts: friendly notice, not an error banner.
-        setScan({ status: 'idle', baseline, target: baseline, done: 0 })
         setScanNotice(t.scanQueuedNoJobs)
         return
       }
-      pollsRef.current = 0
-      setScan({ status: 'running', baseline, target: baseline + res.jobsEnqueued, done: 0 })
+      // Hand off to the global provider; the sticky banner takes over from here
+      // and follows the user across pages until the scan finishes.
+      startScan({ brandId: id, brandName: brand?.name ?? '', total: res.jobsEnqueued })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t.requestFailed
       // Backend throws a 500 with this message when there are no active prompts;
@@ -331,6 +303,15 @@ export default function BrandOverviewPage(): ReactElement {
   const sentPct = (n: number): number =>
     sentiment != null && sentiment.total > 0 ? Math.round((n / sentiment.total) * 100) : 0
 
+  const sentimentDonut =
+    sentiment != null
+      ? [
+          { label: t.positive, value: sentiment.positive, color: SENTIMENT_COLORS.positive },
+          { label: t.neutral, value: sentiment.neutral, color: SENTIMENT_COLORS.neutral },
+          { label: t.negative, value: sentiment.negative, color: SENTIMENT_COLORS.negative },
+        ].filter((s) => s.value > 0)
+      : []
+
   return (
     <PageContainer wide>
       <PageHeader
@@ -356,7 +337,7 @@ export default function BrandOverviewPage(): ReactElement {
           <>
             <DataFreshness brandId={id} />
             {hasData && (
-              <Button type="primary" size="sm" disabled={scanning || scan.status === 'running'} onClick={handleScan}>
+              <Button type="primary" size="sm" disabled={scanning || scanRunning} onClick={handleScan}>
                 {scanning ? t.startingScan : t.runScan}
               </Button>
             )}
@@ -364,28 +345,8 @@ export default function BrandOverviewPage(): ReactElement {
         }
       />
 
-      {/* Scan progress / completion feedback */}
-      {scan.status === 'running' && (
-        <motion.div variants={fadeUp} className="w-full">
-          <Card variant="brand" role="status" className="flex flex-col gap-2 px-4 py-3">
-            <span className="flex items-center gap-2 text-paragraph-medium text-brand-token">
-              <CircleNotch className="size-4 animate-spin" aria-hidden="true" />
-              {t.scanRunning(scan.done, scan.target - scan.baseline)}
-            </span>
-            <ProgressBar
-              progress={scan.target > scan.baseline ? (scan.done / (scan.target - scan.baseline)) * 100 : 0}
-              thickness={4}
-            />
-          </Card>
-        </motion.div>
-      )}
-      {scan.status === 'done' && (
-        <motion.div variants={fadeUp} className="w-full">
-          <Card variant="brand" role="status" className="px-4 py-3 text-paragraph-medium text-brand-token">
-            {t.scanDone(scan.done)}
-          </Card>
-        </motion.div>
-      )}
+      {/* Scan progress now shows in the global sticky banner (ScanBanner); only
+          the "no prompts" notice and hard errors stay inline here. */}
       {scanNotice !== '' && (
         <motion.div variants={fadeUp} className="w-full">
           <Card role="status" className="px-4 py-3 text-paragraph-medium text-secondary">
@@ -440,14 +401,16 @@ export default function BrandOverviewPage(): ReactElement {
             <Section title={t.rateByModel}>
               <Card className="w-full divide-y divide-neutral-primary">
                 {data.byModel.map((row) => (
-                  <div key={row.model} className="flex w-full flex-wrap items-center gap-4 px-4 py-3">
-                    <span className="flex w-28 shrink-0 items-center gap-2 text-label-medium font-medium text-primary">
-                      <ModelLogo model={row.model} className="size-4" />
-                      {modelLabel(row.model)}
-                    </span>
-                    <div className="min-w-24 flex-1"><ProgressBar progress={row.mentionRate} thickness={4} /></div>
-                    <span className="shrink-0 text-paragraph-medium text-secondary tabular-nums">{t.rowStats(row.mentionCount, row.totalQueries)}</span>
-                    <Chip type={rateChipType(row.mentionRate)} shape="rounded" size="sm" className="tabular-nums">{row.mentionRate}%</Chip>
+                  <div key={row.model} className="flex w-full flex-col gap-2 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <ModelLogo model={row.model} className="size-4 shrink-0" />
+                      <span className="min-w-0 flex-1 truncate text-label-medium font-medium text-primary">{modelLabel(row.model)}</span>
+                      <Chip type={rateChipType(row.mentionRate)} shape="rounded" size="sm" className="tabular-nums">{row.mentionRate}%</Chip>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1"><ProgressBar progress={row.mentionRate} thickness={4} /></div>
+                      <span className="shrink-0 text-label-medium text-tertiary tabular-nums">{t.rowStats(row.mentionCount, row.totalQueries)}</span>
+                    </div>
                   </div>
                 ))}
               </Card>
@@ -455,13 +418,33 @@ export default function BrandOverviewPage(): ReactElement {
 
             {sentiment != null && sentiment.total > 0 && (
               <Section title={t.sentimentTitle} help={t.sentimentHint}>
-                <Card className="flex flex-col gap-4 p-4">
-                  <div className="flex h-3 w-full overflow-hidden rounded-circle bg-secondary">
-                    <span style={{ width: `${sentPct(sentiment.positive)}%`, background: SENTIMENT_COLORS.positive }} />
-                    <span style={{ width: `${sentPct(sentiment.neutral)}%`, background: SENTIMENT_COLORS.neutral }} />
-                    <span style={{ width: `${sentPct(sentiment.negative)}%`, background: SENTIMENT_COLORS.negative }} />
+                <Card className="flex flex-col items-center gap-4 p-4">
+                  <div className="relative w-full">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={sentimentDonut}
+                          dataKey="value"
+                          nameKey="label"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={58}
+                          outerRadius={86}
+                          paddingAngle={2}
+                          strokeWidth={0}
+                        >
+                          {sentimentDonut.map((s) => (
+                            <Cell key={s.label} fill={s.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-h4 font-semibold text-primary tabular-nums">{sentiment.total}</span>
+                      <span className="text-label-medium text-tertiary">{t.totalMentions}</span>
+                    </span>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex w-full flex-col gap-2">
                     {[
                       { label: t.positive, value: sentiment.positive, color: SENTIMENT_COLORS.positive },
                       { label: t.neutral, value: sentiment.neutral, color: SENTIMENT_COLORS.neutral },

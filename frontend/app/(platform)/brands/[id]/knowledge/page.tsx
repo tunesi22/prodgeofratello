@@ -14,7 +14,7 @@ import {
 } from '@phosphor-icons/react/dist/ssr'
 import { fadeUp } from '@/lib/motion'
 import { PageContainer, PageHeader, Card, EmptyState } from '@/components/dashboard/primitives'
-import { Button, Input, TextBox, IconButton, Chip } from '@/components/ui'
+import { Button, Input, TextBox, IconButton, Chip, Dropdown } from '@/components/ui'
 import { KnowledgeIcon } from '@/components/dashboard/nav-icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import {
@@ -220,18 +220,16 @@ export default function KnowledgeBasePage(): ReactElement {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Source type dropdown */}
-              <label className="flex w-full flex-col gap-2">
-                <span className="text-field-label font-semibold text-secondary">{t.typeLabel}</span>
-                <select
-                  value={sourceType}
-                  onChange={(e) => setSourceType(e.target.value as KBSourceType)}
-                  className="w-full rounded-token-8 border border-neutral-primary bg-primary px-3 py-2 text-field-input font-normal text-primary outline-none transition-colors duration-200 ease-standard focus:border-brand-token"
-                >
-                  <option value="file">{t.typeFile}</option>
-                  <option value="url">{t.typeUrl}</option>
-                  <option value="text">{t.typeText}</option>
-                </select>
-              </label>
+              <Dropdown
+                label={t.typeLabel}
+                value={sourceType}
+                options={[
+                  { value: 'file', label: t.typeFile },
+                  { value: 'url', label: t.typeUrl },
+                  { value: 'text', label: t.typeText },
+                ]}
+                onChange={(v) => setSourceType(v as KBSourceType)}
+              />
 
               <Input
                 label={t.nameLabel}

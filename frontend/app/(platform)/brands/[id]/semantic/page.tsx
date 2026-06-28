@@ -41,7 +41,7 @@ import {
   ErrorBanner,
   Skeleton,
 } from '@/components/dashboard/primitives'
-import { Button, Chip, LoadingCircle, ProgressBar } from '@/components/ui'
+import { Button, Chip, LoadingCircle, ProgressBar, useToast } from '@/components/ui'
 import { BoostIcon } from '@/components/dashboard/nav-icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 
@@ -79,6 +79,7 @@ const COPY = {
     analyzing: 'Menganalisis...',
     runAnalysis: 'Jalankan Analisis',
     analysisFailed: 'Analisis gagal',
+    analysisDone: 'Analisis selesai',
     loadingAria: 'Menganalisis sebutan brand',
     loadingTitle: 'Sedang menganalisis sebutan brand Anda...',
     loadingHint: 'Biasanya perlu 30 sampai 60 detik',
@@ -107,6 +108,7 @@ const COPY = {
     analyzing: 'Analyzing...',
     runAnalysis: 'Run Analysis',
     analysisFailed: 'Analysis failed',
+    analysisDone: 'Analysis complete',
     loadingAria: 'Analyzing brand mentions',
     loadingTitle: 'Analyzing brand mentions...',
     loadingHint: 'This may take 30 to 60 seconds',
@@ -135,6 +137,7 @@ export default function BoostAiRankingPage(): ReactElement {
   const apiFetch = useApiFetch()
   const { lang } = useLanguage()
   const t = COPY[lang]
+  const toast = useToast()
   const [proximity, setProximity] = useState<SemanticProximityData | null>(null)
   const [cooccurrence, setCooccurrence] = useState<CooccurrenceData | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
@@ -151,8 +154,11 @@ export default function BoostAiRankingPage(): ReactElement {
       ])
       setProximity(prox)
       setCooccurrence(co)
+      toast.success(t.analysisDone)
     } catch (err: unknown) {
-      setError(err instanceof Error && err.message ? err.message : t.analysisFailed)
+      const message = err instanceof Error && err.message ? err.message : t.analysisFailed
+      setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }

@@ -155,9 +155,9 @@ Set frekuensi scan: Manual / Daily / Weekly — platform jalan otomatis tanpa ha
 ### 10. Payment & Plan
 | Plan | Harga | Prompts | Models | Artikel/bulan |
 |---|---|---|---|---|
-| Starter | $49/bulan | 25 | 3 | 4 |
-| Pro | $149/bulan | 100 | semua | 8 |
-| Agency | $399/bulan | unlimited | semua | unlimited |
+| Basic | $49/bulan | 40 | 1 (Gemini) | 5 |
+| Pro | $149/bulan | 100 | semua (4) | 30 |
+| Agency | $399/bulan | 300 | semua (4) | 100 |
 
 Payment: **Stripe (USD)** untuk market global, **Midtrans (IDR)** untuk market Indonesia.
 

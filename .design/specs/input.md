@@ -30,7 +30,11 @@ Field root (vertical flex, width 330px, gap 8px = Gaps/gap-8)
 │   └── [required] "*" (red)
 ├── Container (the input box)
 │   • horizontal flex, items-center, gap 8px (Gaps/gap-8)
-│   • padding: 12px horizontal (Wrapper/wrap-12), 8px vertical (Wrapper/wrap-8)
+│   • fixed height 36px (h-9); padding: 12px horizontal (Wrapper/wrap-12) only
+│   • NOTE: height is fixed, not padding-driven. items-center vertically centers
+│     every child (20px text, 20px icons, OR a taller trailingAction button) so
+│     the box is the same height with or without a trailing action — fields like
+│     plain email vs. password-with-eye-toggle stay aligned.
 │   • bg Background/bg-primary, 1px solid border, radius 8px (Corner Radius/radius-8)
 │   ├── [iconLeft] icon 20×20px
 │   ├── Input text (flex 1, Fields/Input style — placeholder or value)
@@ -39,7 +43,7 @@ Field root (vertical flex, width 330px, gap 8px = Gaps/gap-8)
 └── [caption] Caption row (full width, Fields/Caption style, text-secondary)
 ```
 
-- Total width: 330px. Total height (label + field, no caption): ~58px (label 14px + gap 8px + field 36px = 20px line + 2×8px pad + 2×1px border).
+- Total width: 330px. Total height (label + field, no caption): ~58px (label 14px + gap 8px + field 36px). The field is a fixed 36px tall regardless of its contents (text-only, icons, or a taller trailing action), so all inputs in a form line up.
 - There is NO floating label — the label sits in its own row above the field.
 - Caption row exists in the base component but is OFF in all four State variants.
 
@@ -48,8 +52,9 @@ Field root (vertical flex, width 330px, gap 8px = Gaps/gap-8)
 | Property | Token | px |
 |---|---|---|
 | Field corner radius | `Corner Radius/radius-8` | 8px |
+| Field height (fixed) | `h-9` | 36px |
 | Container padding X | `Wrapper/wrap-12` | 12px |
-| Container padding Y | `Wrapper/wrap-8` | 8px |
+| Container padding Y | items-center (no fixed pad) | — (height-driven, ~8px effective) |
 | Label↔field gap (root column) | `Gaps/gap-8` | 8px |
 | Label↔asterisk gap (label row) | `Gaps/gap-4` | 4px |
 | Icon↔text gap inside container | `Gaps/gap-8` | 8px |

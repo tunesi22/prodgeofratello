@@ -13,10 +13,13 @@ export type ArticleStatus = (typeof ARTICLE_STATUSES)[number]
 export const PLAN_TIERS = ['starter', 'pro', 'agency'] as const
 export type PlanTier = (typeof PLAN_TIERS)[number]
 
+// Plan tiers — see CLAUDE.md "Pricing tiers". Display name: `starter` = "Basic".
+// The `starter` key is kept (no rename) to avoid a breaking DB/enum/payment migration.
+// `models` = how many LLM providers the plan may use (Basic = 1, i.e. Gemini only).
 export const PLAN_LIMITS: Record<PlanTier, { prompts: number | null; models: number; articlesPerMonth: number | null }> = {
-  starter: { prompts: 25, models: 3, articlesPerMonth: 4 },
-  pro: { prompts: 100, models: 4, articlesPerMonth: 8 },
-  agency: { prompts: null, models: 4, articlesPerMonth: null },
+  starter: { prompts: 40, models: 1, articlesPerMonth: 5 },    // "Basic" — Gemini only
+  pro: { prompts: 100, models: 4, articlesPerMonth: 30 },
+  agency: { prompts: 300, models: 4, articlesPerMonth: 100 },
 }
 
 export const QUERY_REPEAT_COUNT = 5

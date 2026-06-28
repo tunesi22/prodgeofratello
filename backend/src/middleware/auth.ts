@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import User from '../models/User'
+import { effectivePlan } from '../utils/devPlan'
 
 declare global {
   namespace Express {
@@ -37,7 +38,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     req.userId = user.clerkUserId
-    req.userPlan = user.plan
+    req.userPlan = effectivePlan(user.plan)
     req.userIsAdmin = user.isAdmin ?? false
     next()
   } catch {

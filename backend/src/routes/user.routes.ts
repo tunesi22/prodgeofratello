@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import User from '../models/User'
 import { requireAuth } from '../middleware/auth'
+import { effectivePlan } from '../utils/devPlan'
 
 const router = Router()
 
@@ -8,6 +9,7 @@ const router = Router()
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ clerkUserId: req.userId })
+    if (user) user.plan = effectivePlan(user.plan)
     res.json(user)
   } catch (err: any) {
     res.status(500).json({ error: err.message })

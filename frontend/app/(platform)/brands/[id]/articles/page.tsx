@@ -4,7 +4,7 @@ import type { MouseEvent, ReactElement } from 'react'
 import { Suspense, useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X as PhosphorX, FileText, Plus, MagnifyingGlass, Trash, PencilSimpleLine } from '@phosphor-icons/react/dist/ssr'
+import { ArrowLeft, CircleNotch, DownloadSimple, Plus, MagnifyingGlass, Trash, PencilSimpleLine } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { fadeUp, transitionEnter, transitionExit } from '@/lib/motion'
 import { cn } from '@/lib/cn'
@@ -17,9 +17,9 @@ import {
   Skeleton,
 } from '@/components/dashboard/primitives'
 import { Button, Chip, IconButton, Input } from '@/components/ui'
-import { SuggestedIcon } from '@/components/dashboard/nav-icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import { ArticleComposer } from '@/components/articles/ArticleComposer'
+import { ArticleContent } from '@/components/articles/ArticleContent'
 import {
   defaultConfig,
   loadDrafts,
@@ -45,6 +45,13 @@ interface Article {
   promptId: { _id: string; text: string; category: string } | null
 }
 
+/** A generation in flight, shown as a loading card in the grid until the real
+ *  article comes back from the API (or the request fails and it's removed). */
+interface PendingArticle {
+  tempId: string
+  title: string
+}
+
 type StatusFilter = 'all' | 'draft' | 'ready'
 
 /** Page copy, both languages. No dashes; plain wording for first-time users. */
@@ -56,6 +63,7 @@ const COPY = {
     generateFailed: 'Gagal membuat artikel',
     exportFailed: 'Gagal export artikel',
     newArticle: 'Artikel baru',
+    generating: 'Sedang dibuat...',
     search: 'Cari artikel...',
     filterAll: 'Semua',
     filterDraft: 'Draf',
@@ -86,6 +94,7 @@ const COPY = {
     generateFailed: 'Failed to generate article',
     exportFailed: 'Export failed',
     newArticle: 'New article',
+    generating: 'Generating...',
     search: 'Search articles...',
     filterAll: 'All',
     filterDraft: 'Draft',
@@ -111,8 +120,12 @@ const COPY = {
   },
 } as const
 
-/** Right-sliding preview panel for a generated article. */
-function ArticlePreviewPanel({
+/**
+ * Full-screen reading view for a generated article. Renders the markdown as a
+ * real article (no raw `#`/`**`) via ArticleContent, and keeps the .md / .html
+ * downloads in the top bar.
+ */
+function ArticleReader({
   article,
   onClose,
   onExport,
@@ -123,6 +136,7 @@ function ArticlePreviewPanel({
 }): ReactElement {
   const { lang } = useLanguage()
   const t = COPY[lang]
+  const isReady = article.status === 'ready'
 
   useEffect(() => {
     function onKey(e: globalThis.KeyboardEvent): void {
@@ -133,39 +147,22 @@ function ArticlePreviewPanel({
   }, [onClose])
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, transition: transitionEnter() }}
-        exit={{ opacity: 0, transition: transitionExit() }}
-        onClick={onClose}
-        className="fixed inset-0 z-40 bg-overlay"
-        aria-hidden="true"
-      />
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t.previewAria}
-        initial={{ x: '100%' }}
-        animate={{ x: 0, transition: transitionEnter() }}
-        exit={{ x: '100%', transition: transitionExit() }}
-        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[640px] flex-col overflow-hidden border-l border-neutral-primary bg-card shadow-regular-xl"
-      >
-        <div className="flex items-start gap-3 border-b border-neutral-primary px-5 py-4">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-h6 font-normal text-primary">{article.title}</h2>
-            {article.promptId?.text && (
-              <p className="mt-1 line-clamp-1 text-label-medium text-tertiary">
-                {t.fromPrompt}: {article.promptId.text}
-              </p>
-            )}
-          </div>
-          <IconButton type="ghost" size="sm" aria-label={t.closePreview} onClick={onClose} className="shrink-0">
-            <PhosphorX aria-hidden="true" />
-          </IconButton>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 border-b border-neutral-primary bg-secondary px-5 py-3">
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.previewAria}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0, transition: transitionEnter() }}
+      exit={{ opacity: 0, transition: transitionExit() }}
+      className="fixed inset-0 z-50 flex flex-col bg-primary"
+    >
+      {/* Top bar: back, title, downloads. Sticky via flex layout. */}
+      <div className="flex shrink-0 items-center gap-3 border-b border-neutral-primary bg-card px-6 py-3 transition-colors duration-300 ease-standard">
+        <IconButton type="ghost" size="sm" aria-label={t.closePreview} onClick={onClose}>
+          <ArrowLeft aria-hidden="true" />
+        </IconButton>
+        <span className="min-w-0 flex-1 truncate text-label-big font-medium text-primary">{article.title}</span>
+        <div className="flex shrink-0 items-center gap-2">
           <Button type="primary-outlined" size="sm" onClick={() => onExport('md')}>
             {t.downloadMd}
           </Button>
@@ -173,14 +170,94 @@ function ArticlePreviewPanel({
             {t.downloadHtml}
           </Button>
         </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="whitespace-pre-wrap text-paragraph-medium leading-relaxed text-primary">
-            {article.content}
-          </div>
-        </div>
-      </motion.div>
-    </>
+      {/* Reading column. */}
+      <div className="flex-1 overflow-y-auto">
+        <motion.article
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="mx-auto w-full max-w-[720px] px-6 py-12"
+        >
+          <header className="mb-8 flex flex-col gap-4 border-b border-neutral-primary pb-8">
+            <h1 className="text-h2 font-semibold text-primary transition-colors duration-300 ease-standard">
+              {article.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 text-label-medium text-tertiary">
+              <Chip size="sm" shape="rounded" type={isReady ? 'success' : 'neutral'}>
+                {isReady ? t.ready : t.draft}
+              </Chip>
+              <span>{new Date(article.generatedAt).toLocaleDateString()}</span>
+              {article.promptId?.text && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="min-w-0 truncate">
+                    {t.fromPrompt}: {article.promptId.text}
+                  </span>
+                </>
+              )}
+            </div>
+          </header>
+
+          <ArticleContent content={article.content} omitFirstH1 />
+        </motion.article>
+      </div>
+    </motion.div>
+  )
+}
+
+/**
+ * The "create" affordance, living as the first cell of the grid (top-left) so it
+ * is always reachable without a separate header button. Dashed outline + plus to
+ * read as an "add" tile rather than a content card.
+ */
+function NewArticleCard({ label, onClick }: { label: string; onClick: () => void }): ReactElement {
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick()
+        }
+      }}
+      className={cn(
+        'flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 p-4 outline-none',
+        'border-dashed border-neutral-secondary text-tertiary',
+        'transition-colors duration-200 ease-standard hover:border-brand-token hover:text-brand-token',
+        'focus-visible:border-brand-token focus-visible:text-brand-token',
+      )}
+    >
+      <span className="flex size-11 items-center justify-center rounded-token-12 bg-display-brand text-icon-brand">
+        <Plus className="size-6" aria-hidden="true" />
+      </span>
+      <span className="text-paragraph-medium font-medium">{label}</span>
+    </Card>
+  )
+}
+
+/** Placeholder card for an article that is being generated in the background. */
+function PendingArticleCard({ title, label }: { title: string; label: string }): ReactElement {
+  return (
+    <Card className="flex min-h-[180px] flex-col justify-between gap-3 p-4">
+      <div className="flex flex-col gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-token-8 bg-display-brand text-icon-brand">
+          <CircleNotch className="size-5 animate-spin" aria-hidden="true" />
+        </span>
+        <p className="line-clamp-3 text-paragraph-medium font-medium text-primary">{title}</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Chip size="sm" shape="rounded" type="neutral">
+          {label}
+        </Chip>
+        <Skeleton className="h-2 w-2/3" />
+      </div>
+    </Card>
   )
 }
 
@@ -205,7 +282,8 @@ function ArticlesInner(): ReactElement {
   const [mode, setMode] = useState<'list' | 'compose'>('list')
   const [composeInitial, setComposeInitial] = useState<ArticleConfig>(defaultConfig(lang))
   const [resumeDraftId, setResumeDraftId] = useState<string | null>(null)
-  const [generating, setGenerating] = useState<boolean>(false)
+  // Generations in flight, rendered as loading cards in the list.
+  const [pending, setPending] = useState<PendingArticle[]>([])
 
   const [search, setSearch] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -290,8 +368,17 @@ function ArticlesInner(): ReactElement {
 
   async function handleGenerate(config: ArticleConfig): Promise<void> {
     if (config.promptId == null) return
-    setGenerating(true)
+
+    const selected = prompts.find((pr) => pr._id === config.promptId)
+    const tempId = crypto.randomUUID()
+
+    // Leave the composer straight away and show a loading card in the list; the
+    // generation continues in the background and swaps in when it returns.
+    const wasResuming = resumeDraftId
     setGenerateError(null)
+    setPending((prev) => [{ tempId, title: selected?.text ?? t.draftUntitled }, ...prev])
+    setMode('list')
+
     try {
       // Backend consumes promptId today; the rest is sent forward-compatibly.
       const article = await apiFetch<Article>(`/brands/${id}/articles/generate`, {
@@ -311,19 +398,16 @@ function ArticlesInner(): ReactElement {
       // The generate endpoint returns promptId UNPOPULATED (a raw id string), unlike
       // the list endpoint. Rebuild the populated shape from the local prompt so the
       // card, preview, and search all read promptId.text safely.
-      const selected = prompts.find((pr) => pr._id === config.promptId)
       const normalized: Article = {
         ...article,
         promptId: selected ? { _id: selected._id, text: selected.text, category: selected.category } : null,
       }
+      setPending((prev) => prev.filter((p) => p.tempId !== tempId))
       setArticles((prev) => [normalized, ...prev])
-      if (resumeDraftId != null) removeDraft(resumeDraftId)
-      setMode('list')
-      setPreview(normalized)
+      if (wasResuming != null) removeDraft(wasResuming)
     } catch (e: unknown) {
+      setPending((prev) => prev.filter((p) => p.tempId !== tempId))
       setGenerateError(e instanceof Error ? e.message : t.generateFailed)
-    } finally {
-      setGenerating(false)
     }
   }
 
@@ -362,7 +446,7 @@ function ArticlesInner(): ReactElement {
           gapIds={gapIds}
           knowledge={knowledge}
           initial={composeInitial}
-          generating={generating}
+          generating={false}
           error={generateError}
           onCancel={() => setMode('list')}
           onSaveDraft={handleSaveDraft}
@@ -405,74 +489,71 @@ function ArticlesInner(): ReactElement {
         </motion.div>
       )}
 
+      {generateError != null && (
+        <motion.div variants={fadeUp} className="w-full">
+          <ErrorBanner message={generateError} />
+        </motion.div>
+      )}
+
       {loading ? (
         <motion.div variants={fadeUp} className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Skeleton className="h-44 w-full" />
           <Skeleton className="h-44 w-full" />
           <Skeleton className="h-44 w-full" />
         </motion.div>
-      ) : totalItems === 0 ? (
-        <motion.div variants={fadeUp} className="w-full">
-          <EmptyState
-            icon={<SuggestedIcon />}
-            title={t.noArticlesTitle}
-            description={t.noArticlesDesc}
-            action={
-              <Button type="primary" iconLeft={<Plus className="size-5" aria-hidden="true" />} onClick={openNew}>
-                {t.newArticle}
-              </Button>
-            }
-          />
-        </motion.div>
       ) : (
         <>
-          <motion.div variants={fadeUp} className="flex w-full justify-center">
-            <Button type="primary" iconLeft={<Plus className="size-5" aria-hidden="true" />} onClick={openNew}>
-              {t.newArticle}
-            </Button>
-          </motion.div>
-          {/* Toolbar */}
-          <motion.div variants={fadeUp} className="flex w-full flex-wrap items-center justify-between gap-3">
-            <div className="w-full max-w-xs">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t.search}
-                iconLeft={<MagnifyingGlass className="size-5" aria-hidden="true" />}
-                aria-label={t.search}
-              />
-            </div>
-            <div className="flex items-center gap-1 rounded-token-8 border border-neutral-primary bg-secondary p-1">
-              {FILTERS.map((f) => {
-                const active = statusFilter === f.value
-                return (
-                  <button
-                    key={f.value}
-                    type="button"
-                    onClick={() => setStatusFilter(f.value)}
-                    aria-pressed={active}
-                    className={cn(
-                      'rounded-token-4 px-3 py-1 text-label-medium font-medium transition-colors duration-200 ease-standard',
-                      active ? 'bg-card text-primary shadow-center-sm' : 'text-secondary hover:text-primary',
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                )
-              })}
-            </div>
-          </motion.div>
+          {/* Search + filters appear only once there is something to filter.
+              In the empty state just the New-article tile is shown. */}
+          {totalItems > 0 && (
+            <motion.div variants={fadeUp} className="flex w-full flex-wrap items-center justify-between gap-3">
+              <div className="w-full max-w-xs">
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t.search}
+                  iconLeft={<MagnifyingGlass className="size-5" aria-hidden="true" />}
+                  aria-label={t.search}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-label-medium text-tertiary">{t.itemCount(visibleCount)}</span>
+                <div className="flex items-center gap-1 rounded-token-8 border border-neutral-primary bg-secondary p-1">
+                  {FILTERS.map((f) => {
+                    const active = statusFilter === f.value
+                    return (
+                      <button
+                        key={f.value}
+                        type="button"
+                        onClick={() => setStatusFilter(f.value)}
+                        aria-pressed={active}
+                        className={cn(
+                          'rounded-token-4 px-3 py-1 text-label-medium font-medium transition-colors duration-200 ease-standard',
+                          active ? 'bg-card text-primary shadow-center-sm' : 'text-secondary hover:text-primary',
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {exportError != null && <ErrorBanner message={exportError} />}
 
-          {visibleCount === 0 ? (
-            <motion.div variants={fadeUp} className="w-full">
-              <EmptyState title={t.noMatchTitle} description={t.noMatchDesc} />
-            </motion.div>
-          ) : (
-            <motion.div variants={fadeUp} className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Local drafts first */}
-              {visibleDrafts.map((d) => (
+          {/* The New-article tile is always the first cell (top-left), followed by
+              any in-flight generations, then drafts and generated articles. */}
+          <motion.div variants={fadeUp} className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <NewArticleCard label={t.newArticle} onClick={openNew} />
+
+            {pending.map((p) => (
+              <PendingArticleCard key={p.tempId} title={p.title} label={t.generating} />
+            ))}
+
+            {/* Local drafts first */}
+            {visibleDrafts.map((d) => (
                 <Card key={`draft-${d.id}`} className="flex min-h-[180px] flex-col justify-between gap-3 p-4">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-2">
@@ -523,59 +604,71 @@ function ArticlesInner(): ReactElement {
                     }
                   }}
                   className={cn(
-                    'flex min-h-[180px] cursor-pointer flex-col justify-between gap-3 p-4 outline-none',
-                    'transition-colors duration-200 ease-standard hover:border-neutral-secondary focus-visible:border-brand-token',
+                    'group flex cursor-pointer flex-col gap-3 p-5 outline-none',
+                    'transition-all duration-200 ease-standard hover:border-neutral-secondary hover:shadow-center-sm focus-visible:border-brand-token',
                     preview?._id === article._id && 'border-brand-token',
                   )}
                 >
-                  <div className="flex flex-col gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-token-8 bg-display-brand text-icon-brand">
-                      <FileText className="size-5" aria-hidden="true" />
+                  {/* Kicker: status + date */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Chip size="sm" shape="rounded" type={article.status === 'ready' ? 'success' : 'neutral'}>
+                      {article.status === 'ready' ? t.ready : t.draft}
+                    </Chip>
+                    <span className="text-label-medium text-tertiary">
+                      {new Date(article.generatedAt).toLocaleDateString()}
                     </span>
-                    <p className="line-clamp-3 text-paragraph-medium font-medium text-primary">{article.title}</p>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Chip size="sm" shape="rounded" type={article.status === 'ready' ? 'success' : 'neutral'}>
-                        {article.status === 'ready' ? t.ready : t.draft}
-                      </Chip>
-                      <span className="text-label-medium text-tertiary">
-                        {new Date(article.generatedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="ghost"
-                        size="sm"
-                        onClick={(e: MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation()
-                          void handleExport(article._id, 'md')
-                        }}
-                      >
-                        .md
-                      </Button>
-                      <Button
-                        type="ghost"
-                        size="sm"
-                        onClick={(e: MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation()
-                          void handleExport(article._id, 'html')
-                        }}
-                      >
-                        .html
-                      </Button>
-                    </div>
+
+                  {/* Title */}
+                  <p className="line-clamp-2 text-label-big font-semibold text-primary">{article.title}</p>
+
+                  {/* Source prompt, when present */}
+                  {article.promptId != null && typeof article.promptId === 'object' && article.promptId.text !== '' && (
+                    <p className="line-clamp-1 text-paragraph-medium text-tertiary">
+                      {t.fromPrompt}: {article.promptId.text}
+                    </p>
+                  )}
+
+                  {/* Downloads */}
+                  <div className="mt-auto flex items-center gap-2 border-t border-neutral-primary pt-3">
+                    <Button
+                      type="primary-outlined"
+                      size="sm"
+                      iconLeft={<DownloadSimple className="size-4" aria-hidden="true" />}
+                      onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                        e.stopPropagation()
+                        void handleExport(article._id, 'md')
+                      }}
+                    >
+                      .md
+                    </Button>
+                    <Button
+                      type="primary-outlined"
+                      size="sm"
+                      iconLeft={<DownloadSimple className="size-4" aria-hidden="true" />}
+                      onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                        e.stopPropagation()
+                        void handleExport(article._id, 'html')
+                      }}
+                    >
+                      .html
+                    </Button>
                   </div>
                 </Card>
               ))}
             </motion.div>
-          )}
-        </>
+
+            {totalItems > 0 && visibleCount === 0 && (
+              <motion.div variants={fadeUp} className="w-full">
+                <EmptyState title={t.noMatchTitle} description={t.noMatchDesc} />
+              </motion.div>
+            )}
+          </>
       )}
 
       <AnimatePresence>
         {preview != null && (
-          <ArticlePreviewPanel
+          <ArticleReader
             article={preview}
             onClose={() => setPreview(null)}
             onExport={(format) => void handleExport(preview._id, format)}

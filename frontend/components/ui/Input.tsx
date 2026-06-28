@@ -83,7 +83,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         <div
           className={cn(
-            'flex w-full items-center gap-2 rounded-token-8 border bg-primary px-3 py-2',
+            // Fixed 36px field height (per input.md spec): the box stays the same
+            // height whether it holds plain text, 20px icons, or a taller
+            // interactive trailingAction (e.g. the show/hide password button).
+            // `items-center` vertically centers every child; without the fixed
+            // height a tall trailing control would stretch the row and make
+            // fields with/without actions misalign.
+            'flex h-9 w-full items-center gap-2 rounded-token-8 border bg-primary px-3',
             'transition-colors duration-200 ease-standard',
             error
               ? 'border-error-token'

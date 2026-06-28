@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -9,6 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
   AreaChart, Area,
+  LineChart, Line, ReferenceLine,
 } from 'recharts'
 import { ArrowRight } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
@@ -27,17 +28,25 @@ import { ChartBarsIcon } from '@/components/dashboard/nav-icons'
 import { fadeUp } from '@/lib/motion'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import {
-  type Analytics, type GapRow, type TrendPoint,
+  type Analytics, type GapRow, type TrendPoint, type ProjectedSeries,
   modelLabel, weekOverWeekDelta, aggregateSentiment, sentimentByModel, modelGap, rateForModel,
+  projectCompetitorTrends, formatNum,
 } from '@/lib/analytics'
 
-// Chart palette: DS CSS vars only (theme-aware, no hex literals).
-const PIE_COLORS: string[] = [
-  'var(--icon-brand)',
-  'var(--color-brand-300)',
-  'var(--icon-light-gray)',
-  'var(--display-neutral)',
+// Categorical line palette for the competitor comparison: DS CSS vars only
+// (theme-aware, no hex literals). Index 0 is the brand's own hero line (green);
+// competitors take distinct hues that read clearly against it.
+const LINE_COLORS: string[] = [
+  'var(--icon-brand)',        // your brand (hero green)
+  'var(--color-warning-500)', // competitor — orange
+  'var(--color-neutral-400)', // competitor — gray
+  'var(--color-error-500)',   // competitor — red
+  'var(--color-brand-300)',   // competitor — sage
 ]
+const lineColor = (i: number): string => LINE_COLORS[i % LINE_COLORS.length]
+
+/** Recharts dataKey for a brand's dashed projection segment (last real → next). */
+const projKey = (brandId: string): string => `${brandId}::proj`
 const SENTIMENT_COLORS = {
   positive: 'var(--icon-brand)',
   neutral: 'var(--icon-light-gray)',
@@ -45,6 +54,8 @@ const SENTIMENT_COLORS = {
 } as const
 
 const CHART_HEIGHT = 220
+// Competitor comparison is full width, so it gets more vertical room too.
+const COMPARE_HEIGHT = 300
 
 const AXIS_TICK = { fontSize: 13, fill: 'var(--text-tertiary)' }
 const AXIS_TICK_SM = { fontSize: 13, fill: 'var(--text-tertiary)' }
@@ -76,8 +87,9 @@ function localeFor(lang: 'id' | 'en'): string {
   return lang === 'id' ? 'id-ID' : 'en-US'
 }
 
-/** Short axis label, e.g. "12 Mei" / "May 12". Falls back to the raw label. */
-function weekDateShort(point: TrendPoint, lang: 'id' | 'en'): string {
+/** Short axis label, e.g. "12 Mei" / "May 12". Falls back to the raw label.
+ *  Structural param so it serves both trend points and competitor periods. */
+function weekDateShort(point: { label: string; week?: number; year?: number }, lang: 'id' | 'en'): string {
   if (point.year == null || point.week == null) return point.label
   return new Intl.DateTimeFormat(localeFor(lang), {
     day: 'numeric',
@@ -119,11 +131,54 @@ function TrendTooltip({
     <div className="flex flex-col gap-0.5 rounded-token-12 border border-neutral-primary bg-card px-3 py-2 shadow-regular-md">
       <span className="text-label-medium font-medium text-primary">{t.weekOf(weekDateLong(point, lang))}</span>
       <span className="text-paragraph-medium text-secondary">
-        <span className="font-semibold tabular-nums text-brand-token">{point.mentionRate}%</span> {t.tipRateLabel}
+        <span className="font-semibold tabular-nums text-brand-token">{formatNum(point.mentionRate)}%</span> {t.tipRateLabel}
       </span>
       <span className="text-paragraph-medium tabular-nums text-tertiary">
         {t.tipMentions(point.mentioned, point.total)}
       </span>
+    </div>
+  )
+}
+
+/**
+ * Multi-series tooltip for the competitor comparison. Reads the hovered row once
+ * and lists every brand's value (whether it came from the solid history line or
+ * the dashed projection line), brand-colored, marking the user's own brand.
+ */
+function CompareTooltip({
+  active,
+  payload,
+  series,
+  t,
+}: {
+  active?: boolean
+  payload?: ReadonlyArray<{ payload?: Record<string, number | string | null> }>
+  series: ProjectedSeries[]
+  t: { youTag: string }
+}): ReactElement | null {
+  const row = active ? payload?.[0]?.payload : undefined
+  if (row == null) return null
+  return (
+    <div className="flex min-w-[180px] flex-col gap-1 rounded-token-12 border border-neutral-primary bg-card px-3 py-2 shadow-regular-md">
+      <span className="text-label-medium font-medium text-primary">{String(row.x)}</span>
+      {series.map((s, i) => {
+        const value = row[s.brandId] ?? row[projKey(s.brandId)]
+        if (value == null) return null
+        return (
+          <span key={s.brandId} className="flex items-center justify-between gap-4 text-paragraph-medium">
+            <span className="flex items-center gap-2 text-secondary">
+              <span
+                className="size-2.5 shrink-0 rounded-circle"
+                style={{ background: lineColor(i) }}
+                aria-hidden="true"
+              />
+              {s.name}
+              {s.isMain ? ` (${t.youTag})` : ''}
+            </span>
+            <span className="font-semibold tabular-nums text-primary">{value}%</span>
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -143,10 +198,11 @@ const COPY = {
     gapSuffix: (g: number): string => `selisih ${g}% antar model`,
     secByModel: 'Mention Rate per Model',
     secByModelHint: 'Seberapa sering brand Anda disebut dalam jawaban tiap model AI.',
-    secSov: 'Sebaran Visibilitas Brand',
-    secSovHint: 'Bagaimana mention rate Anda tersebar di seluruh project milik Anda.',
-    sovNote:
-      'Ini membandingkan project milik Anda sendiri, bukan kompetitor. Untuk membandingkan dengan kompetitor, buat satu project untuk tiap brand kompetitor lalu jalankan scan.',
+    secCompare: 'Perbandingan Kompetitor',
+    secCompareHint: 'Bandingkan mention rate brand Anda dengan kompetitor dari waktu ke waktu, lengkap dengan proyeksi arah tiap brand di periode berikutnya.',
+    compareFallback: 'Butuh minimal dua brand dengan data beberapa minggu untuk membandingkan kompetitor. Tambahkan project untuk tiap brand kompetitor lalu jalankan scan.',
+    projectedLabel: 'Proyeksi',
+    youTag: 'Anda',
     secTrend: 'Mention Rate dari Waktu ke Waktu',
     secTrendHint: 'Perubahan seberapa sering brand Anda disebut dari minggu ke minggu.',
     secSentiment: 'Sentimen Keseluruhan',
@@ -197,10 +253,11 @@ const COPY = {
     gapSuffix: (g: number): string => `${g}% spread across models`,
     secByModel: 'Mention Rate by Model',
     secByModelHint: 'How often your brand shows up in the answers from each AI model.',
-    secSov: 'Brand Visibility Distribution',
-    secSovHint: 'How your mention rate is spread across your own projects.',
-    sovNote:
-      'This compares your own projects, not competitors. To compare against competitors, create a project for each competitor brand and run a scan.',
+    secCompare: 'Competitor Comparison',
+    secCompareHint: 'How your mention rate stacks up against competitors over time, with a projection of where each brand is heading next.',
+    compareFallback: 'Need at least two brands with a few weeks of data to compare competitors. Add a project for each competitor brand and run a scan.',
+    projectedLabel: 'Projected',
+    youTag: 'You',
     secTrend: 'Mention Rate Over Time',
     secTrendHint: 'How often your brand gets mentioned, week by week.',
     secSentiment: 'Overall Sentiment',
@@ -378,7 +435,6 @@ export default function AgentsInsightsPage(): ReactElement {
             >
               {t.reportButton}
             </Button>
-            <TimeframeSelector t={t} />
           </>
         ) : undefined
       }
@@ -430,7 +486,47 @@ export default function AgentsInsightsPage(): ReactElement {
     [t.seriesMentionRate]: r.mentionRate,
   }))
 
-  const sovData = data.shareOfVoice.map((s) => ({ name: s.name, value: s.shareOfVoice }))
+  // Competitor comparison: forecast each brand's next-period mention rate, then
+  // build multi-line chart rows (solid history + a dashed projection tail).
+  const compareSeries = projectCompetitorTrends(data.competitorTrends ?? [])
+  const compareReady = compareSeries.length >= 2 && compareSeries.some((s) => s.points.length >= 2)
+
+  // Time axis = union of all brands' periods, ordered by (year, week).
+  const periodKeyOf = (p: { label: string; week?: number; year?: number }): string =>
+    p.week != null && p.year != null ? `${p.year}-${p.week}` : p.label
+  const periodMap = new Map<string, { label: string; week?: number; year?: number }>()
+  for (const s of compareSeries) {
+    for (const p of s.points) {
+      const key = periodKeyOf(p)
+      if (!periodMap.has(key)) periodMap.set(key, { label: p.label, week: p.week, year: p.year })
+    }
+  }
+  const periods = [...periodMap.entries()]
+    .map(([key, p]) => ({ key, ...p }))
+    .sort((a, b) => (a.year ?? 0) - (b.year ?? 0) || (a.week ?? 0) - (b.week ?? 0))
+  const lastKey = periods[periods.length - 1]?.key
+  const lastRealLabel = periods.length > 0 ? weekDateShort(periods[periods.length - 1], lang) : ''
+
+  // One row per real period (each brand's rate). The projection line carries a
+  // value only at the last real period (to anchor the dash) and the final
+  // "Projected" row, so it renders as a single dashed tail off each line.
+  const compareRows: Array<Record<string, number | string | null>> = periods.map((period) => {
+    const row: Record<string, number | string | null> = { x: weekDateShort(period, lang) }
+    for (const s of compareSeries) {
+      const point = s.points.find((p) => periodKeyOf(p) === period.key)
+      row[s.brandId] = point != null ? point.mentionRate : null
+      row[projKey(s.brandId)] = period.key === lastKey ? s.current : null
+    }
+    return row
+  })
+  if (compareReady) {
+    const projRow: Record<string, number | string | null> = { x: t.projectedLabel }
+    for (const s of compareSeries) {
+      projRow[s.brandId] = null
+      projRow[projKey(s.brandId)] = s.projected
+    }
+    compareRows.push(projRow)
+  }
 
   // Trend points with a human date label for the X axis (replaces "W20 2026").
   const trendData = data.trends.map((point) => ({ ...point, dateLabel: weekDateShort(point, lang) }))
@@ -503,7 +599,7 @@ export default function AgentsInsightsPage(): ReactElement {
       <motion.div variants={fadeUp} className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           label={t.statOverall}
-          value={<span className="text-brand-token tabular-nums">{data.overall.mentionRate}%</span>}
+          value={<span className="text-brand-token tabular-nums">{formatNum(data.overall.mentionRate)}%</span>}
           caption={<DeltaBadge delta={wow} suffix={t.vsLastWeek} />}
         />
         <StatCard label={t.statQueries} value={<span className="tabular-nums">{data.overall.totalQueries}</span>} />
@@ -517,7 +613,7 @@ export default function AgentsInsightsPage(): ReactElement {
           }
           caption={
             bestRate != null
-              ? `${bestRate}%${gap != null ? ` · ${t.gapSuffix(gap)}` : ''}`
+              ? `${formatNum(bestRate)}%${gap != null ? ` · ${t.gapSuffix(gap)}` : ''}`
               : undefined
           }
         />
@@ -529,15 +625,21 @@ export default function AgentsInsightsPage(): ReactElement {
               {modelLabel(data.worstModel)}
             </span>
           }
-          caption={worstRate != null ? `${worstRate}%` : undefined}
+          caption={worstRate != null ? `${formatNum(worstRate)}%` : undefined}
         />
       </motion.div>
 
-      {/* Trend (full width, leads with the WoW callout) */}
+      {/* Trend (full width). The timeframe control lives here, next to the time
+          chart it drives, instead of crowding the page header. */}
       <Section
         title={t.secTrend}
         help={t.secTrendHint}
-        right={wow.value != null ? <DeltaBadge delta={wow} suffix={t.vsLastWeek} /> : undefined}
+        right={
+          <div className="flex flex-wrap items-center gap-3">
+            {wow.value != null && <DeltaBadge delta={wow} suffix={t.vsLastWeek} />}
+            <TimeframeSelector t={t} />
+          </div>
+        }
       >
         <Card className="p-4">
           {data.trends.length > 1 ? (
@@ -599,7 +701,114 @@ export default function AgentsInsightsPage(): ReactElement {
         </Card>
       </Section>
 
-      {/* By-model + distribution */}
+      {/* Competitor comparison — full width and stretched; the multi-line chart
+          plus projection needs the room (it was cramped at half width). */}
+      <Section title={t.secCompare} help={t.secCompareHint}>
+        <Card className="flex flex-col gap-3 p-4">
+          {compareReady ? (
+            <>
+              <ResponsiveContainer width="100%" height={COMPARE_HEIGHT}>
+                <LineChart data={compareRows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
+                  <XAxis
+                    dataKey="x"
+                    tick={AXIS_TICK_SM}
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={10}
+                    minTickGap={12}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    ticks={[0, 25, 50, 75, 100]}
+                    tickFormatter={percentFormatter}
+                    tick={AXIS_TICK}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: 'var(--border-neutral-secondary)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    content={(props) => (
+                      <CompareTooltip
+                        active={props.active}
+                        payload={
+                          props.payload as unknown as
+                            | ReadonlyArray<{ payload?: Record<string, number | string | null> }>
+                            | undefined
+                        }
+                        series={compareSeries}
+                        t={t}
+                      />
+                    )}
+                  />
+                  {/* Boundary between measured weeks and the projected tail. */}
+                  {lastRealLabel !== '' && (
+                    <ReferenceLine x={lastRealLabel} stroke="var(--border-neutral-secondary)" strokeDasharray="3 3" />
+                  )}
+                  {compareSeries.map((s, i) => (
+                    <Fragment key={s.brandId}>
+                      <Line
+                        type="monotone"
+                        dataKey={s.brandId}
+                        name={s.name}
+                        stroke={lineColor(i)}
+                        strokeWidth={s.isMain ? 2.75 : 1.75}
+                        dot={{ r: 2.5, fill: lineColor(i), strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: lineColor(i), stroke: 'var(--bg-card)', strokeWidth: 2 }}
+                        connectNulls={false}
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey={projKey(s.brandId)}
+                        stroke={lineColor(i)}
+                        strokeWidth={s.isMain ? 2.75 : 1.75}
+                        strokeDasharray="5 5"
+                        dot={{ r: 2.5, fill: lineColor(i), strokeWidth: 0 }}
+                        activeDot={{ r: 4, fill: lineColor(i), stroke: 'var(--bg-card)', strokeWidth: 2 }}
+                        connectNulls
+                        isAnimationActive={false}
+                      />
+                    </Fragment>
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+
+              {/* Legend in a responsive grid so it fills the full width. */}
+              <div className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-neutral-primary pt-3 sm:grid-cols-2 lg:grid-cols-3">
+                {compareSeries.map((s, i) => (
+                  <div key={s.brandId} className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-2 text-paragraph-medium">
+                      <span
+                        className="size-3 shrink-0 rounded-circle"
+                        style={{ background: lineColor(i) }}
+                        aria-hidden="true"
+                      />
+                      <span className={s.isMain ? 'font-semibold text-primary' : 'text-secondary'}>{s.name}</span>
+                      {s.isMain && <Chip type="success" size="sm" shape="rounded">{t.youTag}</Chip>}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-label-medium tabular-nums">
+                      <span className="text-tertiary">{formatNum(s.current)}%</span>
+                      <ArrowRight className="size-3.5 text-tertiary" aria-hidden="true" />
+                      <span className="font-semibold text-primary">{formatNum(s.projected)}%</span>
+                      {s.delta !== 0 && (
+                        <span className={s.direction === 'up' ? 'text-brand-token' : 'text-error-token'}>
+                          {s.delta > 0 ? '+' : ''}{formatNum(s.delta)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <ChartFallback message={t.compareFallback} />
+          )}
+        </Card>
+      </Section>
+
+      {/* Mention rate by model + overall sentiment — balanced 2-col (even heights). */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Section title={t.secByModel} help={t.secByModelHint}>
           <Card className="p-4">
@@ -615,38 +824,6 @@ export default function AgentsInsightsPage(): ReactElement {
           </Card>
         </Section>
 
-        <Section title={t.secSov} help={t.secSovHint}>
-          <Card className="flex flex-col gap-3 p-4">
-            {sovData.length > 1 ? (
-              <div className="flex items-center gap-6">
-                <ResponsiveContainer width="55%" height={CHART_HEIGHT}>
-                  <PieChart>
-                    <Pie data={sovData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ value }: { value?: number }) => `${value}%`}>
-                      {sovData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip formatter={percentFormatter} contentStyle={TOOLTIP_CONTENT_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex flex-col gap-2">
-                  {sovData.map((s, i) => (
-                    <div key={s.name} className="flex items-center gap-2">
-                      <span className="size-3 shrink-0 rounded-circle" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} aria-hidden="true" />
-                      <span className="text-paragraph-medium text-secondary">{s.name}</span>
-                      <span className="text-label-medium font-medium text-primary tabular-nums">{s.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <ChartFallback message={t.sovNote} />
-            )}
-            {sovData.length > 1 && <p className="text-paragraph-medium text-tertiary">{t.sovNote}</p>}
-          </Card>
-        </Section>
-      </div>
-
-      {/* Sentiment: aggregate donut + per-model % breakdown */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Section title={t.secSentiment} help={t.secSentimentHint}>
           <Card className="flex items-center gap-6 p-4">
             <div className="relative" style={{ width: '55%' }}>
@@ -676,33 +853,34 @@ export default function AgentsInsightsPage(): ReactElement {
             </div>
           </Card>
         </Section>
-
-        <Section title={t.sentByModel} help={t.secByModelHint}>
-          <Card className="flex flex-col divide-y divide-neutral-primary">
-            {sentByModel.map((m) => (
-              <div key={m.model} className="flex flex-col gap-2 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-label-medium font-medium text-primary">
-                    <ModelLogo model={m.model} className="size-4" />
-                    {m.label}
-                  </span>
-                  <span className="text-paragraph-medium text-tertiary">{t.sentMentions(m.total)}</span>
-                </div>
-                <div className="flex h-2 w-full overflow-hidden rounded-circle bg-secondary">
-                  <span style={{ width: `${m.positivePct}%`, background: SENTIMENT_COLORS.positive }} />
-                  <span style={{ width: `${m.neutralPct}%`, background: SENTIMENT_COLORS.neutral }} />
-                  <span style={{ width: `${m.negativePct}%`, background: SENTIMENT_COLORS.negative }} />
-                </div>
-                <div className="flex items-center gap-4 text-paragraph-medium text-tertiary tabular-nums">
-                  <span className="text-brand-token">{m.positivePct}% {t.sentPositive}</span>
-                  <span>{m.neutralPct}% {t.sentNeutral}</span>
-                  <span className="text-error-token">{m.negativePct}% {t.sentNegative}</span>
-                </div>
-              </div>
-            ))}
-          </Card>
-        </Section>
       </div>
+
+      {/* Sentiment by model — full width (stacked bars read better stretched). */}
+      <Section title={t.sentByModel} help={t.secByModelHint}>
+        <Card className="flex flex-col divide-y divide-neutral-primary">
+          {sentByModel.map((m) => (
+            <div key={m.model} className="flex flex-col gap-2 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-label-medium font-medium text-primary">
+                  <ModelLogo model={m.model} className="size-4" />
+                  {m.label}
+                </span>
+                <span className="text-paragraph-medium text-tertiary">{t.sentMentions(m.total)}</span>
+              </div>
+              <div className="flex h-2 w-full overflow-hidden rounded-circle bg-secondary">
+                <span style={{ width: `${m.positivePct}%`, background: SENTIMENT_COLORS.positive }} />
+                <span style={{ width: `${m.neutralPct}%`, background: SENTIMENT_COLORS.neutral }} />
+                <span style={{ width: `${m.negativePct}%`, background: SENTIMENT_COLORS.negative }} />
+              </div>
+              <div className="flex items-center gap-4 text-paragraph-medium text-tertiary tabular-nums">
+                <span className="text-brand-token">{m.positivePct}% {t.sentPositive}</span>
+                <span>{m.neutralPct}% {t.sentNeutral}</span>
+                <span className="text-error-token">{m.negativePct}% {t.sentNegative}</span>
+              </div>
+            </div>
+          ))}
+        </Card>
+      </Section>
 
       {/* Content opportunities (sortable) */}
       {data.gaps.length > 0 && (
@@ -711,17 +889,15 @@ export default function AgentsInsightsPage(): ReactElement {
           help={t.gapsHint}
           right={<Chip type="warning" size="sm" shape="rounded">{t.gapsChip(data.gaps.length)}</Chip>}
         >
-          <Card className="overflow-hidden p-0">
-            <SortableTable
-              columns={gapColumns}
-              rows={data.gaps}
-              rowKey={(g) => g.promptId}
-              initialSort={{ key: 'rate', dir: 'asc' }}
-              pageSize={8}
-              caption={t.secGaps}
-              paginationLabels={{ pageOf: t.pageOf, prev: t.prev, next: t.next }}
-            />
-          </Card>
+          <SortableTable
+            columns={gapColumns}
+            rows={data.gaps}
+            rowKey={(g) => g.promptId}
+            initialSort={{ key: 'rate', dir: 'asc' }}
+            pageSize={8}
+            caption={t.secGaps}
+            paginationLabels={{ pageOf: t.pageOf, prev: t.prev, next: t.next }}
+          />
         </Section>
       )}
     </PageContainer>

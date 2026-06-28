@@ -42,6 +42,23 @@ export interface ShareRow {
   shareOfVoice: number
 }
 
+/** One time-series point for a brand in the competitor comparison. */
+export interface CompetitorPoint {
+  label: string
+  mentionRate: number
+  week?: number
+  year?: number
+}
+
+/** A brand's mention-rate trend, used to compare against competitors over time. */
+export interface CompetitorSeries {
+  brandId: string
+  name: string
+  /** The brand being viewed (its own project) vs. a competitor project. */
+  isMain: boolean
+  points: CompetitorPoint[]
+}
+
 export interface Analytics {
   overall: { totalQueries: number; mentionCount: number; mentionRate: number }
   byModel: ModelRate[]
@@ -51,6 +68,9 @@ export interface Analytics {
   trends: TrendPoint[]
   gaps: GapRow[]
   shareOfVoice: ShareRow[]
+  /** Per-brand mention-rate trends (this brand + competitor projects). Optional
+   *  so older payloads without it still type-check; the UI falls back gracefully. */
+  competitorTrends?: CompetitorSeries[]
 }
 
 export const MODEL_LABELS: Record<string, string> = {
@@ -63,6 +83,22 @@ export const MODEL_LABELS: Record<string, string> = {
 export function modelLabel(model: string | null): string {
   if (model == null) return '-'
   return MODEL_LABELS[model] ?? model
+}
+
+/**
+ * Round to at most `decimals` places, killing floating-point noise from rate
+ * arithmetic (e.g. 56.7 - 49 = 7.7000000000000003 → 7.7). Returns a number so
+ * callers keep formatting control (tabular-nums, signs, etc.).
+ */
+export function round2(n: number, decimals = 2): number {
+  const f = 10 ** decimals
+  // + 0 normalizes -0 to 0 so a rounded-to-zero delta never renders as "-0".
+  return Math.round(n * f) / f + 0
+}
+
+/** Display string with at most 2 decimals, trailing zeros stripped (7.70 → "7.7"). */
+export function formatNum(n: number, decimals = 2): string {
+  return String(round2(n, decimals))
 }
 
 export type Direction = 'up' | 'down' | 'flat'
@@ -82,7 +118,7 @@ export function weekOverWeekDelta(trends: TrendPoint[]): Delta {
   }
   const current = trends[trends.length - 1].mentionRate
   const previous = trends[trends.length - 2].mentionRate
-  const value = current - previous
+  const value = round2(current - previous)
   return {
     value,
     direction: value > 0 ? 'up' : value < 0 ? 'down' : 'flat',
@@ -134,7 +170,7 @@ export function sentimentByModel(sentiment: Record<string, SentimentCounts>): Mo
 export function modelGap(byModel: ModelRate[]): number | null {
   if (byModel.length < 2) return null
   const rates = byModel.map((m) => m.mentionRate)
-  return Math.max(...rates) - Math.min(...rates)
+  return round2(Math.max(...rates) - Math.min(...rates))
 }
 
 export function rateForModel(byModel: ModelRate[], model: string | null): number | null {
@@ -152,4 +188,62 @@ export function rateChipType(rate: number): 'success' | 'warning' | 'error' {
 /** Top N opportunities (lowest-mention prompts) for the Overview report card. */
 export function topOpportunities(gaps: GapRow[], n = 3): GapRow[] {
   return [...gaps].sort((a, b) => a.mentionRate - b.mentionRate).slice(0, n)
+}
+
+// ─── Competitor comparison + next-period projection ───────────────────────────
+
+/**
+ * Least-squares slope of `ys` plotted against evenly spaced x = 0..n-1.
+ * Returns 0 for fewer than two points (no trend to fit).
+ */
+export function trendSlope(ys: number[]): number {
+  const n = ys.length
+  if (n < 2) return 0
+  const xMean = (n - 1) / 2
+  const yMean = ys.reduce((a, b) => a + b, 0) / n
+  let num = 0
+  let den = 0
+  for (let i = 0; i < n; i++) {
+    num += (i - xMean) * (ys[i] - yMean)
+    den += (i - xMean) ** 2
+  }
+  return den === 0 ? 0 : num / den
+}
+
+export interface ProjectedSeries extends CompetitorSeries {
+  /** Last known mention rate (the most recent real point). */
+  current: number
+  /** Forecast mention rate for the next period, clamped to 0..100. */
+  projected: number
+  /** projected − current (percentage points), rounded to 2 decimals. */
+  delta: number
+  direction: Direction
+}
+
+/**
+ * Forecast each brand's NEXT mention rate by fitting a line to its recent points
+ * (last `window` weeks) and extrapolating one step, clamped to 0..100. This is
+ * the dashed "where each brand is heading" projection on the comparison chart —
+ * an estimate from the trend, not a guarantee. Brands with no data are dropped;
+ * the main brand is sorted first so it reads as the hero line.
+ */
+export function projectCompetitorTrends(
+  series: CompetitorSeries[],
+  window = 4,
+): ProjectedSeries[] {
+  return [...series]
+    .filter((s) => s.points.length > 0)
+    .sort((a, b) => Number(b.isMain) - Number(a.isMain))
+    .map((s) => {
+      const current = s.points[s.points.length - 1].mentionRate
+      let projected = current
+      if (s.points.length >= 2) {
+        const recent = s.points.slice(-window).map((p) => p.mentionRate)
+        const raw = recent[recent.length - 1] + trendSlope(recent)
+        projected = Math.max(0, Math.min(100, Math.round(raw)))
+      }
+      const delta = round2(projected - current)
+      const direction: Direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'
+      return { ...s, current, projected, delta, direction }
+    })
 }

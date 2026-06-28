@@ -296,10 +296,10 @@ export function ArticleComposer({
                         <div className="flex shrink-0 items-center gap-2">
                           <Chip
                             size="sm"
-                            shape="rounded"
-                            type="neutral"
+                            outlined
+                            type={meta.tone}
                             iconLeft={<CatIcon aria-hidden="true" />}
-                            className={selected ? '!bg-neutral-0' : undefined}
+                            className={selected ? '!bg-card' : undefined}
                           >
                             {meta.label[lang]}
                           </Chip>

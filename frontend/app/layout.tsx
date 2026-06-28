@@ -3,6 +3,7 @@ import { Figtree, Lora } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { LanguageProvider } from '@/components/providers/LanguageProvider'
 import { TopLoadingProvider } from '@/components/providers/TopLoadingBar'
+import { ScanProgressProvider } from '@/components/providers/ScanProgressProvider'
 import { ToastProvider } from '@/components/ui'
 import './globals.css'
 
@@ -39,7 +40,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <LanguageProvider>
             <TopLoadingProvider>
-              <ToastProvider>{children}</ToastProvider>
+              <ScanProgressProvider>
+                <ToastProvider>{children}</ToastProvider>
+              </ScanProgressProvider>
             </TopLoadingProvider>
           </LanguageProvider>
         </ThemeProvider>

@@ -27,7 +27,7 @@ import {
   Skeleton,
   StatCard,
 } from '@/components/dashboard/primitives'
-import { Button, Chip, IconButton, Input } from '@/components/ui'
+import { Button, Chip, IconButton, Input, Dropdown } from '@/components/ui'
 import type { ChipType } from '@/components/ui'
 import { PublicationsIcon } from '@/components/dashboard/nav-icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
@@ -291,29 +291,12 @@ export default function TodoPage(): ReactElement {
                   onChange={(e) => setForm({ ...form, platform: e.target.value })}
                   placeholder={t.platformNamePlaceholder}
                 />
-                {/* Native select reusing the Input field anatomy/tokens. The DS
-                    has no Select component and the inventory requires a 6-option
-                    platform-type select. */}
-                <div className="flex w-full flex-col gap-2">
-                  <label
-                    htmlFor="platform-type"
-                    className="flex w-full items-center gap-1 text-field-label font-semibold text-secondary"
-                  >
-                    {t.platformType}
-                  </label>
-                  <select
-                    id="platform-type"
-                    value={form.platformType}
-                    onChange={(e) => setForm({ ...form, platformType: e.target.value as PlatformType })}
-                    className="w-full rounded-token-8 border border-neutral-primary bg-primary px-3 py-2 text-field-input font-normal text-primary outline-none transition-colors duration-200 ease-standard focus:border-brand-token"
-                  >
-                    {PLATFORM_TYPES.map((ptype) => (
-                      <option key={ptype} value={ptype}>
-                        {t.platformTypeLabels[ptype]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Dropdown
+                  label={t.platformType}
+                  value={form.platformType}
+                  options={PLATFORM_TYPES.map((ptype) => ({ value: ptype, label: t.platformTypeLabels[ptype] }))}
+                  onChange={(v) => setForm({ ...form, platformType: v as PlatformType })}
+                />
                 <Input
                   label={t.publishedDate}
                   required

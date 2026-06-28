@@ -36,12 +36,13 @@ interface PlanLimits {
   models: number | null
   articles: number | null
 }
-/** CLAUDE.md pricing; null = unlimited. */
+/** CLAUDE.md pricing. `starter` is shown as "Basic"; Agency is now capped (not unlimited). */
 const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
-  starter: { prompts: 25, models: 3, articles: 4 },
-  pro: { prompts: 100, models: TOTAL_MODELS, articles: 8 },
-  agency: { prompts: null, models: null, articles: null },
+  starter: { prompts: 40, models: 1, articles: 5 },
+  pro: { prompts: 100, models: TOTAL_MODELS, articles: 30 },
+  agency: { prompts: 300, models: TOTAL_MODELS, articles: 100 },
 }
+const PLAN_LABELS: Record<PlanKey, string> = { starter: 'Basic', pro: 'Pro', agency: 'Agency' }
 function normalizePlan(plan: string | undefined): PlanKey {
   return plan === 'pro' || plan === 'agency' ? plan : 'starter'
 }
@@ -261,7 +262,7 @@ export default function ProjectDashboardPage(): ReactElement {
 
   const planKey = normalizePlan(userPlan)
   const limits = PLAN_LIMITS[planKey]
-  const planLabel = userPlan ? userPlan.charAt(0).toUpperCase() + userPlan.slice(1) : ''
+  const planLabel = userPlan ? PLAN_LABELS[planKey] : ''
   const displayName = userName ? userName.charAt(0).toUpperCase() + userName.slice(1) : ''
 
   return (
