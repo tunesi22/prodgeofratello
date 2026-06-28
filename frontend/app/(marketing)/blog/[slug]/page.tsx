@@ -55,14 +55,69 @@ export default async function BlogPostPage({ params }: Props): Promise<ReactElem
       {/* Article body */}
       <article className="mx-auto max-w-[760px] px-6 py-14">
         {post.sections.map((section, i) => (
-          <div key={i} className="mb-8">
-            {section.heading && (
-              <h2 className="mb-3 text-[22px] font-semibold text-gray-900">{section.heading}</h2>
+          <>
+            <div key={i} className="mb-8">
+              {section.heading && (
+                <h2 className="mb-3 text-[22px] font-semibold text-gray-900">{section.heading}</h2>
+              )}
+              <p className="text-[16px] leading-[1.8] text-gray-600">{section.body}</p>
+            </div>
+
+            {/* Mid-article CTA after section 3 */}
+            {i === 2 && post.sections.length > 4 && (
+              <div className="my-10 rounded-2xl border border-brand-100 bg-brand-50 px-7 py-6">
+                <p className="text-[13px] font-semibold uppercase tracking-wide text-brand-600">
+                  Fratello — Platform GEO
+                </p>
+                <p className="mt-1.5 text-[17px] font-semibold text-gray-900">
+                  Sudah tahu brand Anda disebut di ChatGPT atau Gemini?
+                </p>
+                <p className="mt-2 text-[14px] leading-relaxed text-gray-500">
+                  Fratello memantau visibilitas brand Anda di 4 mesin AI sekaligus — otomatis, setiap minggu.
+                </p>
+                <Link
+                  href="/sign-up"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand-700 px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-brand-800"
+                >
+                  Coba gratis &rarr;
+                </Link>
+              </div>
             )}
-            <p className="text-[16px] leading-[1.8] text-gray-600">{section.body}</p>
-          </div>
+          </>
         ))}
       </article>
+
+      {/* Bottom CTA banner */}
+      <div className="mx-auto max-w-[760px] px-6 pb-14">
+        <div className="relative overflow-hidden rounded-2xl bg-[#021a0e] px-8 py-10 text-center">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,#0d6b3a44,transparent)]" />
+          <div className="relative">
+            <p className="text-[13px] font-semibold uppercase tracking-widest text-brand-400">
+              Mulai sekarang
+            </p>
+            <h2 className="mt-2 font-serif text-[26px] leading-snug text-white-remain sm:text-[30px]">
+              Pantau visibilitas brand Anda<br />di semua mesin AI dalam satu dasbor
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-brand-200">
+              ChatGPT, Gemini, Perplexity, Claude — Fratello mengaudit keempatnya secara otomatis dan memberi tahu Anda di mana brand Anda berdiri.
+            </p>
+            <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Link
+                href="/sign-up"
+                className="rounded-full bg-brand-500 px-6 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-brand-400"
+              >
+                Mulai gratis
+              </Link>
+              <Link
+                href="/#pricing"
+                className="rounded-full border border-brand-600/50 px-6 py-2.5 text-[14px] font-medium text-brand-200 transition-colors hover:border-brand-400 hover:text-white-remain"
+              >
+                Lihat harga
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Divider */}
       <div className="mx-auto max-w-[760px] border-t border-gray-100 px-6" />
