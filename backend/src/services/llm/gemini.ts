@@ -2,7 +2,7 @@ import axios from 'axios'
 import { withRetry } from '../../utils/retry'
 import { rateLimiters } from '../../utils/rate-limiter'
 
-const MODEL = 'gemini-2.0-flash'
+const MODEL = 'gemini-2.5-flash'
 
 export async function query(prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY
