@@ -1,14 +1,19 @@
+'use client'
+
 import type { ReactElement } from 'react'
-import type { Metadata } from 'next'
+import { useState } from 'react'
 import Link from 'next/link'
 import { posts } from './_posts'
 
-export const metadata: Metadata = {
-  title: 'Blog - Fratello',
-  description: 'Insight, strategi, dan panduan seputar GEO (Generative Engine Optimization) dari tim Fratello.',
-}
+const ALL = 'Semua'
+
+const categories = [ALL, ...Array.from(new Set(posts.map((p) => p.category)))]
 
 export default function BlogPage(): ReactElement {
+  const [active, setActive] = useState(ALL)
+
+  const filtered = active === ALL ? posts : posts.filter((p) => p.category === active)
+
   return (
     <>
       {/* Hero */}
@@ -27,10 +32,31 @@ export default function BlogPage(): ReactElement {
         </div>
       </section>
 
+      {/* Category filter */}
+      <div className="border-b border-gray-100 bg-white sticky top-0 z-10">
+        <div className="mx-auto max-w-[1180px] px-6">
+          <div className="flex gap-1 overflow-x-auto py-3 scrollbar-hide">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActive(cat)}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors ${
+                  active === cat
+                    ? 'bg-brand-700 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Posts grid */}
       <section className="mx-auto max-w-[1180px] px-6 py-16">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post) => (
+          {filtered.map((post) => (
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}

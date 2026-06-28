@@ -25,7 +25,7 @@ export default async function BlogPostPage({ params }: Props): Promise<ReactElem
   const post = getPostBySlug(slug)
   if (!post) notFound()
 
-  const others = posts.filter((p) => p.slug !== slug)
+  const others = posts.filter((p) => p.slug !== slug && p.category === post.category).slice(0, 4)
 
   return (
     <>
