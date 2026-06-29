@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
       brandId,
       brandName: brand.name,
       industry: brand.industry,
-      competitors: brand.competitors,
+      competitors: brand.competitors.map((c) => c.name),
     })
 
     const prompts = await getPromptsByBrand(brandId)

@@ -122,7 +122,8 @@ export async function getCooccurrence(brandId: string): Promise<CooccurrenceResu
   const proximity = await getSemanticProximity(brandId)
   const competitorComparison: { competitor: string; concepts: string[] }[] = []
 
-  for (const competitor of brand.competitors.slice(0, 3)) {
+  for (const comp of brand.competitors.slice(0, 3)) {
+    const competitor = comp.name
     const compMentions = await QueryResult.find({
       brandId,
       mentionContext: { $regex: competitor, $options: 'i' },
