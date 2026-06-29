@@ -1,8 +1,93 @@
 import { Router } from 'express'
+import axios from 'axios'
+import * as cheerio from 'cheerio'
 import Brand from '../models/Brand'
+import type { ICompetitor } from '../models/Brand'
 import { query as queryAnthropic } from '../services/llm/anthropic'
+import { withRetry } from '../utils/retry'
 
 const router = Router()
+
+function normalizeCompetitors(raw: any[]): ICompetitor[] {
+  return raw.map((c) =>
+    typeof c === 'string'
+      ? { name: c, domain: '', includeSubdomains: false }
+      : { name: String(c.name || ''), domain: String(c.domain || ''), includeSubdomains: Boolean(c.includeSubdomains) }
+  )
+}
+
+// POST /api/brands/analyze — crawl website + LLM detect industry & competitors
+router.post('/analyze', async (req, res) => {
+  const { website, brandName: inputBrandName } = req.body
+  if (!website || typeof website !== 'string') {
+    res.status(400).json({ error: 'website is required' })
+    return
+  }
+
+  try {
+    let crawlable = true
+    let extractedText = ''
+    let detectedBrandName = inputBrandName || ''
+
+    try {
+      const response = await axios.get(website, {
+        timeout: 10_000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GEO-Platform/1.0; +https://geonineten.com)' },
+        maxContentLength: 500_000,
+      })
+
+      const contentType = String(response.headers['content-type'] || '')
+      if (!contentType.includes('text/html')) {
+        crawlable = false
+      } else {
+        const $ = cheerio.load(response.data as string)
+
+        if (!detectedBrandName) {
+          detectedBrandName =
+            $('meta[property="og:site_name"]').attr('content') ||
+            $('title').text().split(/[|\-–]/)[0].trim() ||
+            ''
+        }
+
+        const title = $('title').text().trim()
+        const metaDesc = $('meta[name="description"]').attr('content') || ''
+        const h1s = $('h1').map((_, el) => $(el).text().trim()).get().join(' ')
+        $('script, style, nav, footer, header').remove()
+        const bodyText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 2000)
+
+        extractedText = [title, metaDesc, h1s, bodyText].filter(Boolean).join('\n')
+        if (!extractedText.trim()) crawlable = false
+      }
+    } catch {
+      crawlable = false
+    }
+
+    const llmPrompt = crawlable
+      ? `Analyze this website content and extract business info.\nWebsite: ${website}\n\nContent:\n${extractedText}\n\nReturn a JSON object with EXACTLY these keys:\n- industry: string (1-4 words, e.g. "E-commerce", "SaaS", "Food & Beverage")\n- competitors: array of up to 5 objects with {name: string, domain: string, includeSubdomains: boolean}\n- summary: string (1 sentence in Indonesian about what this business does)\n\nReturn ONLY valid JSON, no explanation, no markdown.`
+      : `Based only on this website URL: ${website}, infer the industry.\nReturn ONLY valid JSON with keys: {industry: string, competitors: [], summary: string}. Summary in Indonesian.`
+
+    const raw = await withRetry(() => queryAnthropic(llmPrompt, 512))
+
+    let industry = 'General'
+    let competitors: ICompetitor[] = []
+    let summary = ''
+
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/)
+      const parsed = JSON.parse(jsonMatch?.[0] || '{}')
+      industry = parsed.industry || 'General'
+      competitors = normalizeCompetitors(Array.isArray(parsed.competitors) ? parsed.competitors : [])
+      summary = parsed.summary || ''
+    } catch {
+      // LLM returned non-JSON, keep defaults
+    }
+
+    res.json({ crawlable, brandName: detectedBrandName, industry, competitors, summary })
+  } catch (err: any) {
+    console.error('[BRAND ROUTE] POST /analyze:', err.message)
+    res.status(500).json({ error: 'Failed to analyze website' })
+  }
+})
 
 // POST /api/brands/detect-industry
 router.post('/detect-industry', async (req, res) => {
@@ -40,7 +125,7 @@ router.post('/', async (req, res) => {
       name,
       website,
       industry,
-      competitors: competitors || [],
+      competitors: normalizeCompetitors(Array.isArray(competitors) ? competitors : []),
     })
 
     res.status(201).json(brand)
