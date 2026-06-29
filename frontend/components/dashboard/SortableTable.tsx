@@ -41,6 +41,8 @@ export interface SortableTableProps<T> {
   layout?: 'auto' | 'fixed'
   /** When set, rows become interactive (click + keyboard) and call this. */
   onRowClick?: (row: T) => void
+  /** Render the pagination footer even when there is only one page. */
+  alwaysShowPagination?: boolean
 }
 
 /**
@@ -61,6 +63,7 @@ export function SortableTable<T>({
   paginationLabels,
   layout = 'auto',
   onRowClick,
+  alwaysShowPagination = false,
 }: SortableTableProps<T>): ReactElement {
   const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(initialSort ?? null)
   const [page, setPage] = useState(0)
@@ -93,9 +96,10 @@ export function SortableTable<T>({
   }
 
   return (
-    <div className="w-full">
-      <div className="w-full overflow-x-auto">
-        <table className={cn('w-full', layout === 'fixed' && 'table-fixed')}>
+    <div className="flex w-full flex-col gap-3">
+      <div className="w-full overflow-hidden rounded-token-12 border border-neutral-primary bg-card transition-colors duration-300 ease-standard">
+        <div className="w-full overflow-x-auto">
+          <table className={cn('w-full', layout === 'fixed' && 'table-fixed')}>
           {caption != null && <caption className="sr-only">{caption}</caption>}
           <thead className="bg-secondary transition-colors duration-200 ease-standard">
             <tr>
@@ -116,12 +120,17 @@ export function SortableTable<T>({
                     className={cn('px-4 py-3', col.align === 'right' ? 'text-right' : 'text-left', col.className)}
                   >
                     <span className={cn('inline-flex items-center gap-1', col.align === 'right' && 'flex-row-reverse')}>
+                      {col.help != null && (
+                        <Popover side="bottom" label={col.header} content={col.help} panelClassName="w-64">
+                          <QuestionIcon className="size-3.5" />
+                        </Popover>
+                      )}
                       {col.sortValue != null ? (
                         <button
                           type="button"
                           onClick={() => toggleSort(col.key)}
                           className={cn(
-                            'inline-flex items-center gap-1 text-label-medium font-medium text-tertiary',
+                            'inline-flex items-center gap-1 whitespace-nowrap text-label-medium font-medium text-tertiary',
                             'rounded transition-colors duration-200 ease-standard hover:text-primary',
                             'focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--border-brand)]',
                             col.align === 'right' && 'flex-row-reverse',
@@ -139,12 +148,7 @@ export function SortableTable<T>({
                           )}
                         </button>
                       ) : (
-                        <span className="text-label-medium font-medium text-tertiary">{col.header}</span>
-                      )}
-                      {col.help != null && (
-                        <Popover side="bottom" label={col.header} content={col.help} panelClassName="w-64">
-                          <QuestionIcon className="size-3.5" />
-                        </Popover>
+                        <span className="whitespace-nowrap text-label-medium font-medium text-tertiary">{col.header}</span>
                       )}
                     </span>
                   </th>
@@ -195,29 +199,51 @@ export function SortableTable<T>({
               ))
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
-      {pageSize != null && totalPages > 1 && paginationLabels != null && (
-        <div className="flex items-center justify-between gap-3 border-t border-neutral-primary px-4 py-3">
-          <span className="text-paragraph-medium text-tertiary">
-            {paginationLabels.pageOf(safePage + 1, totalPages)}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button type="ghost" size="sm" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-              {paginationLabels.prev}
-            </Button>
-            <Button
-              type="ghost"
-              size="sm"
-              disabled={safePage >= totalPages - 1}
-              onClick={() => setPage(safePage + 1)}
-            >
-              {paginationLabels.next}
-            </Button>
-          </div>
-        </div>
+      {pageSize != null && paginationLabels != null && (totalPages > 1 || alwaysShowPagination) && (
+        <TablePagination
+          page={safePage}
+          totalPages={totalPages}
+          labels={paginationLabels}
+          onPrev={() => setPage(safePage - 1)}
+          onNext={() => setPage(safePage + 1)}
+        />
       )}
+    </div>
+  )
+}
+
+/**
+ * Pagination control, rendered as a dedicated row OUTSIDE the table's border
+ * (a clean bar below the bordered table) rather than inside it.
+ */
+export function TablePagination({
+  page,
+  totalPages,
+  labels,
+  onPrev,
+  onNext,
+}: {
+  page: number
+  totalPages: number
+  labels: { pageOf: (page: number, total: number) => string; prev: string; next: string }
+  onPrev: () => void
+  onNext: () => void
+}): ReactElement {
+  return (
+    <div className="flex items-center justify-between gap-3 px-1">
+      <span className="text-paragraph-medium text-tertiary">{labels.pageOf(page + 1, totalPages)}</span>
+      <div className="flex items-center gap-2">
+        <Button type="ghost" size="sm" disabled={page === 0} onClick={onPrev}>
+          {labels.prev}
+        </Button>
+        <Button type="ghost" size="sm" disabled={page >= totalPages - 1} onClick={onNext}>
+          {labels.next}
+        </Button>
+      </div>
     </div>
   )
 }

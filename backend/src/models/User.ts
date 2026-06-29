@@ -7,6 +7,8 @@ export interface IUserDoc extends Document {
   plan: PlanTier
   isAdmin: boolean
   passwordHash?: string
+  resetTokenHash?: string
+  resetTokenExpiry?: Date
   lastActiveAt?: Date
   stripeCustomerId?: string
   stripeSubscriptionId?: string
@@ -29,6 +31,8 @@ const UserSchema = new Schema<IUserDoc>(
     midtransOrderId: { type: String },
     isAdmin: { type: Boolean, default: false },
     passwordHash: { type: String },
+    resetTokenHash: { type: String },
+    resetTokenExpiry: { type: Date },
     lastActiveAt: { type: Date },
     alertThreshold: { type: Number, default: 20 },
     alertEmail: { type: Boolean, default: true },

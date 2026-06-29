@@ -72,15 +72,15 @@ interface PlanLimits {
 /** Total LLM providers supported by the platform (openai/gemini/perplexity/anthropic). */
 const TOTAL_MODELS = 4
 
-/** Pricing tiers from CLAUDE.md: starter 25/3/4, pro 100/all/8, agency unlimited. */
+/** Pricing tiers from CLAUDE.md: Basic(starter) 40/1/5, pro 100/all/30, agency 300/all/100. */
 const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
-  starter: { prompts: 25, models: 3, articles: 4 },
-  pro: { prompts: 100, models: TOTAL_MODELS, articles: 8 },
-  agency: { prompts: null, models: null, articles: null },
+  starter: { prompts: 40, models: 1, articles: 5 },
+  pro: { prompts: 100, models: TOTAL_MODELS, articles: 30 },
+  agency: { prompts: 300, models: TOTAL_MODELS, articles: 100 },
 }
 
 const PLAN_LABELS: Record<PlanKey, string> = {
-  starter: 'Starter',
+  starter: 'Basic',
   pro: 'Pro',
   agency: 'Agency',
 }

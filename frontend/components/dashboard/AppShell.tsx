@@ -36,6 +36,7 @@ import {
   PlusSmallIcon,
 } from './nav-icons'
 import { AccountSettingsModal } from './AccountSettingsModal'
+import { ScanBanner } from './ScanBanner'
 
 interface CurrentUser {
   _id: string
@@ -196,9 +197,9 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
     router.push('/sign-in')
   }
 
-  // Auth pages (/sign-in, /sign-up) never get the dashboard shell, even when a
-  // session already exists; unauthenticated views get no shell either.
-  const isAuthRoute = pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up')
+  // The sign-in page never gets the dashboard shell, even when a session
+  // already exists; unauthenticated views get no shell either.
+  const isAuthRoute = pathname.startsWith('/sign-in')
   if (isAuthRoute || !user) return <>{children}</>
 
   const userName = user.email.split('@')[0]
@@ -213,7 +214,12 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
   // page itself carries the account controls (in its welcome banner).
   const isAllProjects = pathname === '/brands' || pathname === '/brands/new'
   if (isAllProjects) {
-    return <div className="min-h-screen bg-primary transition-colors duration-300 ease-standard">{children}</div>
+    return (
+      <div className="min-h-screen bg-primary transition-colors duration-300 ease-standard">
+        <ScanBanner />
+        {children}
+      </div>
+    )
   }
 
   return (
@@ -495,7 +501,10 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
       </aside>
 
       {/* ---------- Content ---------- */}
-      <main className="min-h-screen min-w-0 flex-1 overflow-y-auto">{children}</main>
+      <main className="min-h-screen min-w-0 flex-1 overflow-y-auto">
+        <ScanBanner />
+        {children}
+      </main>
 
       {settingsOpen && (
         <AccountSettingsModal

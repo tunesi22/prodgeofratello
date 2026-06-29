@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import { useParams } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X as PhosphorX } from '@phosphor-icons/react/dist/ssr'
@@ -21,7 +21,7 @@ import { Button, Chip, IconButton, Popover, Tabs } from '@/components/ui'
 import type { ChipType, TabItem } from '@/components/ui'
 import { CitationsIcon } from '@/components/dashboard/nav-icons'
 import { DataFreshness } from '@/components/dashboard/DataFreshness'
-import { LockIcon } from '@/components/onboarding/icons'
+import { QuestionIcon } from '@/components/onboarding/icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import { ModelLogo } from '@/components/dashboard/ModelLogo'
 import { categoryMeta } from '@/lib/categories'
@@ -75,7 +75,8 @@ const COPY = {
       `Jawaban asli dari AI tempat brand Anda muncul. Total ${total} jawaban terkumpul. Klik baris mana saja untuk melihat jawaban lengkapnya.`,
     allModels: 'Semua Model',
     filterModelAria: 'Filter berdasarkan model',
-    modelLocked: 'Tersedia di paket yang lebih tinggi',
+    modelSoon: 'Segera hadir',
+    modelSoonHint: 'Model ini segera hadir. Nanti bisa Anda pantau di sini.',
     showLabel: 'Tampilkan',
     checkedOn: (d: string): string => `Dicek ${d}`,
     statusNotMentioned: 'Tidak disebut',
@@ -87,6 +88,13 @@ const COPY = {
     filterNotMentioned: 'Tidak disebut',
     mentioned: 'Disebut',
     notMentioned: 'Tidak disebut',
+    mentionedInOf: (m: number, n: number): string => `Disebut di ${m} dari ${n} jawaban`,
+    responsesShown: (n: number): string => `${n} jawaban ditampilkan`,
+    runsHintLabel: 'Kenapa prompt yang sama muncul berkali-kali?',
+    runsHint:
+      'Jawaban AI berbeda tiap kali ditanya, jadi tiap prompt kami tanyakan 5 kali ke tiap model. Kotak di bawah adalah percobaan tersebut, hijau berarti brand Anda disebut. Gabungannya menjadi mention rate. Klik kotak mana saja untuk membaca jawabannya.',
+    runAria: (k: number, mentioned: boolean): string =>
+      `Jawaban ${k}: ${mentioned ? 'brand disebut' : 'tidak disebut'}. Klik untuk membaca.`,
     statTotal: 'Total Jawaban',
     statMentioned: 'Total Disebut',
     statNotMentioned: 'Total Tidak Disebut',
@@ -128,7 +136,8 @@ const COPY = {
       `The actual AI answers where your brand shows up. ${total} answers collected. Click any row to see the full answer.`,
     allModels: 'All Models',
     filterModelAria: 'Filter by model',
-    modelLocked: 'Available on a higher plan',
+    modelSoon: 'Coming soon',
+    modelSoonHint: 'This model is coming soon. You will be able to track it here.',
     showLabel: 'Show',
     checkedOn: (d: string): string => `Checked ${d}`,
     statusNotMentioned: 'Not mentioned',
@@ -140,6 +149,13 @@ const COPY = {
     filterNotMentioned: 'Not mentioned',
     mentioned: 'Mentioned',
     notMentioned: 'Not mentioned',
+    mentionedInOf: (m: number, n: number): string => `Mentioned in ${m} of ${n} answers`,
+    responsesShown: (n: number): string => `${n} answers shown`,
+    runsHintLabel: 'Why does the same prompt repeat?',
+    runsHint:
+      'AI answers vary between tries, so we ask each prompt 5 times per model. The boxes below are those tries, green means your brand was mentioned. Together they give the mention rate. Click any box to read that answer.',
+    runAria: (k: number, mentioned: boolean): string =>
+      `Answer ${k}: ${mentioned ? 'brand mentioned' : 'not mentioned'}. Click to read.`,
     statTotal: 'Total Answers',
     statMentioned: 'Total Mentioned',
     statNotMentioned: 'Total Not Mentioned',
@@ -166,8 +182,9 @@ const COPY = {
   },
 } as const
 
-/** Upcoming AI models, shown locked in the model tab bar (gated by plan). */
-const LOCKED_MODELS = ['Grok', 'DeepSeek'] as const
+/** Upcoming AI models, shown in the model tab bar with a "coming soon" badge
+ *  (not plan-gated, just not built yet). */
+const UPCOMING_MODELS = ['Grok', 'DeepSeek'] as const
 
 /** Mention + sentiment status tones → dot + text token classes. */
 const STATUS_STYLES: Record<'brand' | 'error' | 'neutral' | 'muted', { dot: string; text: string }> = {
@@ -239,6 +256,78 @@ function MentionStatus({ mentioned, sentiment }: { mentioned: boolean; sentiment
       <span className={cn('size-2 shrink-0 rounded-circle', style.dot)} aria-hidden="true" />
       <span className={cn('text-label-medium font-medium', style.text)}>{label}</span>
     </span>
+  )
+}
+
+interface RunGroup {
+  key: string
+  promptId: QueryResult['promptId']
+  model: string
+  runs: QueryResult[]
+}
+
+/**
+ * Group flat results into one entry per (prompt × model). The runs are the
+ * repeated tries (same prompt asked 5× because LLMs are non-deterministic) that
+ * together make the mention rate, so they read as one thing instead of looking
+ * like duplicate rows. Order preserved.
+ */
+function groupRuns(results: QueryResult[]): RunGroup[] {
+  const map = new Map<string, RunGroup>()
+  const order: string[] = []
+  for (const r of results) {
+    const key = `${r.promptId?._id ?? 'none'}__${r.model}`
+    let group = map.get(key)
+    if (!group) {
+      group = { key, promptId: r.promptId, model: r.model, runs: [] }
+      map.set(key, group)
+      order.push(key)
+    }
+    group.runs.push(r)
+  }
+  return order.map((k) => map.get(k) as RunGroup)
+}
+
+/** Mention-rate tone for the per-group rate chip. */
+function runRateTone(pct: number): ChipType {
+  return pct >= 60 ? 'success' : pct >= 30 ? 'warning' : 'error'
+}
+
+/**
+ * Repeated-runs indicator: one clickable box per try, brand-filled when the
+ * brand was mentioned in that answer, neutral when not. Opens that specific
+ * answer. This is what turns "5 identical-looking rows" into "5 tries, 3 hit".
+ */
+function RunStrip({
+  runs,
+  onOpen,
+  ariaFor,
+}: {
+  runs: QueryResult[]
+  onOpen: (r: QueryResult) => void
+  ariaFor: (k: number, mentioned: boolean) => string
+}): ReactElement {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {runs.map((r, i) => (
+        <button
+          key={r._id}
+          type="button"
+          onClick={() => onOpen(r)}
+          aria-label={ariaFor(i + 1, r.mentioned)}
+          title={ariaFor(i + 1, r.mentioned)}
+          className={cn(
+            'flex h-7 min-w-7 items-center justify-center rounded-token-8 border px-2 text-label-medium font-medium tabular-nums',
+            'transition-colors duration-200 ease-standard focus-visible:outline-none focus-visible:bg-btn-ghost-pressed',
+            r.mentioned
+              ? 'border-brand-token bg-display-brand text-brand-token'
+              : 'border-neutral-primary bg-card text-tertiary hover:bg-secondary',
+          )}
+        >
+          {i + 1}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -464,13 +553,6 @@ export default function MentionsPage(): ReactElement {
     setPage(1)
   }
 
-  function handleRowKeyDown(event: KeyboardEvent<HTMLDivElement>, result: QueryResult): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      setSelected(result)
-    }
-  }
-
   return (
     <PageContainer wide>
       <PageHeader
@@ -489,11 +571,13 @@ export default function MentionsPage(): ReactElement {
             onChange={handleModelChange}
             className="flex-wrap"
           />
-          {LOCKED_MODELS.map((name) => (
-            <Popover key={name} label={name} content={t.modelLocked} side="bottom">
+          {UPCOMING_MODELS.map((name) => (
+            <Popover key={name} label={name} content={t.modelSoonHint} side="bottom">
               <span className="inline-flex items-center gap-1.5 px-4 py-2 text-label-big font-medium text-tertiary">
-                <LockIcon className="size-4" />
                 {name}
+                <Chip type="neutral" size="sm" shape="rounded" outlined>
+                  {t.modelSoon}
+                </Chip>
               </span>
             </Popover>
           ))}
@@ -554,32 +638,49 @@ export default function MentionsPage(): ReactElement {
             />
           </motion.div>
 
-          {/* Result rows as cards */}
+          {/* One card per (prompt × model); the run strip shows the repeated
+              tries so the same prompt no longer looks like duplicate rows. */}
           <motion.div variants={fadeUp} className="flex w-full flex-col gap-3">
-            {data.results.map((r) => (
-              <Card
-                key={r._id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelected(r)}
-                onKeyDown={(event) => handleRowKeyDown(event, r)}
-                className="flex cursor-pointer flex-col gap-2.5 p-4 outline-none transition-colors duration-200 ease-standard hover:bg-secondary focus-visible:bg-secondary"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <p className="line-clamp-2 min-w-0 flex-1 text-paragraph-medium font-medium text-primary">
-                    {r.promptId?.text || '-'}
-                  </p>
-                  <span className="shrink-0 whitespace-nowrap text-label-medium text-tertiary">
-                    {checkedLabel(r.queriedAt, lang, t)}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  <ModelInline model={r.model} />
-                  <span aria-hidden="true" className="text-tertiary">·</span>
-                  <MentionStatus mentioned={r.mentioned} sentiment={r.sentiment} />
-                </div>
-              </Card>
-            ))}
+            {groupRuns(data.results).map((g) => {
+              const n = g.runs.length
+              const mentionedRuns = g.runs.filter((r) => r.mentioned).length
+              const pct = n > 0 ? Math.round((mentionedRuns / n) * 100) : 0
+              // The rate is only meaningful across ALL runs; a mention filter
+              // shows a subset, so we don't claim a rate in that case.
+              const showRate = mentionFilter === ''
+              return (
+                <Card key={g.key} className="flex flex-col gap-3 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="line-clamp-2 min-w-0 flex-1 text-paragraph-medium font-medium text-primary">
+                      {g.promptId?.text || '-'}
+                    </p>
+                    <span className="shrink-0 whitespace-nowrap text-label-medium text-tertiary">
+                      {checkedLabel(g.runs[0].queriedAt, lang, t)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <ModelInline model={g.model} />
+                    <span aria-hidden="true" className="text-tertiary">·</span>
+                    {showRate ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="text-label-medium font-medium text-secondary">
+                          {t.mentionedInOf(mentionedRuns, n)}
+                        </span>
+                        <Chip type={runRateTone(pct)} shape="rounded" size="sm" className="tabular-nums">
+                          {pct}%
+                        </Chip>
+                      </span>
+                    ) : (
+                      <span className="text-label-medium text-tertiary">{t.responsesShown(n)}</span>
+                    )}
+                    <Popover label={t.runsHintLabel} content={t.runsHint} side="bottom">
+                      <QuestionIcon className="size-4" />
+                    </Popover>
+                  </div>
+                  <RunStrip runs={g.runs} onOpen={setSelected} ariaFor={t.runAria} />
+                </Card>
+              )
+            })}
           </motion.div>
 
           {/* Pagination footer */}

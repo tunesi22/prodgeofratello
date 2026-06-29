@@ -285,9 +285,9 @@ neutral = mentioned without judgement).
 
 | Plan | Prompts | Models | Articles / month | Price |
 |---|---|---|---|---|
-| Starter ($49) | 25 | 3 | 4 | Rp 750k |
-| Pro ($149) | 100 | 4 (all) | 8 | Rp 2.25jt |
-| Agency ($399) | unlimited | 4 (all) | unlimited | Rp 6jt |
+| Basic ($49) | 40 | 1 (Gemini) | 5 | Rp 750k |
+| Pro ($149) | 100 | 4 (all) | 30 | Rp 2.25jt |
+| Agency ($399) | 300 | 4 (all) | 100 | Rp 6jt |
 
 > Note: these caps are shown in the UI but are **not currently enforced** in the
 > backend (see Gotchas). Treat them as the intended limits for client conversations.

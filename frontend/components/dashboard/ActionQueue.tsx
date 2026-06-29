@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import Link from 'next/link'
-import { ArrowRight } from '@phosphor-icons/react/dist/ssr'
+import { ArrowRight, Flame, Gauge, Minus } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { Card, Section } from '@/components/dashboard/primitives'
-import { Chip, LoadingCircle } from '@/components/ui'
+import { Chip, LoadingCircle, Tabs } from '@/components/ui'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import { cn } from '@/lib/cn'
 import type { GapRow } from '@/lib/analytics'
@@ -49,10 +49,11 @@ interface Action {
 }
 
 const IMPACT_RANK: Record<Impact, number> = { high: 0, medium: 1, low: 2 }
-const IMPACT_DOT: Record<Impact, string> = {
-  high: 'bg-icon-error',
-  medium: 'bg-icon-warning',
-  low: 'bg-icon-light-gray',
+const IMPACT_ICON: Record<Impact, typeof Flame> = { high: Flame, medium: Gauge, low: Minus }
+const IMPACT_ICON_TONE: Record<Impact, string> = {
+  high: 'text-icon-error',
+  medium: 'text-icon-warning',
+  low: 'text-icon-light-gray',
 }
 const IMPACT_CHIP: Record<Impact, 'error' | 'warning' | 'neutral'> = {
   high: 'error',
@@ -69,6 +70,7 @@ const COPY = {
     addConcept: (c: string): string => `Tambahkan konten tentang: ${c}`,
     impact: { high: 'dampak tinggi', medium: 'dampak sedang', low: 'dampak rendah' } as Record<Impact, string>,
     allClear: 'Tidak ada tindakan mendesak. Pertahankan.',
+    tabs: { all: 'Semua', high: 'Tinggi', medium: 'Sedang', low: 'Rendah' } as Record<'all' | Impact, string>,
   },
   en: {
     title: 'Do This Next',
@@ -78,6 +80,7 @@ const COPY = {
     addConcept: (c: string): string => `Add content about: ${c}`,
     impact: { high: 'high impact', medium: 'medium impact', low: 'low impact' } as Record<Impact, string>,
     allClear: 'No urgent actions. Keep it up.',
+    tabs: { all: 'All', high: 'High', medium: 'Medium', low: 'Low' } as Record<'all' | Impact, string>,
   },
 } as const
 
@@ -101,13 +104,13 @@ export function ActionQueue({
   const [actions, setActions] = useState<Action[]>([])
   const [enriching, setEnriching] = useState<boolean>(false)
   const [inView, setInView] = useState<boolean>(false)
+  const [tab, setTab] = useState<'all' | Impact>('all')
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Content gaps render immediately (already loaded by the Overview).
   useEffect(() => {
     const gapActions: Action[] = gaps
       .filter((g) => g.text.trim() !== '')
-      .slice(0, 5)
       .map((g) => ({
         id: `gap-${g.promptId}`,
         title: t.createContent(g.text),
@@ -185,7 +188,22 @@ export function ActionQueue({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView, brandId, website, lang])
 
-  const ranked = [...actions].sort((a, b) => IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact]).slice(0, 8)
+  const sorted = [...actions].sort((a, b) => IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact])
+  const counts: Record<Impact, number> = {
+    high: sorted.filter((a) => a.impact === 'high').length,
+    medium: sorted.filter((a) => a.impact === 'medium').length,
+    low: sorted.filter((a) => a.impact === 'low').length,
+  }
+  // Fall back to "All" if the selected impact tab has emptied out (e.g. its
+  // actions resolved away as the audit/semantic data streamed in).
+  const activeTab: 'all' | Impact = tab !== 'all' && counts[tab] === 0 ? 'all' : tab
+  const visible = activeTab === 'all' ? sorted : sorted.filter((a) => a.impact === activeTab)
+  const tabItems = [
+    { id: 'all', label: `${t.tabs.all} (${sorted.length})` },
+    { id: 'high', label: `${t.tabs.high} (${counts.high})`, disabled: counts.high === 0 },
+    { id: 'medium', label: `${t.tabs.medium} (${counts.medium})`, disabled: counts.medium === 0 },
+    { id: 'low', label: `${t.tabs.low} (${counts.low})`, disabled: counts.low === 0 },
+  ]
 
   return (
     <div ref={containerRef} className="w-full">
@@ -194,27 +212,41 @@ export function ActionQueue({
         help={t.hint}
         right={enriching ? <LoadingCircle size="sm" /> : undefined}
       >
+        {sorted.length > 0 && (
+          <Tabs
+            items={tabItems}
+            activeId={activeTab}
+            onChange={(id) => setTab(id as 'all' | Impact)}
+            aria-label={t.title}
+            className="overflow-x-auto border-b border-neutral-primary"
+          />
+        )}
         <Card className="flex flex-col divide-y divide-neutral-primary">
-          {ranked.length === 0 && !enriching && inView ? (
-            <div className="px-5 py-4 text-paragraph-medium text-tertiary">{t.allClear}</div>
+          {visible.length === 0 ? (
+            !enriching && inView ? (
+              <div className="px-5 py-4 text-paragraph-medium text-tertiary">{t.allClear}</div>
+            ) : null
           ) : (
-            ranked.map((a) => (
-              <Link
-                key={a.id}
-                href={a.href}
-                className="group flex items-center gap-3 px-5 py-3 outline-none transition-colors duration-200 ease-standard hover:bg-secondary focus-visible:bg-secondary"
-              >
-                <span className={cn('size-2 shrink-0 rounded-circle', IMPACT_DOT[a.impact])} aria-hidden="true" />
-                <span className="min-w-0 flex-1 truncate text-paragraph-medium text-primary">{a.title}</span>
-                <Chip type={IMPACT_CHIP[a.impact]} size="sm" shape="rounded" className="shrink-0">
-                  {t.impact[a.impact]}
-                </Chip>
-                <ArrowRight
-                  className="size-4 shrink-0 text-tertiary transition-colors duration-200 ease-standard group-hover:text-primary"
-                  aria-hidden="true"
-                />
-              </Link>
-            ))
+            visible.map((a) => {
+              const Icon = IMPACT_ICON[a.impact]
+              return (
+                <Link
+                  key={a.id}
+                  href={a.href}
+                  className="group flex items-center gap-3 px-5 py-3 outline-none transition-colors duration-200 ease-standard hover:bg-secondary focus-visible:bg-secondary"
+                >
+                  <Icon className={cn('size-4 shrink-0', IMPACT_ICON_TONE[a.impact])} aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate text-paragraph-medium text-primary">{a.title}</span>
+                  <Chip type={IMPACT_CHIP[a.impact]} size="sm" shape="rounded" className="shrink-0">
+                    {t.impact[a.impact]}
+                  </Chip>
+                  <ArrowRight
+                    className="size-4 shrink-0 text-tertiary transition-colors duration-200 ease-standard group-hover:text-primary"
+                    aria-hidden="true"
+                  />
+                </Link>
+              )
+            })
           )}
         </Card>
       </Section>

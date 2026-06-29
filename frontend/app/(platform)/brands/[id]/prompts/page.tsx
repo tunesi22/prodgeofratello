@@ -12,11 +12,11 @@ import {
   CaretDown,
   ArrowsClockwise,
   PencilSimple,
+  Info,
 } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { fadeUp, transitionEnter, transitionExit } from '@/lib/motion'
-import { Button, Checkbox, Chip, IconButton, Input, LoadingCircle } from '@/components/ui'
-import { GlobeIcon } from '@/components/onboarding/icons'
+import { Button, Checkbox, Chip, IconButton, Input, LoadingCircle, Popover } from '@/components/ui'
 import {
   PageContainer,
   PageHeader,
@@ -30,7 +30,7 @@ import { ModelLogo } from '@/components/dashboard/ModelLogo'
 import { PromptsIcon } from '@/components/dashboard/nav-icons'
 import { useLanguage } from '@/components/providers/LanguageProvider'
 import { useTopLoading } from '@/components/providers/TopLoadingBar'
-import { categoryMeta, CATEGORY_ORDER } from '@/lib/categories'
+import { categoryMeta, CATEGORY_ORDER, sortCategoryKeys } from '@/lib/categories'
 import { cn } from '@/lib/cn'
 
 /**
@@ -164,6 +164,11 @@ const COPY = {
     pageOf: (p: number, total: number): string => `Halaman ${p} dari ${total}`,
     prev: 'Sebelumnya',
     next: 'Berikutnya',
+    countLabel: (n: number): string => `${n} prompt`,
+    typeGuide: 'Panduan tipe',
+    typeInfoTitle: 'Tipe Prompt',
+    typeInfoIntro: 'Setiap prompt dikelompokkan berdasarkan maksud pertanyaannya. Berikut arti tiap tipe dan kenapa penting untuk bisnis Anda:',
+    forBusiness: 'Untuk bisnis Anda',
     // sentiment tooltip
     sentTipTitle: 'Sentimen',
     sentTipBody: 'Skala dari negatif (kiri) ke positif (kanan). Penanda menunjukkan rata-rata sentimen saat brand Anda disebut.',
@@ -242,6 +247,11 @@ const COPY = {
     pageOf: (p: number, total: number): string => `Page ${p} of ${total}`,
     prev: 'Prev',
     next: 'Next',
+    countLabel: (n: number): string => `${n} ${n === 1 ? 'prompt' : 'prompts'}`,
+    typeGuide: 'Type guide',
+    typeInfoTitle: 'Prompt Types',
+    typeInfoIntro: 'Each prompt is grouped by the intent behind the question. Here is what each type means and why it matters for your business:',
+    forBusiness: 'For your business',
     sentTipTitle: 'Sentiment',
     sentTipBody: 'Scale from negative (left) to positive (right). The marker shows the average sentiment when your brand is mentioned.',
     sentBreakdown: (p: number, n: number, g: number): string => `${p} positive, ${n} neutral, ${g} negative`,
@@ -580,6 +590,74 @@ function SummaryBar({ title, segments, loading }: { title: string; segments: Bar
   )
 }
 
+/** Right-side panel explaining each prompt type/category present in the data. */
+function TypeInfoPanel({ categories, onClose }: { categories: string[]; onClose: () => void }): ReactElement {
+  const { lang } = useLanguage()
+  const t = COPY[lang]
+
+  useEffect(() => {
+    function onKey(e: globalThis.KeyboardEvent): void {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1, transition: transitionEnter() }}
+        exit={{ opacity: 0, transition: transitionExit() }}
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-overlay"
+        aria-hidden="true"
+      />
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.typeInfoTitle}
+        initial={{ x: '100%' }}
+        animate={{ x: 0, transition: transitionEnter() }}
+        exit={{ x: '100%', transition: transitionExit() }}
+        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col overflow-hidden border-l border-neutral-primary bg-card shadow-regular-xl"
+      >
+        <div className="flex items-start gap-3 border-b border-neutral-primary px-5 py-4">
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-label-medium font-medium text-tertiary">{t.typeGuide}</p>
+            <p className="text-h6 font-normal text-primary">{t.typeInfoTitle}</p>
+          </div>
+          <IconButton type="ghost" size="sm" aria-label={t.closeAria} onClick={onClose} className="shrink-0">
+            <PhosphorX aria-hidden="true" />
+          </IconButton>
+        </div>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+          <p className="text-paragraph-medium text-secondary">{t.typeInfoIntro}</p>
+          <div className="flex flex-col gap-4">
+            {categories.map((cat) => {
+              const m = categoryMeta(cat)
+              return (
+                <div key={cat} className="flex flex-col gap-1.5">
+                  <span className="inline-flex">
+                    <Chip type={m.tone} size="sm" outlined>
+                      {m.label[lang]}
+                    </Chip>
+                  </span>
+                  <p className="text-paragraph-medium text-secondary">{m.description[lang]}</p>
+                  <p className="text-paragraph-medium text-secondary">
+                    <span className="font-medium text-primary">{t.forBusiness}: </span>
+                    {m.business[lang]}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
 /** Right-side detail panel: prompt info + visibility line + per-model + sentiment. */
 function PromptDetailPanel({
   row,
@@ -785,6 +863,7 @@ export default function PromptsPage(): ReactElement {
   const [error, setError] = useState<string>('')
   const [query, setQuery] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<string[]>([])
+  const [typeInfoOpen, setTypeInfoOpen] = useState(false)
   const [selected, setSelected] = useState<PromptRow | null>(null)
   const [menuOpen, setMenuOpen] = useState<boolean>(false)
   const [typesOpen, setTypesOpen] = useState<boolean>(false)
@@ -1001,13 +1080,10 @@ export default function PromptsPage(): ReactElement {
       sortValue: (r) => r.category,
       render: (r) => {
         const m = categoryMeta(r.category)
-        const Icon = m.icon
+        const CatIcon = m.icon
         return (
-          <Chip type={m.tone} size="sm" outlined>
-            <span className="inline-flex items-center gap-1 whitespace-nowrap">
-              <Icon className="size-3.5" />
-              {m.label[lang]}
-            </span>
+          <Chip type={m.tone} size="sm" outlined iconLeft={<CatIcon aria-hidden="true" />}>
+            <span className="whitespace-nowrap">{m.label[lang]}</span>
           </Chip>
         )
       },
@@ -1016,14 +1092,32 @@ export default function PromptsPage(): ReactElement {
       key: 'sentiment',
       header: t.colSentiment,
       className: 'w-[150px]',
-      help: t.helpSentiment,
       sortValue: (r) => r.sentScore ?? -1,
-      render: (r) => (!metricsLoaded ? <Skeleton className="h-4 w-20" /> : <SentimentBar score={r.sentScore} />),
+      render: (r) =>
+        !metricsLoaded ? (
+          <Skeleton className="h-4 w-20" />
+        ) : r.sentScore == null ? (
+          <SentimentBar score={r.sentScore} />
+        ) : (
+          <Popover
+            side="top"
+            label={t.sentTipTitle}
+            content={
+              <span className="flex flex-col gap-1">
+                <span className="text-paragraph-medium text-secondary">{t.sentTipBody}</span>
+                <span className="text-label-medium font-medium text-primary">{t.sentBreakdown(r.pos, r.neu, r.neg)}</span>
+              </span>
+            }
+            panelClassName="w-64"
+          >
+            <SentimentBar score={r.sentScore} />
+          </Popover>
+        ),
     },
     {
       key: 'mentions',
       header: t.colMentions,
-      className: 'w-[150px]',
+      className: 'w-[184px]',
       help: t.helpMentions,
       sortValue: (r) => r.models.length,
       render: (r) => (!metricsLoaded ? <Skeleton className="h-4 w-16" /> : <BrandMentions models={r.models} />),
@@ -1033,7 +1127,6 @@ export default function PromptsPage(): ReactElement {
       header: t.colCreated,
       align: 'right',
       className: 'w-[124px]',
-      help: t.helpCreated,
       sortValue: (r) => new Date(r.createdAt).getTime(),
       render: (r) => <span className="whitespace-nowrap text-label-medium text-tertiary">{fmtDate(r.createdAt, lang)}</span>,
     },
@@ -1041,7 +1134,21 @@ export default function PromptsPage(): ReactElement {
 
   return (
     <PageContainer full>
-      <PageHeader title={t.title} subtitle={t.subtitle} />
+      <PageHeader
+        title={t.title}
+        subtitle={showList ? `${t.subtitle} · ${t.countLabel(prompts.length)}` : t.subtitle}
+        actions={
+          showList ? (
+            <Button
+              type="ghost"
+              iconLeft={<Info className="size-5" aria-hidden="true" />}
+              onClick={() => setTypeInfoOpen(true)}
+            >
+              {t.typeGuide}
+            </Button>
+          ) : undefined
+        }
+      />
 
       {error !== '' && (
         <motion.div variants={fadeUp} className="w-full">
@@ -1190,7 +1297,6 @@ export default function PromptsPage(): ReactElement {
             <div ref={typesRef} className="relative shrink-0">
               <Button
                 type="ghost"
-                iconLeft={<GlobeIcon className="size-5" />}
                 iconRight={<CaretDown className="size-4" aria-hidden="true" />}
                 onClick={() => setTypesOpen((v) => !v)}
                 aria-haspopup="menu"
@@ -1210,7 +1316,7 @@ export default function PromptsPage(): ReactElement {
                     <div className="px-2 py-1.5">
                       <span className="text-label-medium font-medium text-tertiary">{t.promptTypes}</span>
                     </div>
-                    {CATEGORY_ORDER.filter((cat) => (countByCat[cat] ?? 0) > 0).map((cat) => {
+                    {sortCategoryKeys(Object.keys(countByCat)).map((cat) => {
                       const m = categoryMeta(cat)
                       const CatIcon = m.icon
                       const checked = typeFilter.includes(cat)
@@ -1308,25 +1414,29 @@ export default function PromptsPage(): ReactElement {
       {/* Tracking table (full-bleed, fixed layout: Prompt column flexes) */}
       {showList && (
         <motion.div variants={fadeUp} className="w-full">
-          <Card className="overflow-hidden p-0">
-            <SortableTable
-              columns={columns}
-              rows={filteredRows}
-              rowKey={(r) => r._id}
-              initialSort={{ key: 'vis', dir: 'desc' }}
-              pageSize={25}
-              layout="fixed"
-              onRowClick={(r) => setSelected(r)}
-              caption={t.title}
-              emptyMessage={t.noMatch}
-              paginationLabels={{ pageOf: t.pageOf, prev: t.prev, next: t.next }}
-            />
-          </Card>
+          <SortableTable
+            columns={columns}
+            rows={filteredRows}
+            rowKey={(r) => r._id}
+            initialSort={{ key: 'vis', dir: 'desc' }}
+            pageSize={25}
+            alwaysShowPagination
+            layout="fixed"
+            onRowClick={(r) => setSelected(r)}
+            caption={t.title}
+            emptyMessage={t.noMatch}
+            paginationLabels={{ pageOf: t.pageOf, prev: t.prev, next: t.next }}
+          />
         </motion.div>
       )}
 
       <AnimatePresence>
         {selected && <PromptDetailPanel row={selected} results={rawResults} onClose={() => setSelected(null)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {typeInfoOpen && (
+          <TypeInfoPanel categories={sortCategoryKeys(Object.keys(countByCat))} onClose={() => setTypeInfoOpen(false)} />
+        )}
       </AnimatePresence>
     </PageContainer>
   )

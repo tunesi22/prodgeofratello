@@ -189,11 +189,25 @@ Query dijalankan via **BullMQ worker** agar non-blocking dan bisa retry kalau ga
 
 ## Pricing tiers (untuk fitur gating)
 
-| Plan | Prompts | Models | Artikel/bulan |
-|---|---|---|---|
-| Starter ($49) | 25 | 3 | 4 |
-| Pro ($149) | 100 | semua | 8 |
-| Agency ($399) | unlimited | semua | unlimited |
+> **Sumber kebenaran tier.** Enforcement ada di `shared/constants.ts` (`PLAN_LIMITS`);
+> frontend punya salinan di `usage/page.tsx` & `brands/page.tsx`. Tabel ini + ketiga
+> tempat itu WAJIB selalu sinkron.
+
+| Plan | Harga | Prompts | Models | Scan | Artikel/bulan |
+|---|---|---|---|---|---|
+| **Basic** | $49 / Rp750k | 40 | 1 — Gemini | 1×/hari | 5 |
+| **Pro** | $149 / Rp2.25jt | 100 | 4 — ChatGPT, Claude, Gemini, Perplexity | 1×/hari | 30 |
+| **Agency** | $399 / Rp6jt | 300 | 4 — semua | 1×/hari | 100 |
+
+- Kuota **artikel per bulan**; **scan 1× per hari** untuk semua plan.
+- **"Basic" = internal plan key `starter`** — TIDAK di-rename. DB/enum/Stripe/Midtrans
+  tetap pakai `starter`; "Basic" hanya label tampilan.
+- Mapping model: ChatGPT=`openai`, Claude=`anthropic`, Gemini=`gemini`,
+  Perplexity=`perplexity` (`LLM_MODELS`).
+- Beda dari versi lama: Basic 25→40 prompt & 3→1 model (Gemini only), Pro artikel
+  8→30, **Agency dibatasi 300 prompt / 100 artikel** (dulu unlimited).
+- 🧪 **Localhost/dev:** akun otomatis di-treat sebagai **Agency** kalau
+  `NODE_ENV≠production` **dan** `DEV_FORCE_AGENCY=true`. Tidak pernah aktif di production.
 
 ---
 

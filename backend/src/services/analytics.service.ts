@@ -167,15 +167,62 @@ export async function getShareOfVoice(brandId: string) {
   }))
 }
 
+// ─── Competitor comparison (weekly mention-rate trend per brand) ──────────────
+
+/**
+ * Weekly mention-rate trend for every brand under the same account (this brand
+ * plus the competitor projects), used by the Competitor Comparison chart. Mirrors
+ * getTrends() but runs per brand and flags the one being viewed as `isMain`.
+ */
+export async function getCompetitorTrends(brandId: string) {
+  const brand = await Brand.findById(brandId)
+  if (!brand) throw new Error('Brand not found')
+
+  const allBrands = await Brand.find({ userId: brand.userId })
+
+  return Promise.all(
+    allBrands.map(async (b) => {
+      const results = await QueryResult.aggregate([
+        { $match: { brandId: b._id } },
+        {
+          $group: {
+            _id: {
+              year: { $isoWeekYear: '$queriedAt' },
+              week: { $isoWeek: '$queriedAt' },
+            },
+            total: { $sum: 1 },
+            mentioned: { $sum: { $cond: ['$mentioned', 1, 0] } },
+          },
+        },
+        { $sort: { '_id.year': 1, '_id.week': 1 } },
+        { $limit: 12 },
+      ])
+
+      return {
+        brandId: String(b._id),
+        name: b.name,
+        isMain: String(b._id) === String(brand._id),
+        points: results.map((r) => ({
+          label: `W${r._id.week} ${r._id.year}`,
+          week: r._id.week,
+          year: r._id.year,
+          mentionRate: r.total > 0 ? Math.round((r.mentioned / r.total) * 100) : 0,
+        })),
+      }
+    })
+  )
+}
+
 // ─── All analytics aggregated ────────────────────────────────────────────────
 
 export async function getFullAnalytics(brandId: string) {
-  const [mentionRate, sentiment, trends, gaps, shareOfVoice] = await Promise.all([
+  const [mentionRate, sentiment, trends, gaps, shareOfVoice, competitorTrends] = await Promise.all([
     getMentionRateByModel(brandId),
     getSentimentBreakdown(brandId),
     getTrends(brandId),
     getPromptGaps(brandId),
     getShareOfVoice(brandId),
+    getCompetitorTrends(brandId),
   ])
 
   const byModel = mentionRate.byModel
@@ -191,5 +238,6 @@ export async function getFullAnalytics(brandId: string) {
     trends,
     gaps,
     shareOfVoice,
+    competitorTrends,
   }
 }

@@ -27,8 +27,7 @@ const COPY = {
     connectionError: 'Koneksi bermasalah, coba lagi.',
     signingIn: 'Sedang masuk...',
     signIn: 'Masuk',
-    noAccount: 'Belum punya akun?',
-    signUpLink: 'Daftar',
+    forgotPassword: 'Lupa password?',
   },
   en: {
     welcome: 'Welcome back',
@@ -43,8 +42,7 @@ const COPY = {
     connectionError: 'Connection problem, please try again.',
     signingIn: 'Signing in...',
     signIn: 'Sign in',
-    noAccount: "Don't have an account?",
-    signUpLink: 'Sign up',
+    forgotPassword: 'Forgot password?',
   },
 } as const
 
@@ -141,6 +139,15 @@ export default function SignInPage(): ReactElement {
           }
         />
 
+        <div className="-mt-1 flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="text-label-medium font-medium text-tertiary transition-colors duration-200 ease-standard hover:text-brand-token"
+          >
+            {t.forgotPassword}
+          </Link>
+        </div>
+
         {error !== '' && (
           <p role="alert" className="text-paragraph-medium text-error-token">
             {error}
@@ -156,16 +163,6 @@ export default function SignInPage(): ReactElement {
         >
           {loading ? t.signingIn : t.signIn}
         </Button>
-
-        <p className="text-center text-paragraph-medium text-tertiary">
-          {t.noAccount}{' '}
-          <Link
-            href="/sign-up"
-            className="font-medium text-brand-token transition-colors duration-200 ease-standard hover:underline"
-          >
-            {t.signUpLink}
-          </Link>
-        </p>
       </form>
     </AuthLayout>
   )

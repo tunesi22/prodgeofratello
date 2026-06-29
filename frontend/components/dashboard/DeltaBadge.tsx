@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react'
 import { TrendUp, TrendDown, Minus } from '@phosphor-icons/react/dist/ssr'
-import type { Delta } from '@/lib/analytics'
+import { type Delta, formatNum } from '@/lib/analytics'
 import { cn } from '@/lib/cn'
 
 /**
@@ -26,11 +26,23 @@ export function DeltaBadge({
         ? 'text-error-token'
         : 'text-tertiary'
   const sign = delta.value > 0 ? '+' : ''
+  const icon = <Icon className="size-4 shrink-0" aria-hidden="true" />
+  const valueLabel = `${sign}${formatNum(delta.value)}%${suffix != null ? ` ${suffix}` : ''}`
+  // Positive (green) reads value-first with the trend arrow trailing on the
+  // right; down/flat keep the conventional leading icon.
   return (
     <span className={cn('inline-flex items-center gap-1 text-label-medium font-medium', tone, className)}>
-      <Icon className="size-4" aria-hidden="true" />
-      {sign}
-      {delta.value}%{suffix != null ? ` ${suffix}` : ''}
+      {delta.direction === 'up' ? (
+        <>
+          <span>{valueLabel}</span>
+          {icon}
+        </>
+      ) : (
+        <>
+          {icon}
+          <span>{valueLabel}</span>
+        </>
+      )}
     </span>
   )
 }

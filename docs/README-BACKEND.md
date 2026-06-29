@@ -549,3 +549,22 @@ tidak terduplikasi.
     dan membuat user, lalu (c) mengeluarkan cookie sesi yang sama seperti `/login`
     agar pengguna langsung masuk. Sampai endpoint ini ada, tombol "Buat akun" akan
     menampilkan pesan error.
+
+13. **Tier plan diperbarui (28 Juni 2026) — nilainya sudah sinkron, enforcement masih
+    nunggu (lanjutan item 9).** Tier baru: **Basic** (key internal tetap `starter`) =
+    40 prompt / 1 model (Gemini saja) / 5 artikel; **Pro** = 100 / 4 model / 30 artikel;
+    **Agency** = 300 / 4 model / 100 artikel — Agency sekarang DIBATASI, bukan unlimited.
+    Scan 1×/hari semua plan; harga tetap. Nilai sudah disamakan di `shared/constants.ts`
+    (`PLAN_LIMITS`), salinan frontend (`usage/page.tsx`, `brands/page.tsx`), dan tabel di
+    CLAUDE.md + README + PRODUCT_KNOWLEDGE + docs. **Sengaja DITUNDA (belum dipasang):**
+    (a) `planGate.ts` masih dead code (lihat item 9) → kuota artikel/prompt belum ditegakkan;
+    (b) `prompt.service.ts` masih hardcode "generate exactly 25" → harus diskalakan ke
+    40/100/300 sesuai plan; (c) belum ada pembatasan model per plan → Basic mestinya cuma
+    Gemini, tapi worker scan masih query semua 4 model. Untuk testing lokal ada override
+    `effectivePlan()` di `backend/src/utils/devPlan.ts`: semua akun jadi Agency saat
+    `NODE_ENV!=production` DAN `DEV_FORCE_AGENCY=true` (in-memory, tidak pernah aktif di prod).
+
+14. **Belum di-review: endpoint reset password baru di `auth.routes.ts`.** Sudah ada
+    `forgot-password` / `reset-password` (token di-hash SHA-256, TTL 1 jam) yang
+    ditambahkan dari workspace lain. Perlu audit keamanan terpisah: rate-limit,
+    anti-enumeration (respons seragam), token sekali pakai, dan binding ke user yang benar.

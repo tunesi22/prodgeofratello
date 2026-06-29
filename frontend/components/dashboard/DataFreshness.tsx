@@ -78,7 +78,9 @@ export function DataFreshness({ brandId }: { brandId: string }): ReactElement | 
     <span className="inline-flex items-center gap-1.5 text-label-medium font-medium text-tertiary transition-colors duration-200 ease-standard">
       <Clock className="size-4 shrink-0" aria-hidden="true" />
       <span>{t.updated(formatRelative(updatedAt, t))}</span>
-      <Popover label={t.helpLabel} content={t.tooltip} side="bottom">
+      {/* end-aligned: this lives in the top-right header, so a centered panel
+          would overflow the right edge and clip. */}
+      <Popover label={t.helpLabel} content={t.tooltip} side="bottom" align="end">
         <QuestionIcon className="size-4" />
       </Popover>
     </span>
