@@ -89,27 +89,6 @@ router.post('/analyze', async (req, res) => {
   }
 })
 
-// POST /api/brands/detect-industry
-router.post('/detect-industry', async (req, res) => {
-  try {
-    const { website } = req.body
-    if (!website) {
-      res.status(400).json({ error: 'website is required' })
-      return
-    }
-
-    const prompt = `You are a business analyst. Based on this website URL: "${website}", what industry does this company most likely operate in? Reply with ONLY the industry name, 1-4 words maximum. Examples: "E-commerce", "Software", "Food & Beverage", "Finance", "Healthcare", "Education", "Fashion", "Real Estate", "Manufacturing", "Consulting". No explanation, no punctuation at the end.`
-
-    const raw = await queryAnthropic(prompt, 64)
-    const industry = raw.trim().replace(/[."']+$/, '')
-
-    res.json({ industry })
-  } catch (err: any) {
-    console.error('[BRAND ROUTE] POST /detect-industry:', err.message)
-    res.status(500).json({ error: 'Failed to detect industry' })
-  }
-})
-
 // POST /api/brands
 router.post('/', async (req, res) => {
   try {

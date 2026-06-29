@@ -23,18 +23,6 @@ type Step = 'welcome' | 1 | 2 | 3 | 4 | 'analyzing' | 'finishing'
 const ANALYZING_MS = 2200
 const FINISHING_MIN_MS = 1900
 
-/**
- * Competitors pre-filled from "analysis". This is mocked client-side, there is
- * no real website-analysis backend yet (see docs/README-BACKEND.md). The richer
- * shape (domain + includeSubdomains) is collected in the UI but only the names
- * are persisted, since the Brand.competitors schema is still string[].
- */
-const SUGGESTED_COMPETITORS: Competitor[] = [
-  { name: 'Unilever', domain: 'unilever.com', includeSubdomains: true },
-  { name: 'Maju Bersama', domain: 'majubersama.co.id', includeSubdomains: false },
-  { name: 'Mayora', domain: 'mayora.com', includeSubdomains: false },
-]
-
 /** Prepend https:// when the user typed a bare domain. */
 function normalizeWebsite(value: string): string {
   const trimmed = value.trim()
@@ -53,7 +41,7 @@ export function OnboardingFlow(): ReactElement {
   const [website, setWebsite] = useState('')
   const [industry, setIndustry] = useState('')
   const [detectedIndustry, setDetectedIndustry] = useState('')
-  const [competitors, setCompetitors] = useState<Competitor[]>(SUGGESTED_COMPETITORS)
+  const [competitors, setCompetitors] = useState<Competitor[]>([])
   const [flowError, setFlowError] = useState<string | undefined>(undefined)
   const submitting = useRef(false)
 
@@ -71,10 +59,9 @@ export function OnboardingFlow(): ReactElement {
             name: brandName.trim(),
             website: normalizeWebsite(website),
             industry,
-            // Backend Brand.competitors is string[] today, so we send names only.
-            // The richer {domain, includeSubdomains} captured in the UI awaits a
-            // schema change, see docs/README-BACKEND.md.
-            competitors: competitors.map((c) => c.name.trim()).filter(Boolean),
+            competitors: competitors
+              .filter((c) => c.name.trim())
+              .map((c) => ({ name: c.name.trim(), domain: c.domain || '', includeSubdomains: c.includeSubdomains ?? false })),
           }),
         }),
         delay(FINISHING_MIN_MS),
@@ -101,12 +88,12 @@ export function OnboardingFlow(): ReactElement {
       void (async () => {
         try {
           const controller = new AbortController()
-          const timeout = setTimeout(() => controller.abort(), 8000)
-          const res = await fetch('/api/brands/detect-industry', {
+          const timeout = setTimeout(() => controller.abort(), 12000)
+          const res = await fetch('/api/brands/analyze', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ website: normalizeWebsite(website) }),
+            body: JSON.stringify({ website: normalizeWebsite(website), brandName: brandName.trim() || undefined }),
             signal: controller.signal,
           })
           clearTimeout(timeout)
@@ -116,6 +103,9 @@ export function OnboardingFlow(): ReactElement {
               const detected = data.industry.trim()
               setDetectedIndustry(detected)
               setIndustry(detected)
+            }
+            if (Array.isArray(data.competitors) && data.competitors.length > 0) {
+              setCompetitors(data.competitors)
             }
           }
         } catch {
