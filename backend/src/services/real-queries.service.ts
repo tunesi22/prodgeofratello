@@ -91,7 +91,7 @@ ${numbered}
 Return ONLY a valid JSON array of relevant indices, nothing else. Example: [0, 2, 5]`
 
     try {
-      const raw = await queryAnthropic(prompt)
+      const { content: raw } = await queryAnthropic(prompt)
       const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       const match = cleaned.match(/\[[\d,\s]*\]/)
       if (!match) continue

@@ -64,7 +64,7 @@ Return ONLY a flat JSON array of strings:
 ["concept1", "concept2", ...]`
 
     try {
-      const raw = await queryAnthropic(prompt)
+      const { content: raw } = await queryAnthropic(prompt)
       const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       const parsed: string[] = JSON.parse(cleaned)
       if (Array.isArray(parsed)) {
@@ -98,7 +98,7 @@ Return ONLY a JSON array:
 ["concept1", "concept2", ...]`
 
     try {
-      const raw = await queryAnthropic(gapPrompt)
+      const { content: raw } = await queryAnthropic(gapPrompt)
       const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       const parsed: string[] = JSON.parse(cleaned)
       if (Array.isArray(parsed)) {
@@ -145,7 +145,7 @@ Return ONLY a JSON array of concept strings:
 ["concept1", ...]`
 
     try {
-      const raw = await queryAnthropic(prompt)
+      const { content: raw } = await queryAnthropic(prompt)
       const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       const parsed: string[] = JSON.parse(cleaned)
       if (Array.isArray(parsed)) {

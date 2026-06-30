@@ -66,7 +66,7 @@ router.post('/analyze', async (req, res) => {
       ? `Analyze this website content and extract business info.\nWebsite: ${website}\n\nContent:\n${extractedText}\n\nReturn a JSON object with EXACTLY these keys:\n- industry: string (1-4 words, e.g. "E-commerce", "SaaS", "Food & Beverage")\n- competitors: array of up to 5 objects with {name: string, domain: string, includeSubdomains: boolean}\n- summary: string (1 sentence in Indonesian about what this business does)\n\nReturn ONLY valid JSON, no explanation, no markdown.`
       : `Based only on this website URL: ${website}, infer the industry.\nReturn ONLY valid JSON with keys: {industry: string, competitors: [], summary: string}. Summary in Indonesian.`
 
-    const raw = await withRetry(() => queryAnthropic(llmPrompt, 512))
+    const { content: raw } = await withRetry(() => queryAnthropic(llmPrompt, 512))
 
     let industry = 'General'
     let competitors: ICompetitor[] = []

@@ -47,7 +47,7 @@ Return ONLY the markdown content, no preamble.`
 
   console.log(`[ARTICLE SERVICE] Generating article for prompt: "${prompt.text.slice(0, 60)}..."`)
 
-  const content = await queryAnthropic(systemPrompt, 4096)
+  const { content } = await queryAnthropic(systemPrompt, 4096)
 
   // Extract title from first H1
   const titleMatch = content.match(/^#\s+(.+)$/m)

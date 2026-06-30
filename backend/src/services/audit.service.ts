@@ -229,7 +229,7 @@ Return ONLY a JSON array:
   ...
 ]`
 
-  const raw = await queryAnthropic(prompt)
+  const { content: raw } = await queryAnthropic(prompt)
 
   try {
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()

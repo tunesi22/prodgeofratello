@@ -43,7 +43,7 @@ Format:
 
   console.log(`[PROMPT SERVICE] Generating prompts for brand: ${brandName}`)
 
-  const raw = await queryAnthropic(systemPrompt)
+  const { content: raw } = await queryAnthropic(systemPrompt)
   const prompts = parsePrompts(raw)
 
   if (prompts.length === 0) {
