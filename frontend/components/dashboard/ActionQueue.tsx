@@ -218,10 +218,10 @@ export function ActionQueue({
             activeId={activeTab}
             onChange={(id) => setTab(id as 'all' | Impact)}
             aria-label={t.title}
-            className="overflow-x-auto border-b border-neutral-primary"
+            className="overflow-x-auto"
           />
         )}
-        <Card className="flex flex-col divide-y divide-neutral-primary">
+        <Card className="flex flex-col divide-y divide-neutral-primary overflow-hidden">
           {visible.length === 0 ? (
             !enriching && inView ? (
               <div className="px-5 py-4 text-paragraph-medium text-tertiary">{t.allClear}</div>

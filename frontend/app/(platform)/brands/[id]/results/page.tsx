@@ -184,7 +184,10 @@ const COPY = {
 
 /** Upcoming AI models, shown in the model tab bar with a "coming soon" badge
  *  (not plan-gated, just not built yet). */
-const UPCOMING_MODELS = ['Grok', 'DeepSeek'] as const
+const UPCOMING_MODELS = [
+  { id: 'grok', label: 'Grok' },
+  { id: 'deepseek', label: 'DeepSeek' },
+] as const
 
 /** Mention + sentiment status tones → dot + text token classes. */
 const STATUS_STYLES: Record<'brand' | 'error' | 'neutral' | 'muted', { dot: string; text: string }> = {
@@ -563,7 +566,7 @@ export default function MentionsPage(): ReactElement {
 
       {/* Model tab bar (with baseline) + locked upcoming models; mention filter below */}
       <Section className="gap-3">
-        <div className="flex w-full flex-wrap items-center gap-1 border-b border-neutral-primary">
+        <div className="flex w-full flex-wrap items-center gap-1">
           <Tabs
             aria-label={t.filterModelAria}
             items={modelTabs}
@@ -571,13 +574,11 @@ export default function MentionsPage(): ReactElement {
             onChange={handleModelChange}
             className="flex-wrap"
           />
-          {UPCOMING_MODELS.map((name) => (
-            <Popover key={name} label={name} content={t.modelSoonHint} side="bottom">
-              <span className="inline-flex items-center gap-1.5 px-4 py-2 text-label-big font-medium text-tertiary">
-                {name}
-                <Chip type="neutral" size="sm" shape="rounded" outlined>
-                  {t.modelSoon}
-                </Chip>
+          {UPCOMING_MODELS.map((m) => (
+            <Popover key={m.id} label={m.label} content={t.modelSoonHint} side="bottom">
+              <span className="inline-flex cursor-default items-center gap-1.5 px-4 py-2 text-label-big font-medium text-disabled">
+                <ModelLogo model={m.id} className="size-4 opacity-50 grayscale" />
+                {m.label}
               </span>
             </Popover>
           ))}

@@ -11,7 +11,7 @@ import {
   AreaChart, Area,
   LineChart, Line, ReferenceLine,
 } from 'recharts'
-import { ArrowRight } from '@phosphor-icons/react/dist/ssr'
+import { ArrowRight, SmileyBlank } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import {
   PageContainer, PageHeader, Section, Card, StatCard, EmptyState, ErrorBanner, Skeleton,
@@ -210,6 +210,8 @@ const COPY = {
       'Positif berarti AI merekomendasikan brand Anda, netral berarti hanya menyebut tanpa penilaian, negatif berarti AI menilai kurang baik. Targetnya memperbanyak yang positif.',
     sentByModel: 'Sentimen per Model',
     totalMentionsLabel: 'sebutan',
+    sentEmptyTitle: 'Belum ada data sentimen',
+    sentEmptyDesc: 'Jalankan scan supaya kami bisa menganalisis bagaimana AI membicarakan brand Anda.',
     sentPositive: 'Positif',
     sentNeutral: 'Netral',
     sentNegative: 'Negatif',
@@ -265,6 +267,8 @@ const COPY = {
       'Positive means AI recommends your brand, neutral means it just mentions you, negative means AI rates you poorly. The goal is to grow the positive share.',
     sentByModel: 'Sentiment by Model',
     totalMentionsLabel: 'mentions',
+    sentEmptyTitle: 'No sentiment data yet',
+    sentEmptyDesc: 'Run a scan so we can analyze how AI talks about your brand.',
     sentPositive: 'Positive',
     sentNeutral: 'Neutral',
     sentNegative: 'Negative',
@@ -825,32 +829,38 @@ export default function AgentsInsightsPage(): ReactElement {
         </Section>
 
         <Section title={t.secSentiment} help={t.secSentimentHint}>
-          <Card className="flex items-center gap-6 p-4">
-            <div className="relative" style={{ width: '55%' }}>
-              <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                <PieChart>
-                  <Pie data={sentimentDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={56} outerRadius={84} paddingAngle={2}>
-                    {sentimentDonut.map((s, i) => <Cell key={i} fill={s.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
-                </PieChart>
-              </ResponsiveContainer>
-              <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-h4 font-semibold text-primary tabular-nums">{sentiment.total}</span>
-                <span className="text-label-medium text-tertiary">{t.totalMentionsLabel}</span>
-              </span>
-            </div>
-            <div className="flex flex-1 flex-col gap-2">
-              {sentimentDonut.map((s) => (
-                <div key={s.name} className="flex items-center gap-2">
-                  <span className="size-3 shrink-0 rounded-circle" style={{ background: s.color }} aria-hidden="true" />
-                  <span className="flex-1 text-paragraph-medium text-secondary">{s.name}</span>
-                  <span className="text-label-medium font-medium text-primary tabular-nums">
-                    {sentiment.total > 0 ? Math.round((s.value / sentiment.total) * 100) : 0}%
+          <Card className={sentiment.total === 0 ? 'flex justify-center p-4' : 'flex items-center gap-6 p-4'}>
+            {sentiment.total === 0 ? (
+              <EmptyState icon={<SmileyBlank />} title={t.sentEmptyTitle} description={t.sentEmptyDesc} />
+            ) : (
+              <>
+                <div className="relative" style={{ width: '55%' }}>
+                  <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                    <PieChart>
+                      <Pie data={sentimentDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={56} outerRadius={84} paddingAngle={2}>
+                        {sentimentDonut.map((s, i) => <Cell key={i} fill={s.color} />)}
+                      </Pie>
+                      <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-h4 font-semibold text-primary tabular-nums">{sentiment.total}</span>
+                    <span className="text-label-medium text-tertiary">{t.totalMentionsLabel}</span>
                   </span>
                 </div>
-              ))}
-            </div>
+                <div className="flex flex-1 flex-col gap-2">
+                  {sentimentDonut.map((s) => (
+                    <div key={s.name} className="flex items-center gap-2">
+                      <span className="size-3 shrink-0 rounded-circle" style={{ background: s.color }} aria-hidden="true" />
+                      <span className="flex-1 text-paragraph-medium text-secondary">{s.name}</span>
+                      <span className="text-label-medium font-medium text-primary tabular-nums">
+                        {sentiment.total > 0 ? Math.round((s.value / sentiment.total) * 100) : 0}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </Card>
         </Section>
       </div>
