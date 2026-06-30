@@ -128,7 +128,7 @@ Rules:
 Return ONLY a JSON array of strings. Example: ["shampo rambut rontok", "best shampoo indonesia", "sabun mandi bagus"]`
 
   try {
-    const raw = await queryAnthropic(prompt)
+    const { content: raw } = await queryAnthropic(prompt)
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const match = cleaned.match(/\[[\s\S]*?\]/)
     if (!match) throw new Error('no array found')
