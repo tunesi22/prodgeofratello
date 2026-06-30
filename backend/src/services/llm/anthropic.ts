@@ -5,7 +5,9 @@ import { rateLimiters } from '../../utils/rate-limiter'
 const BASE_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-haiku-4-5-20251001'
 
-export async function query(prompt: string, maxTokens = 1024): Promise<string> {
+import type { LLMResult } from './perplexity'
+
+export async function query(prompt: string, maxTokens = 2048): Promise<LLMResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('[ANTHROPIC] ANTHROPIC_API_KEY is not set')
 
@@ -31,6 +33,6 @@ export async function query(prompt: string, maxTokens = 1024): Promise<string> {
 
     const content = res.data?.content?.[0]?.text
     if (!content) throw new Error('[ANTHROPIC] Empty response')
-    return content as string
+    return { content: content as string, citations: [] }
   })
 }

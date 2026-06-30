@@ -17,8 +17,8 @@ export function startLLMWorker(): Worker {
 
       console.log(`[LLM WORKER] Processing job ${job.id} — model: ${model}, repeat: ${repeatIndex}`)
 
-      const response = await queryModel(model, promptText)
-      const { mentioned, mentionContext } = parseMention(response, brandName)
+      const { content, citations } = await queryModel(model, promptText)
+      const { mentioned, mentionContext } = parseMention(content, brandName)
       const sentiment = mentioned ? detectSentiment(mentionContext) : 'neutral'
 
       await QueryResult.create({
@@ -26,10 +26,11 @@ export function startLLMWorker(): Worker {
         brandId,
         scanId,
         model,
-        response,
+        response: content,
         mentioned,
         sentiment,
         mentionContext,
+        citations,
         queriedAt: new Date(),
       })
 
@@ -43,7 +44,7 @@ export function startLLMWorker(): Worker {
         await Scan.findByIdAndUpdate(scanId, { status: 'completed', completedAt: new Date() })
       }
 
-      console.log(`[LLM WORKER] Done — model: ${model}, mentioned: ${mentioned}, sentiment: ${sentiment}`)
+      console.log(`[LLM WORKER] Done — model: ${model}, mentioned: ${mentioned}, sentiment: ${sentiment}, citations: ${citations.length}`)
     },
     {
       connection: getRedis(),

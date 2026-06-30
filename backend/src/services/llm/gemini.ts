@@ -4,7 +4,9 @@ import { rateLimiters } from '../../utils/rate-limiter'
 
 const MODEL = 'gemini-2.5-flash'
 
-export async function query(prompt: string): Promise<string> {
+import type { LLMResult } from './perplexity'
+
+export async function query(prompt: string): Promise<LLMResult> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('[GEMINI] GEMINI_API_KEY is not set')
 
@@ -19,7 +21,7 @@ export async function query(prompt: string): Promise<string> {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
         },
       },
       {
@@ -30,6 +32,6 @@ export async function query(prompt: string): Promise<string> {
 
     const content = res.data?.candidates?.[0]?.content?.parts?.[0]?.text
     if (!content) throw new Error('[GEMINI] Empty response')
-    return content as string
+    return { content: content as string, citations: [] }
   })
 }

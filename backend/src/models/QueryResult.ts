@@ -10,6 +10,7 @@ export interface IQueryResultDoc extends Document {
   mentioned: boolean
   sentiment: Sentiment
   mentionContext: string
+  citations: string[]
   queriedAt: Date
 }
 
@@ -31,6 +32,7 @@ const QueryResultSchema = new Schema<IQueryResultDoc>(
       required: true,
     },
     mentionContext: { type: String, default: '' },
+    citations: { type: [String], default: [] },
     queriedAt: { type: Date, default: Date.now },
   },
   { timestamps: false }

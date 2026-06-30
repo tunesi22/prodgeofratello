@@ -5,7 +5,9 @@ import { rateLimiters } from '../../utils/rate-limiter'
 const BASE_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = 'gpt-4o'
 
-export async function query(prompt: string): Promise<string> {
+import type { LLMResult } from './perplexity'
+
+export async function query(prompt: string): Promise<LLMResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('[OPENAI] OPENAI_API_KEY is not set')
 
@@ -17,7 +19,7 @@ export async function query(prompt: string): Promise<string> {
       {
         model: MODEL,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024,
+        max_tokens: 2048,
         temperature: 0.7,
       },
       {
@@ -31,6 +33,6 @@ export async function query(prompt: string): Promise<string> {
 
     const content = res.data?.choices?.[0]?.message?.content
     if (!content) throw new Error('[OPENAI] Empty response')
-    return content as string
+    return { content: content as string, citations: [] }
   })
 }

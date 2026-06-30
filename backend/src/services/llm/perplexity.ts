@@ -5,7 +5,12 @@ import { rateLimiters } from '../../utils/rate-limiter'
 const BASE_URL = 'https://api.perplexity.ai/chat/completions'
 const MODEL = 'sonar'
 
-export async function query(prompt: string): Promise<string> {
+export interface LLMResult {
+  content: string
+  citations: string[]
+}
+
+export async function query(prompt: string): Promise<LLMResult> {
   const apiKey = process.env.PERPLEXITY_API_KEY
   if (!apiKey) throw new Error('[PERPLEXITY] PERPLEXITY_API_KEY is not set')
 
@@ -17,7 +22,7 @@ export async function query(prompt: string): Promise<string> {
       {
         model: MODEL,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024,
+        max_tokens: 2048,
         temperature: 0.7,
       },
       {
@@ -31,6 +36,7 @@ export async function query(prompt: string): Promise<string> {
 
     const content = res.data?.choices?.[0]?.message?.content
     if (!content) throw new Error('[PERPLEXITY] Empty response')
-    return content as string
+    const citations: string[] = Array.isArray(res.data?.citations) ? res.data.citations : []
+    return { content: content as string, citations }
   })
 }

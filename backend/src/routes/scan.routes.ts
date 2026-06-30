@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
+import mongoose from 'mongoose'
 import { triggerScan } from '../services/scan.service'
 import QueryResult from '../models/QueryResult'
 import Scan from '../models/Scan'
@@ -108,6 +109,44 @@ router.get('/results', async (req, res) => {
   } catch (err: any) {
     console.error('[SCAN ROUTE] GET /api/brands/:id/results:', err.message)
     res.status(500).json({ error: 'Failed to fetch results' })
+  }
+})
+
+// GET /api/brands/:id/citations — URLs cited by AI in responses (Perplexity only)
+router.get('/citations', async (req, res) => {
+  try {
+    const brandId = new mongoose.Types.ObjectId(req.params.id)
+
+    const citations = await QueryResult.aggregate([
+      { $match: { brandId, citations: { $exists: true, $ne: [] } } },
+      { $unwind: '$citations' },
+      {
+        $group: {
+          _id: '$citations',
+          count: { $sum: 1 },
+          models: { $addToSet: '$model' },
+          firstSeen: { $min: '$queriedAt' },
+          lastSeen: { $max: '$queriedAt' },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 100 },
+      {
+        $project: {
+          _id: 0,
+          url: '$_id',
+          count: 1,
+          models: 1,
+          firstSeen: 1,
+          lastSeen: 1,
+        },
+      },
+    ])
+
+    res.json({ brandId: req.params.id, total: citations.length, citations })
+  } catch (err: any) {
+    console.error('[SCAN ROUTE] GET /api/brands/:id/citations:', err.message)
+    res.status(500).json({ error: 'Failed to fetch citations' })
   }
 })
 
