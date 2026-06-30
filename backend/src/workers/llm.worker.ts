@@ -3,6 +3,7 @@ import { getRedis } from '../config/redis'
 import { queryModel } from '../services/llm'
 import { parseMention } from '../utils/mention-parser'
 import { detectSentiment } from '../utils/sentiment'
+import { extractUrls } from '../utils/extract-urls'
 import QueryResult from '../models/QueryResult'
 import Scan from '../models/Scan'
 import type { LLMQueryJobData } from './queue'
@@ -17,9 +18,13 @@ export function startLLMWorker(): Worker {
 
       console.log(`[LLM WORKER] Processing job ${job.id} — model: ${model}, repeat: ${repeatIndex}`)
 
-      const { content, citations } = await queryModel(model, promptText)
+      const { content, citations: apiCitations } = await queryModel(model, promptText)
       const { mentioned, mentionContext } = parseMention(content, brandName)
       const sentiment = mentioned ? detectSentiment(mentionContext) : 'neutral'
+
+      // Merge structured citations (Perplexity API) with URLs extracted from response text
+      const textUrls = extractUrls(content)
+      const citations = [...new Set([...apiCitations, ...textUrls])]
 
       await QueryResult.create({
         promptId,
