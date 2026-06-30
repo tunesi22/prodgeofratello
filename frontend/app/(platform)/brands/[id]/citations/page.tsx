@@ -62,8 +62,8 @@ const COPY = {
     colModels: 'Model',
     colLastSeen: 'Terakhir Terlihat',
     emptyTitle: 'Belum ada data sitasi',
-    emptyDesc: 'Sitasi dikumpulkan otomatis dari respons Perplexity saat scan berjalan. Jalankan scan baru untuk mengumpulkan sitasi.',
-    note: 'Hanya Perplexity yang mengembalikan URL sumber secara eksplisit. Model lain (ChatGPT, Gemini, Claude) tidak mengekspos sitasi.',
+    emptyDesc: 'Sitasi adalah URL yang disebut AI dalam jawabannya. Data dikumpulkan otomatis dari semua model saat scan berjalan. Jalankan scan baru untuk mulai mengumpulkan sitasi.',
+    note: 'Sitasi diambil dari URL yang disebut AI dalam teks jawaban. Perplexity juga menyertakan sumber terstruktur dari hasil pencariannya.',
   },
   en: {
     title: 'Citations',
@@ -77,8 +77,8 @@ const COPY = {
     colModels: 'Models',
     colLastSeen: 'Last Seen',
     emptyTitle: 'No citation data yet',
-    emptyDesc: 'Citations are collected automatically from Perplexity responses during scans. Run a new scan to start collecting citations.',
-    note: 'Only Perplexity returns explicit source URLs. Other models (ChatGPT, Gemini, Claude) do not expose citations.',
+    emptyDesc: 'Citations are URLs mentioned by AI in its answers. Data is collected automatically from all models during scans. Run a new scan to start collecting citations.',
+    note: 'Citations are extracted from URLs mentioned in AI response text. Perplexity also includes structured citations from its search results.',
   },
 } as const
 
