@@ -203,6 +203,29 @@ export const mockGeoScore = {
   ],
 }
 
+/** Scan history (Overview). One recently-completed scan so the section shows a
+ *  finished run with its by-model summary — never a stuck "running" row. The
+ *  live banner progress is simulated separately by ScanProgressProvider. */
+export const mockScans = [
+  {
+    _id: 'mock-scan-1',
+    startedAt: '2026-06-28T03:00:00.000Z',
+    completedAt: '2026-06-28T03:04:00.000Z',
+    status: 'completed',
+    totalJobs: 60,
+    completedJobs: 60,
+    summary: {
+      overall: { total: 120, mentioned: 68, mentionRate: 56.7 },
+      byModel: [
+        { model: 'openai', total: 30, mentioned: 21, mentionRate: 70 },
+        { model: 'perplexity', total: 30, mentioned: 18, mentionRate: 60 },
+        { model: 'gemini', total: 30, mentioned: 15, mentionRate: 50 },
+        { model: 'anthropic', total: 30, mentioned: 14, mentionRate: 46.7 },
+      ],
+    },
+  },
+]
+
 /** True when the request carries our session cookie (matches the real middleware,
  *  which only checks cookie presence). */
 export function hasSession(req: NextRequest): boolean {

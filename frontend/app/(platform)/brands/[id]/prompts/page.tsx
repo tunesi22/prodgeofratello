@@ -165,6 +165,8 @@ const COPY = {
     prev: 'Sebelumnya',
     next: 'Berikutnya',
     countLabel: (n: number): string => `${n} prompt`,
+    showingCount: (shown: number, total: number): string =>
+      shown === total ? `${total} prompt` : `Menampilkan ${shown} dari ${total} prompt`,
     typeGuide: 'Panduan tipe',
     typeInfoTitle: 'Tipe Prompt',
     typeInfoIntro: 'Setiap prompt dikelompokkan berdasarkan maksud pertanyaannya. Berikut arti tiap tipe dan kenapa penting untuk bisnis Anda:',
@@ -248,6 +250,10 @@ const COPY = {
     prev: 'Prev',
     next: 'Next',
     countLabel: (n: number): string => `${n} ${n === 1 ? 'prompt' : 'prompts'}`,
+    showingCount: (shown: number, total: number): string =>
+      shown === total
+        ? `${total} ${total === 1 ? 'prompt' : 'prompts'}`
+        : `Showing ${shown} of ${total} prompts`,
     typeGuide: 'Type guide',
     typeInfoTitle: 'Prompt Types',
     typeInfoIntro: 'Each prompt is grouped by the intent behind the question. Here is what each type means and why it matters for your business:',
@@ -505,86 +511,46 @@ interface BarSeg {
   color: string
 }
 
-/** Generic donut chart from value/colour segments (the summary-card viz). */
-function Donut({
-  segments,
-  size = 92,
-  stroke = 14,
-}: {
-  segments: { value: number; color: string }[]
-  size?: number
-  stroke?: number
-}): ReactElement {
-  const total = segments.reduce((s, x) => s + x.value, 0) || 1
-  const r = (size - stroke) / 2
-  const c = size / 2
-  const circ = 2 * Math.PI * r
-  const shown = segments.filter((s) => s.value > 0)
-  let offset = 0
-  return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      style={{ width: size, height: size }}
-      className="-rotate-90 shrink-0"
-      role="img"
-      aria-hidden="true"
-    >
-      <circle cx={c} cy={c} r={r} fill="none" className="stroke-[var(--border-neutral-primary)]" strokeWidth={stroke} />
-      {shown.map((s, i) => {
-        const len = (s.value / total) * circ
-        const node = (
-          <circle
-            key={i}
-            cx={c}
-            cy={c}
-            r={r}
-            fill="none"
-            style={{ stroke: s.color }}
-            strokeWidth={stroke}
-            strokeDasharray={`${len} ${circ - len}`}
-            strokeDashoffset={-offset}
-          />
-        )
-        offset += len
-        return node
-      })}
-    </svg>
-  )
-}
-
 /** Distribution card: a donut + a legend (label, count, share). */
 function SummaryBar({ title, segments, loading }: { title: string; segments: BarSeg[]; loading?: boolean }): ReactElement {
   const total = segments.reduce((sum, s) => sum + s.count, 0)
   const shown = segments.filter((s) => s.count > 0)
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <span className="text-label-big font-medium text-primary">{title}</span>
+    <Card className="flex flex-col gap-4 p-5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-label-big font-medium text-primary">{title}</span>
+        <span className="text-h5 font-semibold text-primary tabular-nums">{total}</span>
+      </div>
       {loading ? (
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-[92px] !rounded-circle" />
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </div>
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-full" />
+          <Skeleton className="h-9 w-2/3" />
         </div>
       ) : total > 0 ? (
-        <div className="flex items-center gap-4">
-          <Donut segments={shown.map((s) => ({ value: s.count, color: s.color }))} />
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            {shown.map((s) => (
-              <div key={s.label} className="flex items-center gap-2 text-paragraph-medium text-secondary">
-                <span className="size-2.5 shrink-0 rounded-circle" style={{ background: s.color }} aria-hidden="true" />
-                <span className="min-w-0 flex-1 truncate">{s.label}</span>
-                <span className="shrink-0 font-medium tabular-nums text-primary">{s.count}</span>
-                <span className="w-9 shrink-0 text-right tabular-nums text-tertiary">
-                  {Math.round((s.count / total) * 100)}%
-                </span>
+        <div className="flex flex-col gap-3">
+          {shown.map((s) => {
+            const pct = Math.round((s.count / total) * 100)
+            return (
+              <div key={s.label} className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="size-2.5 shrink-0 rounded-circle" style={{ background: s.color }} aria-hidden="true" />
+                    <span className="truncate text-label-medium font-medium text-secondary">{s.label}</span>
+                  </span>
+                  <span className="shrink-0 text-label-medium text-tertiary tabular-nums">
+                    {s.count} · {pct}%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-circle bg-secondary">
+                  <span className="block h-full rounded-circle" style={{ width: `${pct}%`, background: s.color }} aria-hidden="true" />
+                </div>
               </div>
-            ))}
-          </div>
+            )
+          })}
         </div>
       ) : (
-        <span className="block h-2.5 w-full rounded-circle bg-secondary" aria-hidden="true" />
+        <span className="block h-2 w-full rounded-circle bg-secondary" aria-hidden="true" />
       )}
     </Card>
   )
@@ -1413,7 +1379,10 @@ export default function PromptsPage(): ReactElement {
 
       {/* Tracking table (full-bleed, fixed layout: Prompt column flexes) */}
       {showList && (
-        <motion.div variants={fadeUp} className="w-full">
+        <motion.div variants={fadeUp} className="flex w-full flex-col gap-3">
+          <span className="text-label-medium font-medium text-secondary tabular-nums">
+            {t.showingCount(filteredRows.length, prompts.length)}
+          </span>
           <SortableTable
             columns={columns}
             rows={filteredRows}

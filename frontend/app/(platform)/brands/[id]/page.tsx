@@ -6,10 +6,11 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
-import { ArrowRight, CircleNotch, MagnifyingGlass } from '@phosphor-icons/react/dist/ssr'
+import { ArrowRight, MagnifyingGlass } from '@phosphor-icons/react/dist/ssr'
 import { useApiFetch } from '@/lib/useApiFetch'
 import { fadeUp } from '@/lib/motion'
-import { Button, Chip, ProgressBar } from '@/components/ui'
+import { cn } from '@/lib/cn'
+import { Button, Chip, LoadingCircle, ProgressBar } from '@/components/ui'
 import {
   Card,
   EmptyState,
@@ -396,8 +397,9 @@ export default function BrandOverviewPage(): ReactElement {
             />
           </motion.div>
 
-          {/* By-model + sentiment side by side */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* By-model + sentiment side by side; by-model fills the width when
+              there is no sentiment data to show beside it. */}
+          <div className={cn('grid grid-cols-1 gap-6', sentiment != null && sentiment.total > 0 && 'lg:grid-cols-2')}>
             <Section title={t.rateByModel}>
               <Card className="w-full divide-y divide-neutral-primary">
                 {data.byModel.map((row) => (
@@ -516,7 +518,6 @@ export default function BrandOverviewPage(): ReactElement {
                 hour: '2-digit', minute: '2-digit',
               })
               const isRunning = s.status === 'running'
-              const progress = s.totalJobs > 0 ? Math.round((s.completedJobs / s.totalJobs) * 100) : 0
 
               return (
                 <div key={s._id} className="flex flex-wrap items-center gap-4 px-4 py-3">
@@ -524,28 +525,26 @@ export default function BrandOverviewPage(): ReactElement {
                     <span className="text-label-medium font-medium text-primary">{dateStr} · {timeStr}</span>
                     {isRunning ? (
                       <div className="flex items-center gap-2">
-                        <CircleNotch className="size-3 animate-spin text-brand-token" aria-hidden="true" />
-                        <span className="text-paragraph-small text-secondary">
+                        <LoadingCircle size="sm" />
+                        <span className="text-label-medium text-secondary">
                           {s.completedJobs}/{s.totalJobs} checks
                         </span>
                       </div>
                     ) : (
-                      <span className="text-paragraph-small text-tertiary">{s.completedJobs}/{s.totalJobs} checks</span>
+                      <span className="text-label-medium text-tertiary">{s.completedJobs}/{s.totalJobs} checks</span>
                     )}
                   </div>
 
-                  {s.summary && !isRunning ? (
+                  {s.summary && !isRunning && (
                     <div className="flex flex-wrap items-center gap-2">
                       {s.summary.byModel.map((m) => (
-                        <span key={m.model} className="flex items-center gap-1 text-paragraph-small text-secondary">
-                          <ModelLogo model={m.model as any} className="size-3.5" />
+                        <span key={m.model} className="flex items-center gap-1 text-label-medium text-secondary">
+                          <ModelLogo model={m.model} className="size-3.5" />
                           <span className="tabular-nums">{m.mentionRate}%</span>
                         </span>
                       ))}
                     </div>
-                  ) : isRunning ? (
-                    <div className="w-24"><ProgressBar progress={progress} thickness={4} /></div>
-                  ) : null}
+                  )}
 
                   {s.summary && (
                     <Chip
