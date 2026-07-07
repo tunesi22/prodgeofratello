@@ -1,7 +1,30 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC = ['/', '/sign-in', '/forgot-password', '/reset-password', '/fratello', '/api/auth', '/api/waitlist', '/sitemap.xml', '/robots.txt']
+const PUBLIC = [
+  '/',
+  '/about',
+  '/blog',
+  '/en',
+  '/en/about',
+  '/en/blog',
+  '/sign-in',
+  '/forgot-password',
+  '/reset-password',
+  '/fratello',
+  '/api/auth',
+  '/api/waitlist',
+  '/api/demo',
+  '/sitemap.xml',
+  '/robots.txt',
+]
+
+// Exact match, or a real sub-path of a public prefix — NOT a bare startsWith,
+// which would make the '/' entry swallow every path on the site (the bug this
+// replaces: the geo_token check below never ran because '/' matched everything).
+function isPublic(pathname: string): boolean {
+  return PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -15,7 +38,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/sign-in', `${proto}://${host}`), 308)
   }
 
-  if (PUBLIC.some((p) => pathname.startsWith(p))) {
+  if (isPublic(pathname)) {
     return NextResponse.next()
   }
 

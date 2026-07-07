@@ -81,7 +81,7 @@ export default async function BlogPostPage({ params }: Props): Promise<ReactElem
                   Fratello tracks your brand's visibility across 4 AI engines at once, automatically, every week.
                 </p>
                 <Link
-                  href="/sign-up"
+                  href="/fratello"
                   className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-brand-700 px-5 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-brand-800"
                 >
                   Try it free &rarr;
@@ -108,13 +108,13 @@ export default async function BlogPostPage({ params }: Props): Promise<ReactElem
             </p>
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Link
-                href="/sign-up"
+                href="/fratello"
                 className="rounded-full bg-brand-500 px-6 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-brand-400"
               >
                 Start for free
               </Link>
               <Link
-                href="/en#pricing"
+                href="/fratello"
                 className="rounded-full border border-brand-600/50 px-6 py-2.5 text-[14px] font-medium text-brand-200 transition-colors hover:border-brand-400 hover:text-white-remain"
               >
                 See pricing
