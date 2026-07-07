@@ -1,41 +1,59 @@
 import type { Metadata } from 'next'
 import { SITE } from './site'
+import { localizeHref, type Lang } from './locale'
+import { MARKETING_COPY } from './copy'
 
 /**
  * Per-page metadata builder for the marketing site. Produces a canonical URL,
- * Open Graph, and Twitter card from one call so every page is SEO-consistent.
+ * hreflang alternates (id/en/x-default), Open Graph, and Twitter card from one
+ * call so every page is SEO-consistent across both locales.
  *
  * Usage in a page/layout:
  *   export const metadata = pageMetadata({
  *     title: 'GEO vs SEO',
  *     description: '...',
- *     path: '/belajar/geo-vs-seo',
+ *     path: '/blog/geo-vs-seo',
+ *     lang: 'en',
  *   })
  */
 interface PageMetaInput {
   title: string
   description: string
-  /** Absolute path beginning with "/". Used for the canonical URL. */
+  /** Logical (Indonesian-shaped) absolute path beginning with "/", e.g. '/about', '/blog/apa-itu-geo'. */
   path: string
+  /** Locale this specific page renders in. Defaults to 'id'. */
+  lang?: Lang
   /** Set true on utility pages that should not be indexed (e.g. /sign-in). */
   noindex?: boolean
   /** Optional social share image path (relative to the site root). */
   image?: string
 }
 
-export function pageMetadata({ title, description, path, noindex, image }: PageMetaInput): Metadata {
-  const url = `${SITE.url}${path}`
+export function pageMetadata({ title, description, path, lang = 'id', noindex, image }: PageMetaInput): Metadata {
+  const url = `${SITE.url}${localizeHref(path, lang)}`
   const ogImage = image ?? '/og-default.jpg'
-  const fullTitle = path === '/' ? `${SITE.name}, Platform GEO untuk Indonesia` : `${title} | ${SITE.name}`
+  const fullTitle =
+    path === '/'
+      ? lang === 'en'
+        ? `${SITE.name}, the GEO Platform for Indonesia`
+        : `${SITE.name}, Platform GEO untuk Indonesia`
+      : `${title} | ${SITE.name}`
   return {
     title: fullTitle,
     description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      languages: {
+        id: `${SITE.url}${localizeHref(path, 'id')}`,
+        en: `${SITE.url}${localizeHref(path, 'en')}`,
+        'x-default': `${SITE.url}${localizeHref(path, 'id')}`,
+      },
+    },
     robots: noindex ? { index: false, follow: false } : { index: true, follow: true },
     openGraph: {
       type: 'website',
       siteName: SITE.name,
-      locale: SITE.locale,
+      locale: lang === 'en' ? 'en_US' : 'id_ID',
       url,
       title: fullTitle,
       description,
@@ -57,7 +75,7 @@ export interface Crumb {
 }
 
 /** Build a schema.org BreadcrumbList from an ordered list of crumbs. */
-export function breadcrumbJsonLd(crumbs: Crumb[]): Record<string, unknown> {
+export function breadcrumbJsonLd(crumbs: Crumb[], lang: Lang = 'id'): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -65,43 +83,43 @@ export function breadcrumbJsonLd(crumbs: Crumb[]): Record<string, unknown> {
       '@type': 'ListItem',
       position: i + 1,
       name: c.name,
-      item: `${SITE.url}${c.path}`,
+      item: `${SITE.url}${localizeHref(c.path, lang)}`,
     })),
   }
 }
 
 /** schema.org Organization, emitted once on the homepage. */
-export function organizationJsonLd(): Record<string, unknown> {
+export function organizationJsonLd(lang: Lang = 'id'): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: SITE.name,
     url: SITE.url,
-    description: SITE.tagline,
+    description: MARKETING_COPY[lang].footer.tagline,
     sameAs: [],
   }
 }
 
 /** schema.org WebSite with a search action, emitted once on the homepage. */
-export function webSiteJsonLd(): Record<string, unknown> {
+export function webSiteJsonLd(lang: Lang = 'id'): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: SITE.name,
-    url: SITE.url,
-    inLanguage: 'id-ID',
+    url: `${SITE.url}${localizeHref('/', lang)}`,
+    inLanguage: lang === 'en' ? 'en-US' : 'id-ID',
   }
 }
 
 /** schema.org SoftwareApplication for the product. */
-export function softwareApplicationJsonLd(): Record<string, unknown> {
+export function softwareApplicationJsonLd(lang: Lang = 'id'): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: SITE.name,
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
-    description: SITE.tagline,
+    description: MARKETING_COPY[lang].footer.tagline,
     offers: { '@type': 'Offer', priceCurrency: 'IDR' },
   }
 }

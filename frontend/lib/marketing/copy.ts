@@ -14,6 +14,7 @@ const id = {
       { label: 'Cara Kerja', href: '#cara-kerja' },
       { label: 'Solusi', href: '#solusi' },
       { label: 'Blog', href: '/blog' },
+      { label: 'Tentang', href: '/about' },
       { label: 'Pertanyaan Umum', href: '#faq' },
     ],
     login: 'Masuk',
@@ -183,6 +184,110 @@ const id = {
     demo: 'Jadwalkan Demo',
     login: 'Masuk ke akun',
   },
+  about: {
+    hero: {
+      eyebrow: 'Tentang Fratello',
+      title: 'Platform yang membuat brand Anda dikenal, dipercaya, dan direkomendasikan oleh AI.',
+      lead: 'Fratello melacak, menganalisis, dan menaikkan seberapa sering brand Anda disebut ChatGPT, Gemini, Perplexity, dan Claude ketika calon pelanggan bertanya rekomendasi.',
+      pitch: 'Lacak seberapa sering AI menyebut brand Anda, temukan celahnya, lalu generate otomatis konten yang menutupnya, semua dalam satu platform.',
+    },
+    problem: {
+      eyebrow: 'Kenapa ini penting',
+      title: 'Pelanggan sudah pindah dari Google ke AI. Brand Anda ikut pindah belum?',
+      body: [
+        'Selama lebih dari dua dekade, SEO menentukan siapa yang ditemukan secara online. Kini jutaan orang tidak lagi mengetik di Google lalu memilih dari sepuluh tautan, mereka langsung bertanya ke ChatGPT, Gemini, atau Perplexity dan mengikuti jawabannya.',
+        'Masalahnya, AI biasanya hanya menyebut satu atau dua nama per jawaban. Kalau brand Anda belum punya cukup jejak digital untuk "dipelajari" AI, Anda bukan cuma kalah bersaing, Anda benar-benar tidak ada dalam percakapan itu.',
+      ],
+    },
+    framework: {
+      eyebrow: 'Metodologi',
+      title: 'Tiga lapis yang menentukan apakah AI menyebut brand Anda.',
+      lead: 'GEO bukan versi baru dari SEO. Cara kerjanya berbeda, dan tiga lapis ini menjadi dasar setiap fitur Fratello.',
+      layers: [
+        {
+          title: 'Questions, bukan keywords',
+          desc: 'LLM belajar dari pertanyaan utuh, bukan potongan kata kunci. Optimasi harus berbasis intent lengkap, misalnya "distributor terigu grosir terpercaya Jakarta", bukan sekadar "distributor terigu".',
+        },
+        {
+          title: 'Semantic proximity',
+          desc: 'Brand Anda harus muncul berdekatan secara makna dengan konsep yang relevan di dalam korpus yang dipelajari AI. Contoh: brand F&B perlu co-occur dengan "halal certified" dan "trusted supplier", bukan cuma nama brand-nya sendiri.',
+        },
+        {
+          title: 'Source: percakapan dan publikasi',
+          desc: 'AI belajar dari percakapan publik (forum, Reddit, Q&A) dan artikel. Semakin sering brand Anda muncul di sumber ini dengan konteks yang tepat, semakin tinggi kemungkinan disebut.',
+        },
+      ],
+    },
+    differentiators: {
+      eyebrow: 'Yang membuat Fratello berbeda',
+      title: 'Bukan sekadar tracking. Sistem tertutup dari data sampai konten.',
+      items: [
+        {
+          title: 'Proprietary backbone',
+          desc: 'Semantic Intelligence adalah engine internal yang menganalisis bukan cuma seberapa sering brand disebut, tapi kenapa disebut atau tidak, dan apa langkah selanjutnya.',
+        },
+        {
+          title: 'Closed-loop system',
+          desc: 'Lacak, temukan celah, buat konten, distribusikan, lalu lacak lagi, semua dalam satu platform. Kompetitor kebanyakan hanya menangani satu atau dua tahap ini.',
+        },
+        {
+          title: 'Akurasi statistik',
+          desc: 'Setiap prompt diuji 5 kali per model, bukan sekali. Hasilnya merepresentasikan distribusi probabilistik jawaban AI yang sebenarnya, bukan snapshot satu momen.',
+        },
+        {
+          title: 'Indonesia-first',
+          desc: 'Pembayaran Midtrans IDR, alert WhatsApp, dan pemahaman konteks pasar lokal yang tidak dimiliki kebanyakan platform global.',
+        },
+        {
+          title: 'Skala tanpa biaya per klien',
+          desc: 'Paket Agency mengelola banyak brand dari satu akun berlangganan, bukan biaya per klien seperti agensi manual.',
+        },
+      ],
+    },
+    features: {
+      eyebrow: 'Semua yang Anda dapat',
+      title: 'Sepuluh kemampuan, satu alur kerja.',
+      lead: 'Dari melihat posisi Anda hari ini sampai menyebarkan konten yang menaikkannya, semua bekerja sebagai satu sistem.',
+      items: [
+        { title: 'Brand Mention Tracker', desc: 'Tracking otomatis di ChatGPT, Gemini, Perplexity, dan Claude, 5x per prompt per model untuk akurasi statistik.' },
+        { title: 'Analytics Dashboard', desc: 'Mention rate per model, share of voice vs kompetitor, tren mingguan, breakdown sentimen, dan tabel celah prompt.' },
+        { title: 'Prompt Pool Generator', desc: 'AI menyusun 25 pertanyaan relevan dari nama brand dan industri Anda, terbagi dalam 5 kategori intent.' },
+        { title: 'GEO Content Engine', desc: 'Artikel 600 sampai 900 kata dengan struktur LLM-friendly, dibuat langsung dari celah yang ditemukan, siap diunduh dan diterbitkan.' },
+        { title: 'Semantic Intelligence', desc: 'Analisis kedekatan semantik, deteksi celah konsep, dan perbandingan konsep dengan kompetitor.' },
+        { title: 'Content Distribution Tracker', desc: 'Catat di mana konten dipublikasikan dan ukur dampaknya pada mention rate, sebelum vs sesudah.' },
+        { title: 'Technical GEO Tools', desc: 'Generator llms.txt, konfigurasi Nginx untuk AI bot, dan audit skor GEO berbasis 7 kriteria teknis.' },
+        { title: 'Alert System', desc: 'Notifikasi email dan WhatsApp otomatis saat mention rate turun melewati ambang yang Anda tentukan.' },
+        { title: 'Auto-Scan Scheduler', desc: 'Atur frekuensi scan (manual, harian, mingguan), platform berjalan tanpa perlu dipicu manual.' },
+        { title: 'Multi-brand & Multi-plan', desc: 'Basic, Pro, dan Agency, dengan dukungan pembayaran Stripe (USD) dan Midtrans (IDR).' },
+      ],
+    },
+    audience: {
+      eyebrow: 'Untuk siapa',
+      title: 'Dibuat untuk siapa pun yang pelanggannya sudah bertanya ke AI.',
+      items: [
+        { title: 'Brand owner', desc: 'Yang ingin tahu seberapa terlihat brand mereka di mata AI, dan apa yang harus diperbaiki.' },
+        { title: 'Agensi digital marketing', desc: 'Yang ingin menawarkan layanan GEO ke kliennya tanpa membangun tooling sendiri.' },
+        { title: 'Tim konten', desc: 'Yang butuh tahu persis konten apa yang harus dibuat selanjutnya, berdasarkan data, bukan tebakan.' },
+        { title: 'E-commerce & startup', desc: 'Yang mulai sadar traffic dari AI lebih bernilai dari traffic pencarian biasa.' },
+      ],
+    },
+    pricing: {
+      eyebrow: 'Investasi',
+      title: 'Tiga paket, semuanya scan harian.',
+      lead: 'Kuota dihitung per bulan untuk jumlah artikel. Scan tetap 1x per hari di semua paket.',
+      plans: [
+        { name: 'Basic', price: '$49', priceIdr: 'Rp750rb', period: '/bulan', prompts: '40 prompt', models: '1 model (Gemini)', articles: '5 artikel/bulan' },
+        { name: 'Pro', price: '$149', priceIdr: 'Rp2.25jt', period: '/bulan', prompts: '100 prompt', models: '4 model (semua)', articles: '30 artikel/bulan', highlight: true },
+        { name: 'Agency', price: '$399', priceIdr: 'Rp6jt', period: '/bulan', prompts: '300 prompt', models: '4 model (semua)', articles: '100 artikel/bulan' },
+      ],
+    },
+    closing: {
+      title: 'Lihat sendiri di mana posisi brand Anda sekarang.',
+      lead: 'Jadwalkan demo dan kami tunjukkan langsung hasil audit GEO untuk brand Anda.',
+      demo: 'Jadwalkan Demo',
+      secondary: 'Baca panduan GEO di blog',
+    },
+  },
   footer: {
     tagline: 'Buat brand Anda terbaca AI dan direkomendasikan ke manusia.',
     ctaTitle: 'Siap dilihat oleh AI?',
@@ -203,6 +308,7 @@ const en: typeof id = {
       { label: 'How it works', href: '#cara-kerja' },
       { label: 'Solutions', href: '#solusi' },
       { label: 'Blog', href: '/blog' },
+      { label: 'About', href: '/about' },
       { label: 'FAQ', href: '#faq' },
     ],
     login: 'Sign in',
@@ -372,6 +478,110 @@ const en: typeof id = {
     demo: 'Book a demo',
     login: 'Sign in to your account',
   },
+  about: {
+    hero: {
+      eyebrow: 'About Fratello',
+      title: 'The platform that makes your brand known, trusted, and recommended by AI.',
+      lead: 'Fratello tracks, analyzes, and raises how often your brand is mentioned by ChatGPT, Gemini, Perplexity, and Claude when prospects ask for a recommendation.',
+      pitch: 'Track how often AI mentions your brand, find the gaps, and automatically generate content that closes them, all in one platform.',
+    },
+    problem: {
+      eyebrow: 'Why this matters',
+      title: 'Customers already moved from Google to AI. Has your brand moved with them?',
+      body: [
+        'For over two decades, SEO decided who got found online. Now millions of people no longer type into Google and scan ten links, they ask ChatGPT, Gemini, or Perplexity directly and follow the answer.',
+        'The problem is AI usually names only one or two brands per answer. If yours does not have enough of a digital footprint for AI to "learn" from, you are not just losing the competition, you simply are not part of the conversation.',
+      ],
+    },
+    framework: {
+      eyebrow: 'Methodology',
+      title: 'Three layers that decide whether AI mentions your brand.',
+      lead: 'GEO is not just a new version of SEO. It works differently, and these three layers are the foundation of every Fratello feature.',
+      layers: [
+        {
+          title: 'Questions, not keywords',
+          desc: 'LLMs learn from full questions, not keyword fragments. Optimization has to target complete intent, like "trusted wholesale flour distributor Jakarta", not just "flour distributor".',
+        },
+        {
+          title: 'Semantic proximity',
+          desc: 'Your brand needs to appear close in meaning to relevant concepts inside the corpus AI learns from. Example: an F&B brand needs to co-occur with "halal certified" and "trusted supplier", not just its own name in isolation.',
+        },
+        {
+          title: 'Source: conversation and publications',
+          desc: 'AI learns from public conversation (forums, Reddit, Q&A) and articles. The more your brand appears in these sources with the right context, the higher the chance it gets mentioned.',
+        },
+      ],
+    },
+    differentiators: {
+      eyebrow: 'What makes Fratello different',
+      title: 'Not just tracking. A closed loop from data to content.',
+      items: [
+        {
+          title: 'Proprietary backbone',
+          desc: 'Semantic Intelligence is an internal engine that analyzes not just how often a brand is mentioned, but why it is or is not, and what to do next.',
+        },
+        {
+          title: 'Closed-loop system',
+          desc: 'Track, find the gap, create content, distribute it, then track again, all in one platform. Most competitors only handle one or two of these stages.',
+        },
+        {
+          title: 'Statistical accuracy',
+          desc: 'Every prompt is tested 5 times per model, not once. The result represents the actual probabilistic distribution of AI answers, not a single-moment snapshot.',
+        },
+        {
+          title: 'Indonesia-first',
+          desc: 'Midtrans IDR payments, WhatsApp alerts, and an understanding of local market context that most global platforms lack.',
+        },
+        {
+          title: 'Scale without per-client cost',
+          desc: 'The Agency plan manages many brands from a single subscription, not a per-client fee like a manual agency.',
+        },
+      ],
+    },
+    features: {
+      eyebrow: 'Everything you get',
+      title: 'Ten capabilities, one workflow.',
+      lead: 'From seeing where you stand today to distributing the content that lifts you, everything works as one system.',
+      items: [
+        { title: 'Brand Mention Tracker', desc: 'Automatic tracking across ChatGPT, Gemini, Perplexity, and Claude, 5x per prompt per model for statistical accuracy.' },
+        { title: 'Analytics Dashboard', desc: 'Mention rate per model, share of voice against competitors, weekly trend, sentiment breakdown, and a prompt gap table.' },
+        { title: 'Prompt Pool Generator', desc: 'AI builds 25 relevant questions from your brand name and industry, split across 5 intent categories.' },
+        { title: 'GEO Content Engine', desc: '600 to 900 word articles with an LLM-friendly structure, built straight from the gaps found, ready to download and publish.' },
+        { title: 'Semantic Intelligence', desc: 'Semantic proximity analysis, concept gap detection, and concept comparison against competitors.' },
+        { title: 'Content Distribution Tracker', desc: 'Record where content was published and measure its impact on mention rate, before versus after.' },
+        { title: 'Technical GEO Tools', desc: 'llms.txt generator, Nginx config for AI bots, and a GEO score audit based on 7 technical criteria.' },
+        { title: 'Alert System', desc: 'Automatic email and WhatsApp notifications when mention rate drops past a threshold you set.' },
+        { title: 'Auto-Scan Scheduler', desc: 'Set the scan frequency (manual, daily, weekly), the platform runs without needing a manual trigger.' },
+        { title: 'Multi-brand & Multi-plan', desc: 'Basic, Pro, and Agency, with Stripe (USD) and Midtrans (IDR) payment support.' },
+      ],
+    },
+    audience: {
+      eyebrow: 'Who it is for',
+      title: 'Built for anyone whose customers already ask AI.',
+      items: [
+        { title: 'Brand owners', desc: 'Who want to know how visible their brand is to AI, and what to fix.' },
+        { title: 'Digital marketing agencies', desc: 'Who want to offer GEO services to clients without building their own tooling.' },
+        { title: 'Content teams', desc: 'Who need to know exactly what content to create next, based on data, not guesswork.' },
+        { title: 'E-commerce & startups', desc: 'Who are realizing AI traffic is worth more than ordinary search traffic.' },
+      ],
+    },
+    pricing: {
+      eyebrow: 'Investment',
+      title: 'Three plans, all with a daily scan.',
+      lead: 'Quota is counted per month for articles. Scans stay at 1x per day on every plan.',
+      plans: [
+        { name: 'Basic', price: '$49', priceIdr: 'Rp750k', period: '/month', prompts: '40 prompts', models: '1 model (Gemini)', articles: '5 articles/month' },
+        { name: 'Pro', price: '$149', priceIdr: 'Rp2.25M', period: '/month', prompts: '100 prompts', models: '4 models (all)', articles: '30 articles/month', highlight: true },
+        { name: 'Agency', price: '$399', priceIdr: 'Rp6M', period: '/month', prompts: '300 prompts', models: '4 models (all)', articles: '100 articles/month' },
+      ],
+    },
+    closing: {
+      title: 'See for yourself where your brand stands right now.',
+      lead: 'Book a demo and we will show you a real GEO audit for your brand.',
+      demo: 'Book a demo',
+      secondary: 'Read the GEO guides on our blog',
+    },
+  },
   footer: {
     tagline: 'Make your brand readable to AI and recommended to people.',
     ctaTitle: 'Ready to be seen by AI?',
@@ -385,6 +595,7 @@ const en: typeof id = {
   },
 }
 
-export type Lang = 'id' | 'en'
+export type { Lang } from './locale'
+import type { Lang } from './locale'
 export type MarketingCopy = typeof id
 export const MARKETING_COPY: Record<Lang, MarketingCopy> = { id, en }

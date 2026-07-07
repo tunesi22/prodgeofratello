@@ -6,11 +6,12 @@ import { FratelloLogo } from '@/components/onboarding/FratelloLogo'
 import { Container } from './ui'
 import { SITE } from '@/lib/marketing/site'
 import { MARKETING_COPY } from '@/lib/marketing/copy'
-import { useLanguage } from '@/components/providers/LanguageProvider'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
+import { localizeHomeHash, localizeHref } from '@/lib/marketing/locale'
 
 /** Public marketing footer: brand block, link columns, legal row. */
 export function MarketingFooter(): ReactElement {
-  const { lang } = useLanguage()
+  const { lang } = useMarketingLang()
   const t = MARKETING_COPY[lang].footer
 
   return (
@@ -18,7 +19,7 @@ export function MarketingFooter(): ReactElement {
       <Container className="py-16">
         <div className="grid grid-cols-2 gap-10 lg:grid-cols-4">
           <div className="col-span-2">
-            <Link href="/" className="inline-flex items-center gap-2.5" aria-label="Fratello, beranda">
+            <Link href={localizeHref('/', lang)} className="inline-flex items-center gap-2.5" aria-label={lang === 'en' ? 'Fratello, homepage' : 'Fratello, beranda'}>
               <FratelloLogo className="h-7 w-[46px] text-icon-brand" />
               <span className="font-serif text-[22px] tracking-[-0.45px] text-primary">Fratello</span>
             </Link>
@@ -32,7 +33,7 @@ export function MarketingFooter(): ReactElement {
                 {col.links.map((link) => (
                   <li key={link.href}>
                     <Link
-                      href={link.href}
+                      href={link.href.startsWith('#') ? localizeHomeHash(link.href, lang) : localizeHref(link.href, lang)}
                       className="text-paragraph-medium text-secondary transition-colors duration-200 ease-standard hover:text-brand-token"
                     >
                       {link.label}
@@ -52,7 +53,7 @@ export function MarketingFooter(): ReactElement {
             {t.legal.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={localizeHref(link.href, lang)}
                 className="text-label-medium text-neutral-500 transition-colors duration-200 ease-standard hover:text-brand-token"
               >
                 {link.label}

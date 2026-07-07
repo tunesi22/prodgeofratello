@@ -4,7 +4,7 @@ import { useState, type ReactElement, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { Eye, ChartBar, Quotes, ShieldCheck, Atom, Sparkle, ShareNetwork, CheckCircle } from '@phosphor-icons/react/dist/ssr'
 import type { Icon } from '@phosphor-icons/react'
-import { useLanguage } from '@/components/providers/LanguageProvider'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 import { MARKETING_COPY } from '@/lib/marketing/copy'
 import {
   TrackingPanel,
@@ -31,7 +31,7 @@ function PanelShell({ children }: { children: ReactNode }): ReactElement {
 }
 
 export function FeatureTabs(): ReactElement {
-  const { lang } = useLanguage()
+  const { lang } = useMarketingLang()
   const f = MARKETING_COPY[lang].features
   const [active, setActive] = useState(0)
 

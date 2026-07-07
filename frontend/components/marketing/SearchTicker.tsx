@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { MagnifyingGlass } from '@phosphor-icons/react/dist/ssr'
-import { useLanguage } from '@/components/providers/LanguageProvider'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 import { MARKETING_COPY } from '@/lib/marketing/copy'
 import { Container } from '@/components/marketing/ui'
 import { cn } from '@/lib/cn'
@@ -76,7 +76,7 @@ function Marquee({ prompts, reverse = false }: { prompts: string[]; reverse?: bo
 }
 
 export function SearchTicker(): ReactElement {
-  const { lang } = useLanguage()
+  const { lang } = useMarketingLang()
   const t = MARKETING_COPY[lang].ticker
   const sep = lang === 'id' ? '.' : ','
 

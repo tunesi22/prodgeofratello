@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ModelLogo } from '@/components/dashboard/ModelLogo'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 
 /**
  * Inline flipping tile for the hero heading: a white rounded square that 3D-flips
@@ -30,6 +31,7 @@ const LOGOS: { name: string; node: ReactElement }[] = [
 ]
 
 export function AILogoFlip(): ReactElement {
+  const { lang } = useMarketingLang()
   const [i, setI] = useState(0)
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function AILogoFlip(): ReactElement {
     <span
       className="relative mx-1.5 inline-flex size-[0.95em] -translate-y-[0.05em] items-center justify-center align-middle [perspective:600px]"
       role="img"
-      aria-label={`mesin AI: ${LOGOS.map((l) => l.name).join(', ')}`}
+      aria-label={`${lang === 'en' ? 'AI engines' : 'mesin AI'}: ${LOGOS.map((l) => l.name).join(', ')}`}
     >
       <AnimatePresence mode="wait">
         <motion.span

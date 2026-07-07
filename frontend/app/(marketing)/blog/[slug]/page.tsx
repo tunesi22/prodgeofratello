@@ -2,9 +2,12 @@ import type { ReactElement } from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { posts, getPostBySlug } from '../_posts'
+import { posts, getPostBySlug } from '../_posts/id'
+import { pageMetadata } from '@/lib/marketing/seo'
 
 type Props = { params: Promise<{ slug: string }> }
+
+const dateFmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' })
 
 export async function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }))
@@ -14,10 +17,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const post = getPostBySlug(slug)
   if (!post) return {}
-  return {
-    title: `${post.title} - Blog Fratello`,
+  return pageMetadata({
+    title: post.title,
     description: post.excerpt,
-  }
+    path: `/blog/${post.slug}`,
+    lang: 'id',
+  })
 }
 
 export default async function BlogPostPage({ params }: Props): Promise<ReactElement> {
@@ -43,7 +48,7 @@ export default async function BlogPostPage({ params }: Props): Promise<ReactElem
             <span className="rounded-full border border-brand-600/40 bg-brand-700/30 px-3 py-0.5 text-[12px] font-medium text-brand-200">
               {post.category}
             </span>
-            <span className="text-[13px] text-brand-400">{post.date}</span>
+            <span className="text-[13px] text-brand-400">{dateFmt.format(new Date(post.date))}</span>
           </div>
           <h1 className="font-serif text-[32px] leading-tight tracking-tight text-white-remain sm:text-[42px]">
             {post.title}
@@ -137,7 +142,7 @@ export default async function BlogPostPage({ params }: Props): Promise<ReactElem
                   <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-medium text-brand-700">
                     {other.category}
                   </span>
-                  <span className="text-[12px] text-gray-400">{other.date}</span>
+                  <span className="text-[12px] text-gray-400">{dateFmt.format(new Date(other.date))}</span>
                 </div>
                 <p className="text-[15px] font-semibold text-gray-800 group-hover:text-brand-700 transition-colors">
                   {other.title}

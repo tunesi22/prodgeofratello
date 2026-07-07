@@ -15,7 +15,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, CircleNotch, CheckCircle, CalendarCheck } from '@phosphor-icons/react/dist/ssr'
 import { Button, Input, TextBox, Dropdown, type DropdownOption } from '@/components/ui'
-import { useLanguage } from '@/components/providers/LanguageProvider'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 import { ctaButtonClasses, type ButtonVariant } from './ui'
 import { cn } from '@/lib/cn'
 
@@ -168,7 +168,7 @@ function toOptions(values: string[]): DropdownOption[] {
 }
 
 function DemoDialog({ onClose }: { onClose: () => void }): ReactElement {
-  const { lang } = useLanguage()
+  const { lang } = useMarketingLang()
   const c = MODAL_COPY[lang]
 
   const [name, setName] = useState('')

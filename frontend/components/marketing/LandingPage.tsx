@@ -27,7 +27,7 @@ import { FeatureTabs } from '@/components/marketing/FeatureTabs'
 import { Reveal, FAQ } from '@/components/marketing/interactive'
 import { DashboardPreview, Glow } from '@/components/marketing/visuals'
 import { ModelLogo } from '@/components/dashboard/ModelLogo'
-import { useLanguage } from '@/components/providers/LanguageProvider'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 import { MARKETING_COPY } from '@/lib/marketing/copy'
 import { cn } from '@/lib/cn'
 
@@ -35,7 +35,7 @@ const STEP_ICONS: Icon[] = [MagnifyingGlass, ChartBar, Sparkle]
 const INDUSTRY_ICONS: Icon[] = [Storefront, Buildings, ShoppingCart, Rocket, ForkKnife, Heartbeat, House, DotsThreeOutline]
 
 export function LandingPage(): ReactElement {
-  const { lang } = useLanguage()
+  const { lang } = useMarketingLang()
   const t = MARKETING_COPY[lang]
 
   return (

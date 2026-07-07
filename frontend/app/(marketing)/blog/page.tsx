@@ -3,7 +3,9 @@
 import type { ReactElement } from 'react'
 import { useState } from 'react'
 import Link from 'next/link'
-import { posts } from './_posts'
+import { posts } from './_posts/id'
+
+const dateFmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' })
 
 const ALL = 'Semua'
 
@@ -66,7 +68,7 @@ export default function BlogPage(): ReactElement {
                 <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-[12px] font-medium text-brand-700">
                   {post.category}
                 </span>
-                <span className="text-[13px] text-gray-400">{post.date}</span>
+                <span className="text-[13px] text-gray-400">{dateFmt.format(new Date(post.date))}</span>
               </div>
               <h2 className="mb-3 text-[18px] font-semibold leading-snug text-gray-900 group-hover:text-brand-700 transition-colors duration-200">
                 {post.title}

@@ -9,7 +9,8 @@ import { cn } from '@/lib/cn'
 import { SITE } from '@/lib/marketing/site'
 import { MARKETING_COPY } from '@/lib/marketing/copy'
 import { useDemoModal } from '@/components/marketing/DemoModal'
-import { useLanguage } from '@/components/providers/LanguageProvider'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
+import { delocalizePath, localizeHomeHash, localizeHref } from '@/lib/marketing/locale'
 
 // Section ids are language-independent, so derive scroll-spy targets once.
 const NAV_IDS = MARKETING_COPY.id.nav.items.map((i) => i.href.replace('#', ''))
@@ -23,7 +24,7 @@ const NAV_IDS = MARKETING_COPY.id.nav.items.map((i) => i.href.replace('#', ''))
 export function MarketingNav(): ReactElement {
   const pathname = usePathname()
   const { openDemo } = useDemoModal()
-  const { lang, toggleLang } = useLanguage()
+  const { lang, toggleLang } = useMarketingLang()
   const t = MARKETING_COPY[lang].nav
   const [scrolled, setScrolled] = useState(false)
   const [hidden, setHidden] = useState(false)
@@ -78,7 +79,7 @@ export function MarketingNav(): ReactElement {
           scrolled ? 'bg-[#02120b]/85' : 'bg-[#02120b]/55',
         )}
       >
-        <Link href="/" className="inline-flex items-center gap-2.5 pl-1" aria-label="Fratello, beranda">
+        <Link href={localizeHref('/', lang)} className="inline-flex items-center gap-2.5 pl-1" aria-label={lang === 'en' ? 'Fratello, homepage' : 'Fratello, beranda'}>
           <FratelloLogo className="h-7 w-[46px] text-white-remain" />
           <span className="font-serif text-[22px] tracking-[-0.5px] text-white-remain">Fratello</span>
         </Link>
@@ -86,16 +87,21 @@ export function MarketingNav(): ReactElement {
         {/* Center links (desktop) */}
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
           {t.items.map((item) => {
-            const isPage = !item.href.startsWith('#')
-            const isActive = isPage ? pathname === item.href : active === item.href
+            const isHash = item.href.startsWith('#')
+            const onHome = delocalizePath(pathname) === '/'
+            const isActive = isHash ? active === item.href : pathname === localizeHref(item.href, lang)
             const cls = cn(
               'rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ease-standard',
               isActive ? 'bg-white/10 text-white-remain' : 'text-brand-100 hover:bg-white/10 hover:text-white-remain',
             )
-            return isPage ? (
-              <Link key={item.href} href={item.href} className={cls}>{item.label}</Link>
-            ) : (
+            // Section anchors only exist on the homepage. From any other page
+            // (e.g. /blog, /en/blog), link to "/#section" or "/en#section" so it
+            // navigates to the right-locale homepage first instead of silently
+            // no-op'ing against a missing element here.
+            return isHash && onHome ? (
               <a key={item.href} href={item.href} className={cls}>{item.label}</a>
+            ) : (
+              <Link key={item.href} href={isHash ? localizeHomeHash(item.href, lang) : localizeHref(item.href, lang)} className={cls}>{item.label}</Link>
             )
           })}
         </nav>
@@ -112,7 +118,7 @@ export function MarketingNav(): ReactElement {
             {lang === 'id' ? 'EN' : 'ID'}
           </button>
           <Link
-            href={SITE.loginHref}
+            href={localizeHref(SITE.loginHref, lang)}
             className="rounded-lg px-3.5 py-2 text-[14px] font-medium text-brand-100 transition-colors duration-200 ease-standard hover:text-white-remain"
           >
             {t.login}
@@ -130,7 +136,7 @@ export function MarketingNav(): ReactElement {
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+          aria-label={mobileOpen ? (lang === 'en' ? 'Close menu' : 'Tutup menu') : (lang === 'en' ? 'Open menu' : 'Buka menu')}
           aria-expanded={mobileOpen}
           className="flex size-9 items-center justify-center rounded-lg text-white-remain transition-colors hover:bg-white/10 lg:hidden"
         >
@@ -143,12 +149,12 @@ export function MarketingNav(): ReactElement {
         <div className="mx-auto mt-2 max-w-[1180px] rounded-token-16 border border-white/10 bg-[#02120b]/95 px-4 py-4 backdrop-blur-md lg:hidden">
           <nav className="flex flex-col gap-1">
             {t.items.map((item) => {
-              const isPage = !item.href.startsWith('#')
+              const isHash = item.href.startsWith('#')
               const cls = 'rounded-lg px-3 py-3 text-[16px] font-medium text-white-remain transition-colors hover:bg-white/10'
-              return isPage ? (
-                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cls}>{item.label}</Link>
-              ) : (
+              return isHash && delocalizePath(pathname) === '/' ? (
                 <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cls}>{item.label}</a>
+              ) : (
+                <Link key={item.href} href={isHash ? localizeHomeHash(item.href, lang) : localizeHref(item.href, lang)} onClick={() => setMobileOpen(false)} className={cls}>{item.label}</Link>
               )
             })}
             <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-4">
@@ -161,7 +167,7 @@ export function MarketingNav(): ReactElement {
                 {lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
               </button>
               <Link
-                href={SITE.loginHref}
+                href={localizeHref(SITE.loginHref, lang)}
                 className="rounded-lg border border-white/30 px-4 py-3 text-center text-[15px] font-semibold text-white-remain"
               >
                 {t.login}

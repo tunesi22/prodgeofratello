@@ -11,7 +11,7 @@ import {
   Warning,
 } from '@phosphor-icons/react/dist/ssr'
 import { ModelLogo } from '@/components/dashboard/ModelLogo'
-import { useLanguage } from '@/components/providers/LanguageProvider'
+import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 import { cn } from '@/lib/cn'
 
 /**
@@ -131,7 +131,7 @@ const MOCKUP_COPY = {
 }
 
 function useMockup(): (typeof MOCKUP_COPY)['id'] {
-  const { lang } = useLanguage()
+  const { lang } = useMarketingLang()
   return MOCKUP_COPY[lang]
 }
 
