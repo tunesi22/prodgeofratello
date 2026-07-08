@@ -6,6 +6,7 @@ interface GeneratePromptsInput {
   brandName: string
   industry: string
   competitors?: string[]
+  count: number
 }
 
 interface GeneratedPrompt {
@@ -14,7 +15,7 @@ interface GeneratedPrompt {
 }
 
 export async function generatePromptPool(input: GeneratePromptsInput): Promise<void> {
-  const { brandId, brandName, industry, competitors = [] } = input
+  const { brandId, brandName, industry, competitors = [], count } = input
 
   const competitorLine =
     competitors.length > 0
@@ -22,7 +23,7 @@ export async function generatePromptPool(input: GeneratePromptsInput): Promise<v
       : ''
 
   const systemPrompt = `You are an expert in Generative Engine Optimization (GEO).
-Generate exactly 25 search queries that real users would type into AI assistants (ChatGPT, Gemini, Claude, Perplexity) when looking for products or services in the ${industry} industry.
+Generate exactly ${count} search queries that real users would type into AI assistants (ChatGPT, Gemini, Claude, Perplexity) when looking for products or services in the ${industry} industry.
 
 Brand to track: ${brandName}
 Industry: ${industry}

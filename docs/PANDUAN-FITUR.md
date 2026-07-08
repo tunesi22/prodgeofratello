@@ -243,7 +243,7 @@ dikerjakan lebih dulu.
 
 | Paket | Prompts | Model | Artikel per bulan |
 |---|---|---|---|
-| Basic ($49) | 40 | 1 (Gemini) | 5 |
+| Basic ($49) | 25 | 1 (Gemini) | 5 |
 | Pro ($149) | 100 | semua | 30 |
 | Agency ($399) | 300 | semua | 100 |
 

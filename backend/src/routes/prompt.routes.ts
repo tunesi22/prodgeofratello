@@ -1,6 +1,9 @@
 import { Router } from 'express'
 import { generatePromptPool, getPromptsByBrand, deletePromptsByBrand } from '../services/prompt.service'
 import { discoverRealQueries } from '../services/real-queries.service'
+import { gatePromptLimit } from '../middleware/planGate'
+import { PLAN_LIMITS } from '../../../shared/constants'
+import type { PlanTier } from '../../../shared/constants'
 import Brand from '../models/Brand'
 import Prompt from '../models/Prompt'
 
@@ -23,7 +26,7 @@ router.get('/discover', async (req, res) => {
 })
 
 // POST /api/brands/:id/prompts/import — add selected real queries as prompts
-router.post('/import', async (req, res) => {
+router.post('/import', gatePromptLimit, async (req, res) => {
   try {
     const { queries } = req.body as { queries: { text: string; category: string }[] }
     if (!queries?.length) {
@@ -31,11 +34,19 @@ router.post('/import', async (req, res) => {
       return
     }
     const brandId = req.params.id
-    const created = await Prompt.insertMany(
-      queries.map((q) => ({ brandId, text: q.text, category: q.category, isActive: true }))
-    )
+    const plan = (req.userPlan || 'starter') as PlanTier
+    const limit = PLAN_LIMITS[plan].prompts
+    const existingCount = await Prompt.countDocuments({ brandId, isActive: true })
+    const room = limit === null ? queries.length : Math.max(0, limit - existingCount)
+    const toImport = queries.slice(0, room)
+
+    const created = toImport.length
+      ? await Prompt.insertMany(
+          toImport.map((q) => ({ brandId, text: q.text, category: q.category, isActive: true }))
+        )
+      : []
     const allPrompts = await getPromptsByBrand(brandId)
-    res.json({ added: created.length, total: allPrompts.length })
+    res.json({ added: created.length, skipped: queries.length - toImport.length, total: allPrompts.length })
   } catch (err: any) {
     console.error('[PROMPT ROUTE] POST /import:', err.message)
     res.status(500).json({ error: err.message || 'Failed to import queries' })
@@ -43,7 +54,7 @@ router.post('/import', async (req, res) => {
 })
 
 // POST /api/brands/:id/prompts — generate prompt pool
-router.post('/', async (req, res) => {
+router.post('/', gatePromptLimit, async (req, res) => {
   try {
     const brandId = req.params.id
 
@@ -58,11 +69,15 @@ router.post('/', async (req, res) => {
       await deletePromptsByBrand(brandId)
     }
 
+    const plan = (req.userPlan || 'starter') as PlanTier
+    const count = PLAN_LIMITS[plan].prompts ?? 25
+
     await generatePromptPool({
       brandId,
       brandName: brand.name,
       industry: brand.industry,
       competitors: brand.competitors.map((c) => c.name),
+      count,
     })
 
     const prompts = await getPromptsByBrand(brandId)

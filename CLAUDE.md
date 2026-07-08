@@ -195,7 +195,7 @@ Query dijalankan via **BullMQ worker** agar non-blocking dan bisa retry kalau ga
 
 | Plan | Harga | Prompts | Models | Scan | Artikel/bulan |
 |---|---|---|---|---|---|
-| **Basic** | $49 / Rp750k | 40 | 1 — Gemini | 1×/hari | 5 |
+| **Basic** | $49 / Rp750k | 25 | 1 — Gemini | 1×/hari | 5 |
 | **Pro** | $149 / Rp2.25jt | 100 | 4 — ChatGPT, Claude, Gemini, Perplexity | 1×/hari | 30 |
 | **Agency** | $399 / Rp6jt | 300 | 4 — semua | 1×/hari | 100 |
 
@@ -204,8 +204,11 @@ Query dijalankan via **BullMQ worker** agar non-blocking dan bisa retry kalau ga
   tetap pakai `starter`; "Basic" hanya label tampilan.
 - Mapping model: ChatGPT=`openai`, Claude=`anthropic`, Gemini=`gemini`,
   Perplexity=`perplexity` (`LLM_MODELS`).
-- Beda dari versi lama: Basic 25→40 prompt & 3→1 model (Gemini only), Pro artikel
-  8→30, **Agency dibatasi 300 prompt / 100 artikel** (dulu unlimited).
+- Beda dari versi lama: Basic sempat naik 25→40 prompt & 3→1 model (Gemini only),
+  Pro artikel 8→30, Agency dibatasi 300 prompt / 100 artikel (dulu unlimited).
+  **Update 8 Jul 2026: Basic diturunin lagi 40→25 prompt** (models & artikel tetap
+  1/5) — keputusan tim biar hemat cost testing internal sebelum ada client Agency
+  beneran; lihat item baru di `docs/README-BACKEND.md`.
 - 🧪 **Localhost/dev:** akun otomatis di-treat sebagai **Agency** kalau
   `NODE_ENV≠production` **dan** `DEV_FORCE_AGENCY=true`. Tidak pernah aktif di production.
 

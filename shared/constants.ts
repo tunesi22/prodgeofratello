@@ -17,9 +17,18 @@ export type PlanTier = (typeof PLAN_TIERS)[number]
 // The `starter` key is kept (no rename) to avoid a breaking DB/enum/payment migration.
 // `models` = how many LLM providers the plan may use (Basic = 1, i.e. Gemini only).
 export const PLAN_LIMITS: Record<PlanTier, { prompts: number | null; models: number; articlesPerMonth: number | null }> = {
-  starter: { prompts: 40, models: 1, articlesPerMonth: 5 },    // "Basic" — Gemini only
+  starter: { prompts: 25, models: 1, articlesPerMonth: 5 },    // "Basic" — Gemini only
   pro: { prompts: 100, models: 4, articlesPerMonth: 30 },
   agency: { prompts: 300, models: 4, articlesPerMonth: 100 },
+}
+
+// Which LLM providers each plan is allowed to query. `models` count above must match
+// this list's length per tier — kept separate so the scan worker has an explicit,
+// unambiguous set instead of slicing LLM_MODELS by count (order-dependent, fragile).
+export const PLAN_MODELS: Record<PlanTier, readonly LLMModel[]> = {
+  starter: ['gemini'],
+  pro: LLM_MODELS,
+  agency: LLM_MODELS,
 }
 
 export const QUERY_REPEAT_COUNT = 5

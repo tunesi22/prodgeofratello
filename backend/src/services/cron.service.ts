@@ -1,7 +1,10 @@
 import cron from 'node-cron'
 import Brand from '../models/Brand'
+import User from '../models/User'
 import { triggerScan } from './scan.service'
 import { checkAndSendAlerts } from './alert.service'
+import { effectivePlan } from '../utils/devPlan'
+import type { PlanTier } from '../../../shared/constants'
 
 export function startCronJobs(): void {
   // Run every day at 2:00 AM
@@ -38,7 +41,9 @@ async function runAutoScans(frequency: 'daily' | 'weekly'): Promise<void> {
 
     for (const brand of brands) {
       try {
-        const { jobsEnqueued } = await triggerScan(String(brand._id))
+        const owner = await User.findOne({ clerkUserId: brand.userId })
+        const plan = effectivePlan((owner?.plan || 'starter') as PlanTier)
+        const { jobsEnqueued } = await triggerScan(String(brand._id), plan)
         await Brand.findByIdAndUpdate(brand._id, { lastScannedAt: new Date() })
         console.log(`[CRON] Queued ${jobsEnqueued} jobs for brand: ${brand.name}`)
       } catch (err: any) {

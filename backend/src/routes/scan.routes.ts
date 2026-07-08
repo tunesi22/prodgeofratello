@@ -5,7 +5,7 @@ import { triggerScan } from '../services/scan.service'
 import QueryResult from '../models/QueryResult'
 import Scan from '../models/Scan'
 import { LLM_MODELS } from '../../../shared/constants'
-import type { LLMModel } from '../../../shared/constants'
+import type { LLMModel, PlanTier } from '../../../shared/constants'
 
 const router = Router({ mergeParams: true })
 
@@ -19,7 +19,8 @@ const scanLimiter = rateLimit({
 // POST /api/brands/:id/scan — trigger full scan
 router.post('/scan', scanLimiter, async (req, res) => {
   try {
-    const { jobsEnqueued, scanId } = await triggerScan(req.params.id)
+    const plan = (req.userPlan || 'starter') as PlanTier
+    const { jobsEnqueued, scanId } = await triggerScan(req.params.id, plan)
     res.status(202).json({ message: 'Scan started', jobsEnqueued, scanId })
   } catch (err: any) {
     console.error('[SCAN ROUTE] POST /api/brands/:id/scan:', err.message)

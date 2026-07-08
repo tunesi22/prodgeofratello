@@ -38,7 +38,7 @@ interface PlanLimits {
 }
 /** CLAUDE.md pricing. `starter` is shown as "Basic"; Agency is now capped (not unlimited). */
 const PLAN_LIMITS: Record<PlanKey, PlanLimits> = {
-  starter: { prompts: 40, models: 1, articles: 5 },
+  starter: { prompts: 25, models: 1, articles: 5 },
   pro: { prompts: 100, models: TOTAL_MODELS, articles: 30 },
   agency: { prompts: 300, models: TOTAL_MODELS, articles: 100 },
 }

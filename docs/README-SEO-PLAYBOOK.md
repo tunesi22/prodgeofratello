@@ -285,7 +285,7 @@ neutral = mentioned without judgement).
 
 | Plan | Prompts | Models | Articles / month | Price |
 |---|---|---|---|---|
-| Basic ($49) | 40 | 1 (Gemini) | 5 | Rp 750k |
+| Basic ($49) | 25 | 1 (Gemini) | 5 | Rp 750k |
 | Pro ($149) | 100 | 4 (all) | 30 | Rp 2.25jt |
 | Agency ($399) | 300 | 4 (all) | 100 | Rp 6jt |
 

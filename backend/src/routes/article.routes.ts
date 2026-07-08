@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { generateArticle, getArticlesByBrand, getArticle, exportArticle } from '../services/article.service'
 import { generateLLMsTxt, generateNginxConfig, runGEOAudit, findBacklinkTargets } from '../services/audit.service'
+import { gateArticleQuota } from '../middleware/planGate'
 
 const router = Router({ mergeParams: true })
 
@@ -17,7 +18,7 @@ router.get('/', async (req, res) => {
 })
 
 // POST /api/brands/:id/articles/generate
-router.post('/generate', async (req, res) => {
+router.post('/generate', gateArticleQuota, async (req, res) => {
   try {
     const { promptId } = req.body
     if (!promptId) { res.status(400).json({ error: 'promptId is required' }); return }

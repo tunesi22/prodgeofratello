@@ -65,7 +65,7 @@ Schedule brand scans on daily or weekly intervals — no manual triggering neede
 ### Payment & Plan System
 | Plan | Price | Prompts | Models | Articles/mo |
 |---|---|---|---|---|
-| Basic | $49/mo | 40 | 1 (Gemini) | 5 |
+| Basic | $49/mo | 25 | 1 (Gemini) | 5 |
 | Pro | $149/mo | 100 | All (4) | 30 |
 | Agency | $399/mo | 300 | All (4) | 100 |
 

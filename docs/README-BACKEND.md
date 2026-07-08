@@ -564,7 +564,18 @@ tidak terduplikasi.
     `effectivePlan()` di `backend/src/utils/devPlan.ts`: semua akun jadi Agency saat
     `NODE_ENV!=production` DAN `DEV_FORCE_AGENCY=true` (in-memory, tidak pernah aktif di prod).
 
-14. **Belum di-review: endpoint reset password baru di `auth.routes.ts`.** Sudah ada
+14. **Tier Basic diturunin lagi 40→25 prompt (8 Juli 2026), lanjutan item 13.**
+    Keputusan tim: dripada Agency unlimited/prompt tinggi dulu buat testing internal
+    harian, mending dibatesin murah dulu (Basic tetap 25 prompt / 1 model Gemini /
+    5 artikel; Pro & Agency tidak berubah: 100/4/30 dan 300/4/100) sampai ada client
+    beneran yang butuh kuota lebih besar. Nilai disamakan lagi di `shared/constants.ts`,
+    salinan frontend (`usage/page.tsx`, `brands/page.tsx`), `settings/billing/page.tsx`
+    (halaman ini ternyata sempat gak sinkron — models & artikel Starter-nya masih pakai
+    angka lama 3 model/4 artikel, sekalian dibetulin ke 1 model/5 artikel), `marketing/copy.ts`,
+    dan tabel di CLAUDE.md + README + PRODUCT_KNOWLEDGE + docs. Enforcement (`planGate.ts`
+    dead code, `prompt.service.ts` hardcode 25) masih item terbuka yang sama seperti item 13.
+
+15. **Belum di-review: endpoint reset password baru di `auth.routes.ts`.** Sudah ada
     `forgot-password` / `reset-password` (token di-hash SHA-256, TTL 1 jam) yang
     ditambahkan dari workspace lain. Perlu audit keamanan terpisah: rate-limit,
     anti-enumeration (respons seragam), token sekali pakai, dan binding ke user yang benar.

@@ -276,7 +276,7 @@ const id = {
       title: 'Tiga paket, semuanya scan harian.',
       lead: 'Kuota dihitung per bulan untuk jumlah artikel. Scan tetap 1x per hari di semua paket.',
       plans: [
-        { name: 'Basic', price: '$49', priceIdr: 'Rp750rb', period: '/bulan', prompts: '40 prompt', models: '1 model (Gemini)', articles: '5 artikel/bulan' },
+        { name: 'Basic', price: '$49', priceIdr: 'Rp750rb', period: '/bulan', prompts: '25 prompt', models: '1 model (Gemini)', articles: '5 artikel/bulan' },
         { name: 'Pro', price: '$149', priceIdr: 'Rp2.25jt', period: '/bulan', prompts: '100 prompt', models: '4 model (semua)', articles: '30 artikel/bulan', highlight: true },
         { name: 'Agency', price: '$399', priceIdr: 'Rp6jt', period: '/bulan', prompts: '300 prompt', models: '4 model (semua)', articles: '100 artikel/bulan' },
       ],
@@ -570,7 +570,7 @@ const en: typeof id = {
       title: 'Three plans, all with a daily scan.',
       lead: 'Quota is counted per month for articles. Scans stay at 1x per day on every plan.',
       plans: [
-        { name: 'Basic', price: '$49', priceIdr: 'Rp750k', period: '/month', prompts: '40 prompts', models: '1 model (Gemini)', articles: '5 articles/month' },
+        { name: 'Basic', price: '$49', priceIdr: 'Rp750k', period: '/month', prompts: '25 prompts', models: '1 model (Gemini)', articles: '5 articles/month' },
         { name: 'Pro', price: '$149', priceIdr: 'Rp2.25M', period: '/month', prompts: '100 prompts', models: '4 models (all)', articles: '30 articles/month', highlight: true },
         { name: 'Agency', price: '$399', priceIdr: 'Rp6M', period: '/month', prompts: '300 prompts', models: '4 models (all)', articles: '100 articles/month' },
       ],

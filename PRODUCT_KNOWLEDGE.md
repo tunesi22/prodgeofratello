@@ -155,7 +155,7 @@ Set frekuensi scan: Manual / Daily / Weekly — platform jalan otomatis tanpa ha
 ### 10. Payment & Plan
 | Plan | Harga | Prompts | Models | Artikel/bulan |
 |---|---|---|---|---|
-| Basic | $49/bulan | 40 | 1 (Gemini) | 5 |
+| Basic | $49/bulan | 25 | 1 (Gemini) | 5 |
 | Pro | $149/bulan | 100 | semua (4) | 30 |
 | Agency | $399/bulan | 300 | semua (4) | 100 |
 
