@@ -1,6 +1,12 @@
 export type { Section, Post } from '../types'
 import type { Post } from '../types'
 
+import { post as aiOverviewZeroClick68PersenPencarianGoogle2026 } from './ai-overview-zero-click-68-persen-pencarian-google-2026'
+import { post as citelensStudiSeoTakMenentukanSitasiChatgpt } from './citelens-studi-seo-tak-menentukan-sitasi-chatgpt'
+import { post as riset77PersenPenggunaAiSearchIndonesiaPakaiChatgpt } from './riset-77-persen-pengguna-ai-search-indonesia-pakai-chatgpt'
+import { post as googleAiOverviewRolloutAsiaTenggaraDampakBrandIndonesia } from './google-ai-overview-rollout-asia-tenggara-dampak-brand-indonesia'
+import { post as chatgptInstantCheckoutAgenticCommerceProtocol2026 } from './chatgpt-instant-checkout-agentic-commerce-protocol-2026'
+import { post as shopeeTokopediaAiRekomendasiProdukUmkm2026 } from './shopee-tokopedia-ai-rekomendasi-produk-umkm-2026'
 import { post as gemini3UpdateJuli2026DampakBrand } from './gemini-3-update-juli-2026-dampak-brand'
 import { post as llmsTxtStandarBaruAiCrawler } from './llms-txt-standar-baru-ai-crawler'
 import { post as aiCrawlerGptbotClaudebotPerplexitybotPanduan } from './ai-crawler-gptbot-claudebot-perplexitybot-panduan'
@@ -31,6 +37,12 @@ import { post as caraKerjaAuditGeo } from './cara-kerja-audit-geo'
 
 // Sorted newest first.
 export const posts: Post[] = [
+  aiOverviewZeroClick68PersenPencarianGoogle2026,
+  citelensStudiSeoTakMenentukanSitasiChatgpt,
+  riset77PersenPenggunaAiSearchIndonesiaPakaiChatgpt,
+  googleAiOverviewRolloutAsiaTenggaraDampakBrandIndonesia,
+  chatgptInstantCheckoutAgenticCommerceProtocol2026,
+  shopeeTokopediaAiRekomendasiProdukUmkm2026,
   gemini3UpdateJuli2026DampakBrand,
   llmsTxtStandarBaruAiCrawler,
   aiCrawlerGptbotClaudebotPerplexitybotPanduan,
