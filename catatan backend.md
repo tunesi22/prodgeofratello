@@ -162,4 +162,54 @@ mock backend gak benar-benar nge-scan. `POST /api/brands/:id/scan` mock balikin
    `scanId`/`runIndex` biar frontend bisa rakit lintas page. Buat sekarang mock
    sengaja ≤ 1 page (40 baris) biar aman.
 
+---
+
+## 9. Endpoint BARU: `POST /api/audit` (audit GEO publik di marketing site)
+
+> Konteks: ada halaman marketing baru **/audit** (gratis, tanpa login, jadi lead
+> magnet). User masukin website → dapat visualisasi toko 3D (makin ramai = makin
+> bagus) + hasilnya **DIKUNCI** (blur) sbagai teaser. Skor pasti + daftar check
+> jadi umpan sales: user harus **"Hubungi kami"** buat buka hasil lengkapnya.
+
+**PENTING — LEAD-GEN GATE (baru):** hasil detail (skor pasti + daftar check
+lulus/gagal) itu payoff berbayar, jadi **JANGAN dikirim ke browser sama sekali**.
+Endpoint publik cuma balikin **band kasar** (`low`/`mid`/`high`) yang dipakai
+buat nentuin level keramaian toko 3D. Tujuannya: hasil detail **gak bisa dibaca
+dari DOM maupun response network** — user kudu kontak kita buat bukanya. Skor +
+checks tetap **dihitung di server** (buat dikirim manual/lewat sales pas lead
+masuk), tapi **tidak** masuk JSON response publik.
+
+**Sekarang (sementara):** mock di `frontend/app/api/audit/route.ts` yang
+ngarang hasil secara deterministik per domain (hash), lalu cuma balikin `band`.
+Begitu route Express-nya jadi, **HAPUS file mock itu**.
+
+**Contract yang harus dipenuhi (samain persis):**
+
+```
+POST /api/audit          ← PUBLIK, tanpa auth, tapi WAJIB rate-limit ketat
+Request  body : { website: string }
+Response 200  : {
+  domain: string,              // hostname ternormalisasi (tanpa www)
+  brandName: string,
+  band: 'low' | 'mid' | 'high' // TURUNAN dari skor: >=70 high, >=40 mid, else low
+}                              // ← JANGAN kirim `score` atau `checks` ke sini
+Response 400  : { error: 'invalid-website' }
+```
+
+**Skor + checks (server-only, buat dikirim ke lead):** hitung tetap sama seperti
+sebelumnya — key language-neutral: `crawlable`, `direct-answers`, `ai-crawlers`,
+`faq-schema`, `org-schema`, `llms-txt`, `headings`, `fresh-dates`,
+`meta-description`, `entity` (label + rekomendasi bilingual ada di
+`frontend/lib/marketing/copy.ts` bagian `audit.checks`). Simpan hasil ini di DB
+per lead / kirim via email sales, **bukan** ke response publik di atas.
+
+**Cara implementasi beneran:** fetch homepage (axios + cheerio, timeout), cek
+render tanpa JS, robots.txt (GPTBot/ClaudeBot/PerplexityBot), llms.txt, schema
+JSON-LD (FAQPage/Organization), struktur heading, meta description, tanggal
+update, konsistensi nama brand. Skor = bobot per check (high 16, medium 6-9,
+low 5, total 100 — lihat mock), lalu map ke `band` sebelum di-return. Sesuai
+`CLAUDE.md`: lewat BullMQ, try/catch, exponential backoff. Karena publik:
+rate-limit per IP + cache hasil per domain (mis. 1 jam) biar gak jadi mesin
+DDoS gratisan.
+
 — makasih 🙏

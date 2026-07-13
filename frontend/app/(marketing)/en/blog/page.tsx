@@ -3,6 +3,8 @@
 import type { ReactElement } from 'react'
 import { useState } from 'react'
 import Link from 'next/link'
+import { ArrowRight } from '@phosphor-icons/react/dist/ssr'
+import { Container, HERO_BG } from '@/components/marketing/ui'
 import { posts } from '../../blog/_posts/en'
 
 const ALL = 'All'
@@ -18,78 +20,72 @@ export default function BlogPage(): ReactElement {
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-[#021a0e] pb-16 pt-32">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,#0d6b3a33,transparent)]" />
-        <div className="relative mx-auto max-w-[1180px] px-6 text-center">
-          <span className="mb-4 inline-block rounded-full border border-brand-600/40 bg-brand-700/30 px-3.5 py-1 text-[13px] font-medium text-brand-200">
-            Fratello Blog
-          </span>
-          <h1 className="mt-3 font-serif text-[40px] leading-tight tracking-tight text-white-remain sm:text-[52px]">
-            GEO insights
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-[17px] leading-relaxed text-brand-200">
+      {/* Hero — aligned with the Audit + About heroes. */}
+      <section className="relative w-full overflow-hidden" style={{ background: HERO_BG }}>
+        <Container className="relative flex min-h-[60vh] flex-col items-center justify-center py-32 text-center">
+          <h1 className="max-w-3xl text-h2 font-semibold text-white-remain sm:text-h1">GEO Insights</h1>
+          <p className="mx-auto mt-6 max-w-2xl text-h4 font-normal leading-relaxed text-brand-100">
             Strategy, guides, and perspective from the Fratello team on how brands get seen in the age of AI engines.
           </p>
-        </div>
+        </Container>
       </section>
 
-      {/* Category filter */}
-      <div className="border-b border-gray-100 bg-white sticky top-0 z-10">
-        <div className="mx-auto max-w-[1180px] px-6">
-          <div className="flex gap-1 overflow-x-auto py-3 scrollbar-hide">
+      {/* Category filter — extra breathing room above the chips. */}
+      <div className="sticky top-0 z-10 bg-primary/85 backdrop-blur-md">
+        <Container>
+          <div className="flex gap-2 overflow-x-auto pb-4 pt-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((cat) => (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setActive(cat)}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors ${
+                className={`shrink-0 rounded-full px-4 py-2 text-label-medium font-medium transition-colors duration-200 ease-standard ${
                   active === cat
-                    ? 'bg-brand-700 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-brand-600 text-white-remain'
+                    : 'bg-secondary text-neutral-500 hover:bg-neutral-100 hover:text-primary'
                 }`}
               >
                 {cat}
               </button>
             ))}
           </div>
-        </div>
+        </Container>
       </div>
 
       {/* Posts grid */}
-      <section className="mx-auto max-w-[1180px] px-6 py-16">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <Container className="pb-16 pt-6 lg:pb-20 lg:pt-8">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((post) => (
             <Link
               key={post.slug}
               href={`/en/blog/${post.slug}`}
-              className="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow duration-200 hover:shadow-md"
+              className="group flex flex-col rounded-token-24 border border-neutral-primary bg-card p-7 transition-all duration-200 ease-standard hover:-translate-y-0.5 hover:border-brand-token hover:shadow-regular-lg"
             >
-              <div className="mb-4 flex items-center gap-3">
-                <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-[12px] font-medium text-brand-700">
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-display-brand px-3 py-1 text-label-small font-semibold text-brand-token">
                   {post.category}
                 </span>
-                <span className="text-[13px] text-gray-400">{dateFmt.format(new Date(post.date))}</span>
+                <span className="text-label-small text-neutral-500">{dateFmt.format(new Date(post.date))}</span>
               </div>
-              <h2 className="mb-3 text-[18px] font-semibold leading-snug text-gray-900 group-hover:text-brand-700 transition-colors duration-200">
+              <h2 className="mt-4 text-h5 font-semibold leading-snug text-primary transition-colors duration-200 ease-standard group-hover:text-brand-token">
                 {post.title}
               </h2>
-              <p className="flex-1 text-[14px] leading-relaxed text-gray-500">{post.excerpt}</p>
-              <div className="mt-5">
-                <span className="text-[14px] font-semibold text-brand-600 group-hover:underline">
-                  Read more &rarr;
-                </span>
-              </div>
+              <p className="mt-3 flex-1 text-paragraph-medium leading-relaxed text-neutral-500">{post.excerpt}</p>
+              <span className="mt-6 inline-flex items-center gap-1.5 text-label-medium font-semibold text-brand-token">
+                Read more
+                <ArrowRight className="size-4 transition-transform duration-200 ease-standard group-hover:translate-x-0.5" weight="bold" />
+              </span>
             </Link>
           ))}
         </div>
 
-        <p className="mt-16 text-center text-[14px] text-gray-400">
+        <p className="mt-16 text-center text-paragraph-medium text-neutral-500">
           New articles every week.{' '}
-          <Link href="/en#faq" className="text-brand-600 hover:underline">
+          <Link href="/en#faq" className="font-medium text-brand-token hover:underline">
             Have a question?
           </Link>
         </p>
-      </section>
+      </Container>
     </>
   )
 }

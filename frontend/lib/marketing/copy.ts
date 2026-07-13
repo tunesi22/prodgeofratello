@@ -9,13 +9,20 @@
 
 const id = {
   nav: {
-    items: [
-      { label: 'Fitur', href: '#fitur' },
-      { label: 'Cara Kerja', href: '#cara-kerja' },
-      { label: 'Solusi', href: '#solusi' },
+    // On-page product sections live under one dropdown; real pages stay top-level.
+    product: {
+      label: 'Produk',
+      items: [
+        { label: 'Fitur', desc: 'Pelacakan, analitik, artikel AI, dan distribusi.', href: '#fitur' },
+        { label: 'Cara Kerja', desc: 'Lacak, analisis, optimalkan, lalu ulangi.', href: '#cara-kerja' },
+        { label: 'Solusi', desc: 'Untuk UMKM, agensi, e-commerce, dan lainnya.', href: '#solusi' },
+        { label: 'Pertanyaan Umum', desc: 'Jawaban singkat sebelum Anda mulai.', href: '#faq' },
+      ],
+    },
+    links: [
+      { label: 'Audit GEO', href: '/audit' },
       { label: 'Blog', href: '/blog' },
       { label: 'Tentang', href: '/about' },
-      { label: 'Pertanyaan Umum', href: '#faq' },
     ],
     login: 'Masuk',
     demo: 'Jadwalkan Demo',
@@ -30,6 +37,107 @@ const id = {
   preview: {
     caption:
       'Bukan laporan PDF bulanan, melainkan dasbor langsung yang diperbarui otomatis. Semua angka di sini hanya contoh tampilan produk.',
+  },
+  demo: {
+    chips: [
+      { key: 'overview', label: 'Ringkasan' },
+      { key: 'tracking', label: 'Pelacakan' },
+      { key: 'analytics', label: 'Analitik' },
+      { key: 'articles', label: 'Artikel AI' },
+    ],
+    sidebar: ['Ringkasan', 'Prompts', 'Penyebutan Brand', 'Analitik AI', 'Artikel AI'],
+    brand: { name: 'Arunika', domain: 'arunika.id', industry: 'Coffee & F&B' },
+    overview: {
+      banner: 'Brand Anda muncul di',
+      bannerTail: 'jawaban AI',
+      delta: '+6,2% vs minggu lalu',
+      sub: 'Visibilitas brand Anda terus membaik. Masih ada celah yang bisa ditutup.',
+      queueTitle: 'Lakukan berikutnya',
+      impactHigh: 'dampak tinggi',
+      impactMedium: 'dampak sedang',
+      items: [
+        { label: 'Perbaiki halaman: jawaban langsung di paragraf pembuka', impact: 'high' },
+        { label: 'Buat konten untuk: kopi susu botolan terenak', impact: 'high' },
+        { label: 'Perbaiki halaman: markup schema FAQ', impact: 'medium' },
+        { label: 'Buat konten untuk: rekomendasi coffee shop kerja', impact: 'medium' },
+      ],
+    },
+    tracking: {
+      scanning: 'Scan harian berjalan',
+      done: 'selesai',
+      prompts: ['rekomendasi kopi susu botolan', 'coffee shop enak buat kerja', 'brand kopi lokal terbaik'],
+    },
+    analytics: {
+      sovTitle: 'Pangsa suara vs kompetitor',
+      trendTitle: 'Tren tingkat penyebutan',
+      you: 'Brand Anda',
+      brands: [
+        { name: 'Arunika', value: 46 },
+        { name: 'Kompetitor A', value: 33 },
+        { name: 'Kompetitor B', value: 21 },
+      ],
+    },
+    articles: {
+      generating: 'Menulis artikel dari celah pelacakan...',
+      ready: 'Siap terbit',
+      draft: 'Draft',
+      items: [
+        'Panduan memilih kopi susu botolan yang tepat',
+        'Kenapa coffee shop jadi ruang kerja favorit',
+      ],
+    },
+  },
+  auditTeaser: {
+    title: 'Berapa GEO Score website Anda?',
+    lead: 'Masukkan alamat website dan lihat seberapa siap website Anda dibaca mesin AI, lengkap dengan skor dan daftar perbaikannya.',
+    cta: 'Cek GEO Score gratis',
+    note: 'Gratis, tanpa perlu daftar.',
+  },
+  audit: {
+    title: 'Audit GEO gratis untuk website Anda',
+    lead: 'Kami periksa sinyal yang dibaca mesin AI dari website Anda, lalu tunjukkan skornya dan apa saja yang perlu diperbaiki.',
+    placeholder: 'contoh: websiteanda.com',
+    submit: 'Audit sekarang',
+    invalid: 'Masukkan alamat website yang valid.',
+    failed: 'Audit gagal, coba lagi.',
+    analyzing: [
+      'Mengambil halaman utama...',
+      'Membaca struktur dan konten...',
+      'Memeriksa sinyal untuk mesin AI...',
+      'Menghitung GEO Score...',
+    ],
+    scoreTitle: 'GEO Score',
+    scoreOf: 'dari 100',
+    storeHint: 'Ini website Anda sebagai toko. Makin tinggi skornya, makin ramai pengunjung yang dikirim mesin AI.',
+    bands: {
+      low: 'Masih sepi. Mesin AI hampir tidak melihat website Anda.',
+      mid: 'Mulai ramai, tapi masih banyak peluang yang terlewat.',
+      high: 'Ramai! Website Anda siap dibaca dan direkomendasikan AI.',
+    },
+    fixTitle: 'Yang perlu diperbaiki',
+    passTitle: 'Yang sudah bagus',
+    impact: { high: 'dampak tinggi', medium: 'dampak sedang', low: 'dampak rendah' },
+    rerun: 'Audit website lain',
+    locked: {
+      title: 'Hasil lengkap terkunci',
+      note: 'Skor pastinya dan daftar perbaikan sudah siap. Tim kami yang membukakannya untuk Anda.',
+    },
+    contactCta: 'Hubungi kami untuk memperbaiki',
+    ctaTitle: 'Naikkan skor ini bersama Fratello',
+    ctaLead: 'Fratello melacak sebutan brand Anda di ChatGPT, Gemini, Perplexity, dan Claude, lalu membuat konten yang menutup celahnya.',
+    disclaimer: 'Estimasi cepat dari sinyal halaman yang bisa dibaca publik. Audit penuh di dalam platform memeriksa jauh lebih dalam.',
+    checks: {
+      'crawlable': { label: 'Konten terbaca tanpa JavaScript', rec: 'Pastikan konten utama ter-render di HTML supaya crawler AI tidak menemukan halaman kosong.' },
+      'direct-answers': { label: 'Jawaban langsung di paragraf pembuka', rec: 'Mulai halaman penting dengan satu kalimat jawaban langsung supaya mudah dikutip AI.' },
+      'ai-crawlers': { label: 'Akses untuk crawler AI', rec: 'Izinkan GPTBot, ClaudeBot, dan PerplexityBot di robots.txt supaya konten Anda terbaca.' },
+      'faq-schema': { label: 'Schema FAQ (data terstruktur)', rec: 'Tambahkan markup FAQPage supaya mesin AI bisa mengambil tanya jawab yang bersih.' },
+      'org-schema': { label: 'Schema Organization', rec: 'Pasang data terstruktur Organization supaya identitas brand Anda jelas bagi AI.' },
+      'llms-txt': { label: 'File llms.txt', rec: 'Sediakan llms.txt supaya crawler AI tahu konten mana yang paling penting.' },
+      'headings': { label: 'Struktur heading yang jelas', rec: 'Gunakan H1 dan H2 yang menjawab pertanyaan pengguna, bukan sekadar nama halaman.' },
+      'fresh-dates': { label: 'Tanggal pembaruan terlihat', rec: 'Tampilkan tanggal "diperbarui" supaya AI menilai konten Anda masih segar.' },
+      'meta-description': { label: 'Meta description', rec: 'Tulis meta description yang merangkum isi halaman secara jelas.' },
+      'entity': { label: 'Konsistensi nama brand', rec: 'Pakai nama brand yang konsisten di judul, konten, dan schema.' },
+    },
   },
   engines: {
     title: 'Memantau empat mesin AI yang paling sering ditanyai pelanggan Anda',
@@ -232,11 +340,11 @@ const id = {
         },
         {
           title: 'Akurasi statistik',
-          desc: 'Setiap prompt diuji 5 kali per model, bukan sekali. Hasilnya merepresentasikan distribusi probabilistik jawaban AI yang sebenarnya, bukan snapshot satu momen.',
+          desc: 'Setiap prompt diuji berkali-kali, bukan sekali. Hasilnya merepresentasikan distribusi probabilistik jawaban AI yang sebenarnya, bukan snapshot satu momen.',
         },
         {
           title: 'Indonesia-first',
-          desc: 'Pembayaran Midtrans IDR, alert WhatsApp, dan pemahaman konteks pasar lokal yang tidak dimiliki kebanyakan platform global.',
+          desc: 'Alert WhatsApp dan pemahaman konteks pasar lokal yang tidak dimiliki kebanyakan platform global.',
         },
         {
           title: 'Skala tanpa biaya per klien',
@@ -249,7 +357,7 @@ const id = {
       title: 'Sepuluh kemampuan, satu alur kerja.',
       lead: 'Dari melihat posisi Anda hari ini sampai menyebarkan konten yang menaikkannya, semua bekerja sebagai satu sistem.',
       items: [
-        { title: 'Brand Mention Tracker', desc: 'Tracking otomatis di ChatGPT, Gemini, Perplexity, dan Claude, 5x per prompt per model untuk akurasi statistik.' },
+        { title: 'Brand Mention Tracker', desc: 'Tracking otomatis di ChatGPT, Gemini, Perplexity, dan Claude untuk akurasi statistik.' },
         { title: 'Analytics Dashboard', desc: 'Mention rate per model, share of voice vs kompetitor, tren mingguan, breakdown sentimen, dan tabel celah prompt.' },
         { title: 'Prompt Pool Generator', desc: 'AI menyusun 25 pertanyaan relevan dari nama brand dan industri Anda, terbagi dalam 5 kategori intent.' },
         { title: 'GEO Content Engine', desc: 'Artikel 600 sampai 900 kata dengan struktur LLM-friendly, dibuat langsung dari celah yang ditemukan, siap diunduh dan diterbitkan.' },
@@ -258,7 +366,7 @@ const id = {
         { title: 'Technical GEO Tools', desc: 'Generator llms.txt, konfigurasi Nginx untuk AI bot, dan audit skor GEO berbasis 7 kriteria teknis.' },
         { title: 'Alert System', desc: 'Notifikasi email dan WhatsApp otomatis saat mention rate turun melewati ambang yang Anda tentukan.' },
         { title: 'Auto-Scan Scheduler', desc: 'Atur frekuensi scan (manual, harian, mingguan), platform berjalan tanpa perlu dipicu manual.' },
-        { title: 'Multi-brand & Multi-plan', desc: 'Basic, Pro, dan Agency, dengan dukungan pembayaran Stripe (USD) dan Midtrans (IDR).' },
+        { title: 'Multi-brand & Multi-plan', desc: 'Basic, Pro, dan Agency, dengan dukungan pembayaran Stripe.' },
       ],
     },
     audience: {
@@ -269,16 +377,6 @@ const id = {
         { title: 'Agensi digital marketing', desc: 'Yang ingin menawarkan layanan GEO ke kliennya tanpa membangun tooling sendiri.' },
         { title: 'Tim konten', desc: 'Yang butuh tahu persis konten apa yang harus dibuat selanjutnya, berdasarkan data, bukan tebakan.' },
         { title: 'E-commerce & startup', desc: 'Yang mulai sadar traffic dari AI lebih bernilai dari traffic pencarian biasa.' },
-      ],
-    },
-    pricing: {
-      eyebrow: 'Investasi',
-      title: 'Tiga paket, semuanya scan harian.',
-      lead: 'Kuota dihitung per bulan untuk jumlah artikel. Scan tetap 1x per hari di semua paket.',
-      plans: [
-        { name: 'Basic', price: '$49', priceIdr: 'Rp750rb', period: '/bulan', prompts: '25 prompt', models: '1 model (Gemini)', articles: '5 artikel/bulan' },
-        { name: 'Pro', price: '$149', priceIdr: 'Rp2.25jt', period: '/bulan', prompts: '100 prompt', models: '4 model (semua)', articles: '30 artikel/bulan', highlight: true },
-        { name: 'Agency', price: '$399', priceIdr: 'Rp6jt', period: '/bulan', prompts: '300 prompt', models: '4 model (semua)', articles: '100 artikel/bulan' },
       ],
     },
     closing: {
@@ -293,7 +391,7 @@ const id = {
     ctaTitle: 'Siap dilihat oleh AI?',
     ctaBody: 'Lihat seberapa sering brand Anda muncul di jawaban AI, lalu naikkan angkanya.',
     columns: [
-      { title: 'Platform', links: [{ label: 'Fitur', href: '#fitur' }, { label: 'Cara Kerja', href: '#cara-kerja' }, { label: 'Solusi', href: '#solusi' }, { label: 'Pertanyaan Umum', href: '#faq' }] },
+      { title: 'Platform', links: [{ label: 'Audit GEO', href: '/audit' }, { label: 'Fitur', href: '#fitur' }, { label: 'Cara Kerja', href: '#cara-kerja' }, { label: 'Solusi', href: '#solusi' }, { label: 'Pertanyaan Umum', href: '#faq' }] },
       { title: 'Perusahaan', links: [{ label: 'Masuk', href: '/sign-in' }] },
     ],
     rights: 'Platform GEO untuk pasar Indonesia.',
@@ -303,13 +401,19 @@ const id = {
 
 const en: typeof id = {
   nav: {
-    items: [
-      { label: 'Features', href: '#fitur' },
-      { label: 'How it works', href: '#cara-kerja' },
-      { label: 'Solutions', href: '#solusi' },
+    product: {
+      label: 'Product',
+      items: [
+        { label: 'Features', desc: 'Tracking, analytics, AI articles, and distribution.', href: '#fitur' },
+        { label: 'How it works', desc: 'Track, analyze, optimize, then repeat.', href: '#cara-kerja' },
+        { label: 'Solutions', desc: 'For SMBs, agencies, e-commerce, and more.', href: '#solusi' },
+        { label: 'FAQ', desc: 'Quick answers before you start.', href: '#faq' },
+      ],
+    },
+    links: [
+      { label: 'GEO Audit', href: '/audit' },
       { label: 'Blog', href: '/blog' },
       { label: 'About', href: '/about' },
-      { label: 'FAQ', href: '#faq' },
     ],
     login: 'Sign in',
     demo: 'Book a demo',
@@ -324,6 +428,107 @@ const en: typeof id = {
   preview: {
     caption:
       'Not a monthly PDF, but a live dashboard that updates automatically. Every figure here is only a sample of the product.',
+  },
+  demo: {
+    chips: [
+      { key: 'overview', label: 'Overview' },
+      { key: 'tracking', label: 'Tracking' },
+      { key: 'analytics', label: 'Analytics' },
+      { key: 'articles', label: 'AI Articles' },
+    ],
+    sidebar: ['Overview', 'Prompts', 'Brand Mentions', 'AI Analytics', 'AI Articles'],
+    brand: { name: 'Arunika', domain: 'arunika.id', industry: 'Coffee & F&B' },
+    overview: {
+      banner: 'Your brand appears in',
+      bannerTail: 'of AI answers',
+      delta: '+6.2% vs last week',
+      sub: 'Your brand visibility keeps improving. There are still gaps you can close.',
+      queueTitle: 'Do this next',
+      impactHigh: 'high impact',
+      impactMedium: 'medium impact',
+      items: [
+        { label: 'Fix page: direct answers in opening paragraphs', impact: 'high' },
+        { label: 'Create content for: best bottled milk coffee', impact: 'high' },
+        { label: 'Fix page: FAQ schema markup', impact: 'medium' },
+        { label: 'Create content for: coffee shops to work from', impact: 'medium' },
+      ],
+    },
+    tracking: {
+      scanning: 'Daily scan running',
+      done: 'done',
+      prompts: ['best bottled milk coffee', 'coffee shops good for working', 'best local coffee brands'],
+    },
+    analytics: {
+      sovTitle: 'Share of voice vs competitors',
+      trendTitle: 'Mention rate trend',
+      you: 'Your brand',
+      brands: [
+        { name: 'Arunika', value: 46 },
+        { name: 'Competitor A', value: 33 },
+        { name: 'Competitor B', value: 21 },
+      ],
+    },
+    articles: {
+      generating: 'Writing an article from a tracking gap...',
+      ready: 'Ready to publish',
+      draft: 'Draft',
+      items: [
+        'How to choose the right bottled milk coffee',
+        'Why coffee shops became the favorite workspace',
+      ],
+    },
+  },
+  auditTeaser: {
+    title: 'What is your website’s GEO Score?',
+    lead: 'Enter your website address and see how ready it is to be read by AI engines, with a score and a list of fixes.',
+    cta: 'Check your GEO Score free',
+    note: 'Free, no sign-up needed.',
+  },
+  audit: {
+    title: 'A free GEO audit for your website',
+    lead: 'We check the signals AI engines read from your website, then show you the score and exactly what to improve.',
+    placeholder: 'e.g. yourwebsite.com',
+    submit: 'Run the audit',
+    invalid: 'Enter a valid website address.',
+    failed: 'The audit failed, please try again.',
+    analyzing: [
+      'Fetching your homepage...',
+      'Reading structure and content...',
+      'Checking signals for AI engines...',
+      'Calculating your GEO Score...',
+    ],
+    scoreTitle: 'GEO Score',
+    scoreOf: 'out of 100',
+    storeHint: 'This is your website as a store. The higher the score, the more visitors AI engines send your way.',
+    bands: {
+      low: 'Quiet. AI engines barely see your website.',
+      mid: 'Getting busier, but plenty of opportunities are still missed.',
+      high: 'Busy! Your website is ready to be read and recommended by AI.',
+    },
+    fixTitle: 'What to improve',
+    passTitle: 'What is already good',
+    impact: { high: 'high impact', medium: 'medium impact', low: 'low impact' },
+    rerun: 'Audit another website',
+    locked: {
+      title: 'Full results locked',
+      note: 'Your exact score and the fix list are ready. Our team unlocks them for you.',
+    },
+    contactCta: 'Contact us to fix it',
+    ctaTitle: 'Raise this score with Fratello',
+    ctaLead: 'Fratello tracks your brand mentions across ChatGPT, Gemini, Perplexity, and Claude, then creates the content that closes the gaps.',
+    disclaimer: 'A quick estimate from publicly readable page signals. The full audit inside the platform goes much deeper.',
+    checks: {
+      'crawlable': { label: 'Content readable without JavaScript', rec: 'Make sure your main content renders in HTML so AI crawlers do not find an empty page.' },
+      'direct-answers': { label: 'Direct answers in opening paragraphs', rec: 'Start key pages with a one-sentence direct answer so AI can quote it.' },
+      'ai-crawlers': { label: 'Access for AI crawlers', rec: 'Allow GPTBot, ClaudeBot, and PerplexityBot in robots.txt so your content gets read.' },
+      'faq-schema': { label: 'FAQ schema (structured data)', rec: 'Add FAQPage markup so AI engines can extract clean questions and answers.' },
+      'org-schema': { label: 'Organization schema', rec: 'Add Organization structured data so your brand identity is clear to AI.' },
+      'llms-txt': { label: 'llms.txt file', rec: 'Provide llms.txt so AI crawlers know which content matters most.' },
+      'headings': { label: 'Clear heading structure', rec: 'Use H1s and H2s that answer user questions, not just page names.' },
+      'fresh-dates': { label: 'Visible update dates', rec: 'Show a "last updated" date so AI treats your content as fresh.' },
+      'meta-description': { label: 'Meta description', rec: 'Write a meta description that clearly summarizes the page.' },
+      'entity': { label: 'Consistent brand naming', rec: 'Use a consistent brand name across titles, content, and schema.' },
+    },
   },
   engines: {
     title: 'Tracking the four AI engines your customers ask most',
@@ -428,7 +633,7 @@ const en: typeof id = {
     eyebrow: 'Manual vs automated',
     title: 'Others do it by hand. Fratello runs the engine.',
     lead: 'Manual GEO services bill by the hour and send occasional reports. Fratello runs continuously, tracking, analyzing, and helping you optimize without waiting on people.',
-    aspect: 'Aspect',
+    aspect: 'Aspects',
     manual: 'Manual / Agency',
     rows: [
       { label: 'Testing', manual: 'Checked occasionally, often one model', fratello: 'Four models, 5x per prompt, automated' },
@@ -526,11 +731,11 @@ const en: typeof id = {
         },
         {
           title: 'Statistical accuracy',
-          desc: 'Every prompt is tested 5 times per model, not once. The result represents the actual probabilistic distribution of AI answers, not a single-moment snapshot.',
+          desc: 'Every prompt is tested multiple times, not once. The result represents the actual probabilistic distribution of AI answers, not a single-moment snapshot.',
         },
         {
           title: 'Indonesia-first',
-          desc: 'Midtrans IDR payments, WhatsApp alerts, and an understanding of local market context that most global platforms lack.',
+          desc: 'WhatsApp alerts and an understanding of local market context that most global platforms lack.',
         },
         {
           title: 'Scale without per-client cost',
@@ -543,7 +748,7 @@ const en: typeof id = {
       title: 'Ten capabilities, one workflow.',
       lead: 'From seeing where you stand today to distributing the content that lifts you, everything works as one system.',
       items: [
-        { title: 'Brand Mention Tracker', desc: 'Automatic tracking across ChatGPT, Gemini, Perplexity, and Claude, 5x per prompt per model for statistical accuracy.' },
+        { title: 'Brand Mention Tracker', desc: 'Automatic tracking across ChatGPT, Gemini, Perplexity, and Claude for statistical accuracy.' },
         { title: 'Analytics Dashboard', desc: 'Mention rate per model, share of voice against competitors, weekly trend, sentiment breakdown, and a prompt gap table.' },
         { title: 'Prompt Pool Generator', desc: 'AI builds 25 relevant questions from your brand name and industry, split across 5 intent categories.' },
         { title: 'GEO Content Engine', desc: '600 to 900 word articles with an LLM-friendly structure, built straight from the gaps found, ready to download and publish.' },
@@ -552,7 +757,7 @@ const en: typeof id = {
         { title: 'Technical GEO Tools', desc: 'llms.txt generator, Nginx config for AI bots, and a GEO score audit based on 7 technical criteria.' },
         { title: 'Alert System', desc: 'Automatic email and WhatsApp notifications when mention rate drops past a threshold you set.' },
         { title: 'Auto-Scan Scheduler', desc: 'Set the scan frequency (manual, daily, weekly), the platform runs without needing a manual trigger.' },
-        { title: 'Multi-brand & Multi-plan', desc: 'Basic, Pro, and Agency, with Stripe (USD) and Midtrans (IDR) payment support.' },
+        { title: 'Multi-brand & Multi-plan', desc: 'Basic, Pro, and Agency, with Stripe payment support.' },
       ],
     },
     audience: {
@@ -563,16 +768,6 @@ const en: typeof id = {
         { title: 'Digital marketing agencies', desc: 'Who want to offer GEO services to clients without building their own tooling.' },
         { title: 'Content teams', desc: 'Who need to know exactly what content to create next, based on data, not guesswork.' },
         { title: 'E-commerce & startups', desc: 'Who are realizing AI traffic is worth more than ordinary search traffic.' },
-      ],
-    },
-    pricing: {
-      eyebrow: 'Investment',
-      title: 'Three plans, all with a daily scan.',
-      lead: 'Quota is counted per month for articles. Scans stay at 1x per day on every plan.',
-      plans: [
-        { name: 'Basic', price: '$49', priceIdr: 'Rp750k', period: '/month', prompts: '25 prompts', models: '1 model (Gemini)', articles: '5 articles/month' },
-        { name: 'Pro', price: '$149', priceIdr: 'Rp2.25M', period: '/month', prompts: '100 prompts', models: '4 models (all)', articles: '30 articles/month', highlight: true },
-        { name: 'Agency', price: '$399', priceIdr: 'Rp6M', period: '/month', prompts: '300 prompts', models: '4 models (all)', articles: '100 articles/month' },
       ],
     },
     closing: {
@@ -587,7 +782,7 @@ const en: typeof id = {
     ctaTitle: 'Ready to be seen by AI?',
     ctaBody: 'See how often your brand appears in AI answers, then raise the number.',
     columns: [
-      { title: 'Platform', links: [{ label: 'Features', href: '#fitur' }, { label: 'How it works', href: '#cara-kerja' }, { label: 'Solutions', href: '#solusi' }, { label: 'FAQ', href: '#faq' }] },
+      { title: 'Platform', links: [{ label: 'GEO Audit', href: '/audit' }, { label: 'Features', href: '#fitur' }, { label: 'How it works', href: '#cara-kerja' }, { label: 'Solutions', href: '#solusi' }, { label: 'FAQ', href: '#faq' }] },
       { title: 'Company', links: [{ label: 'Sign in', href: '/sign-in' }] },
     ],
     rights: 'The GEO platform for the Indonesian market.',

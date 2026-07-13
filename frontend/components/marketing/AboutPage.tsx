@@ -33,16 +33,10 @@ export function AboutPage(): ReactElement {
       {/* Hero */}
       <section className="relative w-full overflow-hidden" style={{ background: HERO_BG }}>
         <Container className="relative flex min-h-[70vh] flex-col items-center justify-center py-32 text-center">
-          <span className="mb-6 inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-label-medium font-semibold text-brand-100 ring-1 ring-inset ring-white/20">
-            {t.hero.eyebrow}
-          </span>
-          <h1 className="max-w-3xl text-[36px] font-semibold leading-[1.18] tracking-tight text-white-remain sm:text-[48px] lg:text-[54px]">
+          <h1 className="max-w-3xl text-h2 font-semibold text-white-remain sm:text-h1">
             {t.hero.title}
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-paragraph-big leading-relaxed text-brand-100">{t.hero.lead}</p>
-          <div className="mt-9 max-w-xl rounded-token-16 border border-white/15 bg-white/5 px-6 py-4 backdrop-blur-sm">
-            <p className="text-paragraph-medium italic leading-relaxed text-brand-50">&ldquo;{t.hero.pitch}&rdquo;</p>
-          </div>
+          <p className="mx-auto mt-6 max-w-2xl text-h4 font-normal leading-relaxed text-brand-100">{t.hero.lead}</p>
         </Container>
       </section>
 
@@ -161,8 +155,8 @@ export function AboutPage(): ReactElement {
               className="relative overflow-hidden rounded-token-24 px-8 py-14 lg:px-14 lg:py-16"
               style={{ background: 'radial-gradient(70% 90% at 85% 110%, #06472c, transparent 55%), linear-gradient(150deg, #053521, #02120b)' }}
             >
-              <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-                {MARKETING_COPY[lang].stats.map((s) => (
+              <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                {MARKETING_COPY[lang].stats.filter((s) => s.value !== '5x').map((s) => (
                   <Stat key={s.label} value={s.value} label={s.label} onDark>
                     {s.desc}
                   </Stat>
@@ -170,47 +164,6 @@ export function AboutPage(): ReactElement {
               </div>
             </div>
           </Reveal>
-        </Container>
-      </Section>
-
-      {/* Pricing */}
-      <Section>
-        <Container>
-          <Reveal>
-            <SectionHeading align="center" eyebrow={t.pricing.eyebrow} title={t.pricing.title} lead={t.pricing.lead} />
-          </Reveal>
-          <div className="mx-auto mt-12 grid max-w-4xl gap-5 sm:grid-cols-3">
-            {t.pricing.plans.map((plan, i) => (
-              <Reveal key={plan.name} delay={i * 0.08}>
-                <div
-                  className={cn(
-                    'flex h-full flex-col gap-4 rounded-token-24 border p-7',
-                    plan.highlight ? 'border-brand-token bg-card shadow-regular-lg' : 'border-neutral-primary bg-card',
-                  )}
-                >
-                  {plan.highlight && (
-                    <span className="w-fit rounded-full bg-display-brand px-3 py-1 text-label-medium font-semibold text-brand-token">
-                      Pro
-                    </span>
-                  )}
-                  <h3 className="text-h5 font-semibold text-primary">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-h3 font-semibold text-primary">{plan.price}</span>
-                    <span className="text-paragraph-medium text-neutral-500">{plan.period}</span>
-                  </div>
-                  <span className="text-label-medium text-neutral-500">{plan.priceIdr}</span>
-                  <div className="mt-2 flex flex-col gap-2 border-t border-neutral-primary pt-4">
-                    {[plan.prompts, plan.models, plan.articles].map((line) => (
-                      <span key={line} className="flex items-start gap-1.5 text-paragraph-medium text-secondary">
-                        <CheckCircle className="mt-0.5 size-4 shrink-0 text-icon-brand" weight="fill" />
-                        {line}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
         </Container>
       </Section>
 

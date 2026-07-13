@@ -6,6 +6,8 @@ import { renderHomeMarkdown, renderAboutMarkdown, renderBlogListMarkdown, render
 const PUBLIC = [
   '/',
   '/about',
+  '/audit',
+  '/api/audit',
   '/blog',
   '/en',
   '/en/about',
