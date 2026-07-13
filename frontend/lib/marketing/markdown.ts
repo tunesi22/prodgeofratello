@@ -197,18 +197,6 @@ export function renderAboutMarkdown(lang: Lang): string {
   stats.forEach((s) => lines.push(`- **${s.value}** ${s.label} — ${s.desc}`))
   lines.push('')
 
-  lines.push(heading(2, t.pricing.title))
-  lines.push('')
-  lines.push(t.pricing.lead)
-  lines.push('')
-  t.pricing.plans.forEach((plan) => {
-    lines.push(heading(3, `${plan.name} — ${plan.price}${plan.period} (${plan.priceIdr})`))
-    lines.push(`- ${plan.prompts}`)
-    lines.push(`- ${plan.models}`)
-    lines.push(`- ${plan.articles}`)
-    lines.push('')
-  })
-
   lines.push(heading(2, t.closing.title))
   lines.push('')
   lines.push(t.closing.lead)

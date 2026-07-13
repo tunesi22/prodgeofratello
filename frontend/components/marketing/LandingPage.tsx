@@ -25,8 +25,11 @@ import { BookDemoButton } from '@/components/marketing/DemoModal'
 import { SearchTicker } from '@/components/marketing/SearchTicker'
 import { FeatureTabs } from '@/components/marketing/FeatureTabs'
 import { Reveal, FAQ } from '@/components/marketing/interactive'
-import { DashboardPreview, Glow } from '@/components/marketing/visuals'
+import { Glow } from '@/components/marketing/visuals'
+import { ProductDemo } from '@/components/marketing/ProductDemo'
+import { localizeHref } from '@/lib/marketing/locale'
 import { ModelLogo } from '@/components/dashboard/ModelLogo'
+import { FratelloLogo } from '@/components/onboarding/FratelloLogo'
 import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 import { MARKETING_COPY } from '@/lib/marketing/copy'
 import { cn } from '@/lib/cn'
@@ -63,13 +66,13 @@ export function LandingPage(): ReactElement {
         </div>
       </section>
 
-      {/* Product preview */}
-      <div id="bukti-produk" className="relative scroll-mt-28 overflow-hidden">
-        <Container className="relative z-10 pb-20 pt-16 lg:pt-20">
+      {/* Product preview: real screenshots of the app, parallax-framed */}
+      <div id="bukti-produk" className="relative scroll-mt-28">
+        <Container className="relative z-10 pb-24 pt-16 lg:pt-20">
           <Reveal>
-            <DashboardPreview />
+            <ProductDemo />
           </Reveal>
-          <p className="mx-auto mt-8 max-w-2xl text-center text-paragraph-medium text-neutral-500">{t.preview.caption}</p>
+          <p className="mx-auto mt-10 max-w-2xl text-center text-paragraph-medium text-neutral-500">{t.preview.caption}</p>
         </Container>
       </div>
 
@@ -80,7 +83,7 @@ export function LandingPage(): ReactElement {
       <Section className="scroll-mt-28">
         <Container>
           <Reveal>
-            <SectionHeading align="center" eyebrow={t.shift.eyebrow} title={t.shift.title} lead={t.shift.lead} />
+            <SectionHeading align="center" title={t.shift.title} lead={t.shift.lead} />
           </Reveal>
           <div className="mx-auto mt-14 grid max-w-4xl items-stretch gap-5 sm:grid-cols-2">
             <Reveal className="h-full">
@@ -123,6 +126,30 @@ export function LandingPage(): ReactElement {
         </Container>
       </Section>
 
+      {/* Free GEO audit teaser (full-bleed brand band) */}
+      <Section className="pb-10 pt-2 lg:pb-12 lg:pt-4">
+        <Container>
+          <Reveal>
+            <div
+              className="relative overflow-hidden rounded-token-24 px-8 py-14 text-center lg:px-16 lg:py-16"
+              style={{ background: 'radial-gradient(80% 120% at 15% -10%, #0a5c3a, transparent 55%), linear-gradient(150deg, #053521, #02120b)' }}
+            >
+              <Glow className="-right-10 bottom-0 h-64 w-64 bg-[#6b9b87]/30" />
+              <h2 className="mx-auto max-w-2xl text-h3 font-semibold tracking-tight text-white-remain lg:text-h2">
+                {t.auditTeaser.title}
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-paragraph-big text-brand-100">{t.auditTeaser.lead}</p>
+              <div className="mt-8 flex flex-col items-center gap-3">
+                <CTAButton href={localizeHref('/audit', lang)} variant="light" size="lg" iconRight>
+                  {t.auditTeaser.cta}
+                </CTAButton>
+                <span className="text-label-medium text-brand-100">{t.auditTeaser.note}</span>
+              </div>
+            </div>
+          </Reveal>
+        </Container>
+      </Section>
+
       {/* How it works */}
       <Section id="cara-kerja" className="scroll-mt-28">
         <Container>
@@ -138,10 +165,7 @@ export function LandingPage(): ReactElement {
                     <span className="flex size-12 items-center justify-center rounded-token-12 bg-display-brand text-icon-brand">
                       <StepIcon className="size-6" />
                     </span>
-                    <span className="mt-5 block text-label-medium font-semibold text-brand-token">
-                      {t.how.stepLabel} 0{i + 1}
-                    </span>
-                    <h3 className="mt-1 text-h5 font-semibold text-primary">{s.title}</h3>
+                    <h3 className="mt-5 text-h5 font-semibold text-primary">{s.title}</h3>
                     <p className="mt-2 text-paragraph-medium leading-relaxed text-neutral-500">{s.desc}</p>
                     {i < t.how.steps.length - 1 && (
                       <ArrowRight className="absolute right-5 top-7 hidden size-5 text-brand-300 lg:block" weight="bold" />
@@ -164,7 +188,7 @@ export function LandingPage(): ReactElement {
       <Section id="fitur" className="scroll-mt-28">
         <Container>
           <Reveal>
-            <SectionHeading align="center" eyebrow={t.features.eyebrow} title={t.features.title} lead={t.features.lead} />
+            <SectionHeading align="center" title={t.features.title} lead={t.features.lead} />
           </Reveal>
 
           <Reveal>
@@ -179,15 +203,15 @@ export function LandingPage(): ReactElement {
       <Section>
         <Container>
           <Reveal>
-            <SectionHeading align="center" eyebrow={t.comparison.eyebrow} title={t.comparison.title} lead={t.comparison.lead} />
+            <SectionHeading align="center" title={t.comparison.title} lead={t.comparison.lead} />
           </Reveal>
           <Reveal>
             <div className="mx-auto mt-12 max-w-4xl overflow-hidden rounded-token-24 border border-neutral-primary bg-card">
               <div className="hidden grid-cols-[1.2fr_1fr_1fr] items-center gap-4 border-b border-neutral-primary px-7 py-4 sm:grid">
                 <span className="text-label-medium font-semibold uppercase tracking-wider text-neutral-500">{t.comparison.aspect}</span>
                 <span className="text-label-medium font-semibold text-neutral-500">{t.comparison.manual}</span>
-                <span className="inline-flex items-center gap-1.5 text-label-big font-semibold text-brand-token">
-                  <FratelloMark /> Fratello
+                <span className="inline-flex items-center gap-2 text-label-big font-semibold text-brand-token">
+                  <FratelloLogo className="h-5 w-auto text-brand-token" /> Fratello
                 </span>
               </div>
               {t.comparison.rows.map((row, i) => (
@@ -224,14 +248,17 @@ export function LandingPage(): ReactElement {
       <Section id="solusi" className="scroll-mt-28">
         <Container>
           <Reveal>
-            <SectionHeading align="center" eyebrow={t.solutions.eyebrow} title={t.solutions.title} lead={t.solutions.lead} />
+            <SectionHeading align="center" title={t.solutions.title} lead={t.solutions.lead} />
           </Reveal>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {t.solutions.items.map((it, i) => {
-              const IndIcon = INDUSTRY_ICONS[i]
-              return (
-                <Reveal key={it.name} delay={(i % 4) * 0.06}>
-                  <div className="group flex h-full items-start gap-4 rounded-token-16 border border-neutral-primary bg-card p-5 transition-colors duration-200 ease-standard hover:border-brand-token">
+          <Reveal>
+            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {t.solutions.items.map((it, i) => {
+                const IndIcon = INDUSTRY_ICONS[i]
+                return (
+                  <div
+                    key={it.name}
+                    className="group flex h-full flex-col gap-4 rounded-token-16 border border-neutral-primary bg-card p-6 transition-colors duration-200 ease-standard hover:border-brand-token"
+                  >
                     <span className="flex size-11 shrink-0 items-center justify-center rounded-token-12 bg-display-brand text-icon-brand">
                       <IndIcon className="size-6" />
                     </span>
@@ -240,10 +267,10 @@ export function LandingPage(): ReactElement {
                       <p className="mt-1 text-paragraph-medium leading-relaxed text-neutral-500">{it.desc}</p>
                     </div>
                   </div>
-                </Reveal>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          </Reveal>
         </Container>
       </Section>
 
@@ -271,7 +298,7 @@ export function LandingPage(): ReactElement {
       <Section id="faq" className="scroll-mt-28">
         <Container>
           <Reveal>
-            <SectionHeading align="center" eyebrow={t.faq.eyebrow} title={t.faq.title} />
+            <SectionHeading align="center" title={t.faq.title} />
           </Reveal>
           <Reveal>
             <div className="mt-12">
@@ -299,13 +326,5 @@ export function LandingPage(): ReactElement {
         </Container>
       </Section>
     </>
-  )
-}
-
-function FratelloMark(): ReactElement {
-  return (
-    <span className="flex size-5 items-center justify-center rounded-md bg-brand-600 text-white-remain">
-      <Sparkle className="size-3" weight="fill" />
-    </span>
   )
 }

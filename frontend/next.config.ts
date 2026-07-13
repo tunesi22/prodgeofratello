@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['recharts', 'framer-motion', '@phosphor-icons/react'],
   },
+  // No floating dev-tools bubble: it photobombs the real product screenshots
+  // we capture from the running app for the marketing site.
+  devIndicators: false,
   // Di production: Nginx proxy /api/* ke backend:4000
   // Di development: rewrite ini yang handle.
   // Saat MOCK_AUTH=1 (lihat .env.local) rewrite-nya TIDAK dipasang, supaya

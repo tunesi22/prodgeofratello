@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { List, X, Globe } from '@phosphor-icons/react/dist/ssr'
+import { AnimatePresence, motion } from 'framer-motion'
+import { List, X, Globe, CaretDown, Sparkle, ArrowsClockwise, Storefront, Question, ArrowRight } from '@phosphor-icons/react/dist/ssr'
+import type { Icon } from '@phosphor-icons/react'
 import { FratelloLogo } from '@/components/onboarding/FratelloLogo'
 import { cn } from '@/lib/cn'
 import { SITE } from '@/lib/marketing/site'
@@ -13,13 +15,18 @@ import { useMarketingLang } from '@/lib/marketing/useMarketingLang'
 import { delocalizePath, localizeHomeHash, localizeHref } from '@/lib/marketing/locale'
 
 // Section ids are language-independent, so derive scroll-spy targets once.
-const NAV_IDS = MARKETING_COPY.id.nav.items.map((i) => i.href.replace('#', ''))
+const NAV_IDS = MARKETING_COPY.id.nav.product.items.map((i) => i.href.replace('#', ''))
+// One icon per product-dropdown item, matched by index.
+const PRODUCT_ICONS: Icon[] = [Sparkle, ArrowsClockwise, Storefront, Question]
 
 /**
  * Public marketing top nav: a floating, contained dark-glass bar (rounded, with
  * side margins) that reads cleanly over both the green hero and the light
- * content. Centered anchor links with scroll-spy; the bar hides on scroll down
- * and reappears on scroll up. "Book a demo" opens the demo modal.
+ * content. The on-page product sections (features, how it works, solutions,
+ * FAQ) are grouped under one "Product" dropdown so the bar stays uncluttered;
+ * Blog and About remain top-level. Scroll-spy highlights the dropdown trigger
+ * while any product section is in view; the bar hides on scroll down and
+ * reappears on scroll up. "Book a demo" opens the demo modal.
  */
 export function MarketingNav(): ReactElement {
   const pathname = usePathname()
@@ -29,7 +36,20 @@ export function MarketingNav(): ReactElement {
   const [scrolled, setScrolled] = useState(false)
   const [hidden, setHidden] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [productOpen, setProductOpen] = useState(false)
   const [active, setActive] = useState<string>('')
+  const productRef = useRef<HTMLDivElement>(null)
+  // Small close delay so the pointer can travel from trigger to panel.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function openProduct(): void {
+    if (closeTimer.current != null) clearTimeout(closeTimer.current)
+    setProductOpen(true)
+  }
+  function scheduleCloseProduct(): void {
+    if (closeTimer.current != null) clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => setProductOpen(false), 140)
+  }
 
   useEffect(() => {
     let lastY = window.scrollY
@@ -45,7 +65,29 @@ export function MarketingNav(): ReactElement {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => setMobileOpen(false), [pathname])
+  useEffect(() => {
+    setMobileOpen(false)
+    setProductOpen(false)
+  }, [pathname])
+
+  // Close the product dropdown on outside click or Escape.
+  useEffect(() => {
+    if (!productOpen) return
+    function onPointerDown(e: MouseEvent): void {
+      if (productRef.current && !productRef.current.contains(e.target as Node)) {
+        setProductOpen(false)
+      }
+    }
+    function onKey(e: KeyboardEvent): void {
+      if (e.key === 'Escape') setProductOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [productOpen])
 
   // Scroll-spy: highlight the nav item for the section currently in view.
   useEffect(() => {
@@ -66,6 +108,24 @@ export function MarketingNav(): ReactElement {
     return () => observer.disconnect()
   }, [])
 
+  const onHome = delocalizePath(pathname) === '/'
+  const productActive = t.product.items.some((item) => active === item.href)
+
+  const itemCls = (isActive: boolean): string =>
+    cn(
+      'rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ease-standard',
+      isActive ? 'bg-white/10 text-white-remain' : 'text-brand-100 hover:bg-white/10 hover:text-white-remain',
+    )
+
+  /** Anchor items only resolve on the homepage; elsewhere, route to "/#id". */
+  function anchorItem(item: { label: string; href: string }, className: string, onNavigate?: () => void): ReactElement {
+    return onHome ? (
+      <a key={item.href} href={item.href} onClick={onNavigate} className={className}>{item.label}</a>
+    ) : (
+      <Link key={item.href} href={localizeHomeHash(item.href, lang)} onClick={onNavigate} className={className}>{item.label}</Link>
+    )
+  }
+
   return (
     <header
       className={cn(
@@ -84,26 +144,71 @@ export function MarketingNav(): ReactElement {
           <span className="font-serif text-[22px] tracking-[-0.5px] text-white-remain">Fratello</span>
         </Link>
 
-        {/* Center links (desktop) */}
+        {/* Center links (desktop): Product dropdown + real pages */}
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex">
-          {t.items.map((item) => {
-            const isHash = item.href.startsWith('#')
-            const onHome = delocalizePath(pathname) === '/'
-            const isActive = isHash ? active === item.href : pathname === localizeHref(item.href, lang)
-            const cls = cn(
-              'rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-200 ease-standard',
-              isActive ? 'bg-white/10 text-white-remain' : 'text-brand-100 hover:bg-white/10 hover:text-white-remain',
-            )
-            // Section anchors only exist on the homepage. From any other page
-            // (e.g. /blog, /en/blog), link to "/#section" or "/en#section" so it
-            // navigates to the right-locale homepage first instead of silently
-            // no-op'ing against a missing element here.
-            return isHash && onHome ? (
-              <a key={item.href} href={item.href} className={cls}>{item.label}</a>
-            ) : (
-              <Link key={item.href} href={isHash ? localizeHomeHash(item.href, lang) : localizeHref(item.href, lang)} className={cls}>{item.label}</Link>
-            )
-          })}
+          <div ref={productRef} className="relative" onMouseEnter={openProduct} onMouseLeave={scheduleCloseProduct}>
+            <button
+              type="button"
+              onClick={() => setProductOpen((v) => !v)}
+              aria-expanded={productOpen}
+              aria-haspopup="menu"
+              className={cn(itemCls(productOpen || productActive), 'inline-flex items-center gap-1')}
+            >
+              {t.product.label}
+              <CaretDown
+                className={cn('size-3.5 transition-transform duration-200 ease-standard', productOpen && 'rotate-180')}
+                aria-hidden="true"
+              />
+            </button>
+            <AnimatePresence>
+              {productOpen && (
+                <motion.div
+                  role="menu"
+                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                  transition={{ duration: 0.16, ease: 'easeOut' }}
+                  className="absolute -left-3 top-full origin-top pt-2.5"
+                >
+                  <div className="w-[360px] rounded-token-16 bg-white p-2 shadow-regular-xl">
+                    {t.product.items.map((item, i) => {
+                      const ItemIcon = PRODUCT_ICONS[i]
+                      const inner = (
+                        <>
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-token-8 bg-display-brand text-brand-token transition-colors duration-200 ease-standard group-hover/item:bg-brand-100">
+                            <ItemIcon className="size-5" weight="fill" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-1.5 text-[14px] font-semibold text-primary">
+                              {item.label}
+                              <ArrowRight className="size-3.5 -translate-x-1 text-brand-token opacity-0 transition-all duration-200 ease-standard group-hover/item:translate-x-0 group-hover/item:opacity-100" />
+                            </span>
+                            <span className="mt-0.5 block text-[13px] leading-snug text-neutral-500">{item.desc}</span>
+                          </span>
+                        </>
+                      )
+                      const cls =
+                        'group/item flex items-center gap-3 rounded-token-12 px-3 py-2.5 transition-colors duration-200 ease-standard hover:bg-secondary'
+                      return onHome ? (
+                        <a key={item.href} href={item.href} onClick={() => setProductOpen(false)} className={cls}>
+                          {inner}
+                        </a>
+                      ) : (
+                        <Link key={item.href} href={localizeHomeHash(item.href, lang)} onClick={() => setProductOpen(false)} className={cls}>
+                          {inner}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          {t.links.map((item) => (
+            <Link key={item.href} href={localizeHref(item.href, lang)} className={itemCls(pathname === localizeHref(item.href, lang))}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         {/* Right actions (desktop) */}
@@ -144,19 +249,29 @@ export function MarketingNav(): ReactElement {
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu: product group first (labelled), then real pages */}
       {mobileOpen && (
         <div className="mx-auto mt-2 max-w-[1180px] rounded-token-16 border border-white/10 bg-[#02120b]/95 px-4 py-4 backdrop-blur-md lg:hidden">
           <nav className="flex flex-col gap-1">
-            {t.items.map((item) => {
-              const isHash = item.href.startsWith('#')
-              const cls = 'rounded-lg px-3 py-3 text-[16px] font-medium text-white-remain transition-colors hover:bg-white/10'
-              return isHash && delocalizePath(pathname) === '/' ? (
-                <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={cls}>{item.label}</a>
-              ) : (
-                <Link key={item.href} href={isHash ? localizeHomeHash(item.href, lang) : localizeHref(item.href, lang)} onClick={() => setMobileOpen(false)} className={cls}>{item.label}</Link>
-              )
-            })}
+            <span className="px-3 pb-1 pt-2 text-[13px] font-semibold text-brand-100">{t.product.label}</span>
+            {t.product.items.map((item) =>
+              anchorItem(
+                item,
+                'rounded-lg px-3 py-3 text-[16px] font-medium text-white-remain transition-colors hover:bg-white/10',
+                () => setMobileOpen(false),
+              ),
+            )}
+            <div className="my-2 border-t border-white/10" />
+            {t.links.map((item) => (
+              <Link
+                key={item.href}
+                href={localizeHref(item.href, lang)}
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-3 text-[16px] font-medium text-white-remain transition-colors hover:bg-white/10"
+              >
+                {item.label}
+              </Link>
+            ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-4">
               <button
                 type="button"

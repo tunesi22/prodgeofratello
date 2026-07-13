@@ -5,7 +5,7 @@ export const EN_PREFIX = '/en'
 /** Logical paths that are part of the localized marketing surface. Everything
  * else (dashboard routes, /sign-in, etc.) never gets an /en prefix. */
 export function isLocalizedPath(path: string): boolean {
-  return path === '/' || path === '/about' || path === '/blog' || path.startsWith('/blog/')
+  return path === '/' || path === '/about' || path === '/audit' || path === '/blog' || path.startsWith('/blog/')
 }
 
 /** Given a logical (Indonesian-shaped) path, return the concrete href for `lang`. */
