@@ -1,10 +1,24 @@
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
-let resend: Resend
+/**
+ * Transactional email (password reset, mention-rate alerts). Uses the same
+ * Gmail transporter pattern as waitlist.routes.ts / demo.routes.ts
+ * (GMAIL_USER / GMAIL_APP_PASSWORD) — previously routed through Resend, but
+ * RESEND_API_KEY was never configured in production, so these emails were
+ * silently never sent.
+ */
 
-function getResend(): Resend {
-  if (!resend) resend = new Resend(process.env.RESEND_API_KEY)
-  return resend
+let transporter: nodemailer.Transporter | null = null
+
+function getTransporter(): nodemailer.Transporter | null {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return null
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    })
+  }
+  return transporter
 }
 
 export async function sendAlertEmail(params: {
@@ -16,7 +30,11 @@ export async function sendAlertEmail(params: {
   model?: string
 }): Promise<void> {
   const { to, brandName, alertType, currentRate, previousRate, model } = params
-  const from = process.env.EMAIL_FROM || 'alerts@yourdomain.com'
+  const t = getTransporter()
+  if (!t) {
+    console.error('[EMAIL] GMAIL_USER / GMAIL_APP_PASSWORD not configured, skipping alert email')
+    return
+  }
 
   const subject = alertType === 'mention_drop'
     ? `⚠️ ${brandName} mention rate dropped ${previousRate - currentRate}%`
@@ -45,7 +63,7 @@ export async function sendAlertEmail(params: {
   `
 
   try {
-    await getResend().emails.send({ from, to, subject, html })
+    await t.sendMail({ from: `"Fratello" <${process.env.GMAIL_USER}>`, to, subject, html })
     console.log(`[EMAIL] Alert sent to ${to}`)
   } catch (err: any) {
     console.error('[EMAIL] Failed to send alert:', err.message)
@@ -57,7 +75,11 @@ export async function sendPasswordResetEmail(params: {
   resetUrl: string
 }): Promise<void> {
   const { to, resetUrl } = params
-  const from = process.env.EMAIL_FROM || 'noreply@yourdomain.com'
+  const t = getTransporter()
+  if (!t) {
+    console.error('[EMAIL] GMAIL_USER / GMAIL_APP_PASSWORD not configured, skipping password reset email')
+    return
+  }
   const subject = 'Reset your Fratello password'
 
   // Inline hex/styles are intentional here: email clients do not support the
@@ -84,7 +106,7 @@ export async function sendPasswordResetEmail(params: {
   `
 
   try {
-    await getResend().emails.send({ from, to, subject, html })
+    await t.sendMail({ from: `"Fratello" <${process.env.GMAIL_USER}>`, to, subject, html })
     console.log(`[EMAIL] Password reset sent to ${to}`)
   } catch (err: any) {
     console.error('[EMAIL] Failed to send password reset:', err.message)
