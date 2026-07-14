@@ -1,16 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { Router, Request, Response } from 'express'
 import nodemailer from 'nodemailer'
 
 /**
  * "Book a demo" intro form. Emails the submitted details to the sales inbox with
- * a fixed subject. Uses the same Gmail transporter as the waitlist route
+ * a fixed subject. Same Gmail transporter pattern as waitlist.routes.ts
  * (GMAIL_USER / GMAIL_APP_PASSWORD). No DB — this is a notify-only endpoint.
  */
+
+const router = Router()
 
 const TO_EMAIL = 'hariadi.alessandro@gmail.com'
 const SUBJECT = 'Fratello GEO Intro'
 
-// --- basic IP rate limit (mirrors the waitlist route) -----------------------
+// ─── Rate limiting (in-memory, per IP) ───────────────────────────────────────
 const RATE_LIMIT_MAX = 5
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 const ipHits = new Map<string, { count: number; resetAt: number }>()
@@ -30,16 +32,11 @@ function rateLimitOk(ip: string): boolean {
   return true
 }
 
-function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return req.headers.get('x-real-ip') || 'unknown'
+function clientIp(req: Request): string {
+  const fwd = req.headers['x-forwarded-for']
+  if (fwd) return String(fwd).split(',')[0].trim()
+  return String(req.headers['x-real-ip'] || req.ip || 'unknown')
 }
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-})
 
 interface DemoPayload {
   name: string
@@ -95,23 +92,22 @@ function emailHtml(d: DemoPayload): string {
 </html>`
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+router.post('/', async (req: Request, res: Response) => {
   if (!rateLimitOk(clientIp(req))) {
-    return NextResponse.json({ error: 'Terlalu banyak percobaan. Silakan coba lagi nanti.' }, { status: 429 })
+    res.status(429).json({ error: 'Terlalu banyak percobaan. Silakan coba lagi nanti.' })
+    return
   }
 
-  let body: Partial<Record<keyof DemoPayload, unknown>>
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Data tidak valid.' }, { status: 400 })
-  }
-
+  const body = req.body as Partial<Record<keyof DemoPayload, unknown>>
   const name = typeof body.name === 'string' ? body.name.trim() : ''
   const email = typeof body.email === 'string' ? body.email.trim() : ''
-  if (!name) return NextResponse.json({ error: 'Nama wajib diisi.' }, { status: 400 })
+  if (!name) {
+    res.status(400).json({ error: 'Nama wajib diisi.' })
+    return
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-    return NextResponse.json({ error: 'Email tidak valid.' }, { status: 400 })
+    res.status(400).json({ error: 'Email tidak valid.' })
+    return
   }
 
   const str = (v: unknown): string => (typeof v === 'string' ? v.trim().slice(0, 2000) : '')
@@ -125,7 +121,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     message: str(body.message),
   }
 
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.error('[DEMO] GMAIL_USER / GMAIL_APP_PASSWORD not configured')
+    res.status(500).json({ error: 'Gagal mengirim, silakan coba lagi.' })
+    return
+  }
+
   try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    })
     await transporter.sendMail({
       from: `"Fratello GEO" <${process.env.GMAIL_USER}>`,
       to: TO_EMAIL,
@@ -133,9 +139,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       subject: SUBJECT,
       html: emailHtml(payload),
     })
-    return NextResponse.json({ success: true })
-  } catch (err) {
-    console.error('[DEMO] Error:', err)
-    return NextResponse.json({ error: 'Gagal mengirim, silakan coba lagi.' }, { status: 500 })
+    res.json({ success: true })
+  } catch (err: any) {
+    console.error('[DEMO] Error:', err.message)
+    res.status(500).json({ error: 'Gagal mengirim, silakan coba lagi.' })
   }
-}
+})
+
+export default router
