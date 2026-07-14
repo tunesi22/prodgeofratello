@@ -197,9 +197,10 @@ export function AppShell({ children }: { children: ReactNode }): ReactElement {
     router.push('/sign-in')
   }
 
-  // The sign-in page never gets the dashboard shell, even when a session
-  // already exists; unauthenticated views get no shell either.
-  const isAuthRoute = pathname.startsWith('/sign-in')
+  // Auth pages never get the dashboard shell, even when a session already
+  // exists; unauthenticated views get no shell either.
+  const isAuthRoute =
+    pathname.startsWith('/sign-in') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password')
   if (isAuthRoute || !user) return <>{children}</>
 
   const userName = user.email.split('@')[0]

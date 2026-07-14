@@ -369,6 +369,7 @@ function DemoDialog({ onClose }: { onClose: () => void }): ReactElement {
 
               <TextBox
                 label={c.message}
+                className="!w-full"
                 placeholder={c.messagePh}
                 value={message}
                 rows={4}
