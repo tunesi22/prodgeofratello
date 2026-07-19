@@ -60,6 +60,15 @@ function markdownResponse(body: string): NextResponse {
   })
 }
 
+// Root layout can't read the URL directly (it's shared across every route),
+// so it reads the locale off this header instead — keeps <html lang> in
+// sync with the hreflang alternates pageMetadata() declares for /en/*.
+function nextWithLang(pathname: string): NextResponse {
+  const res = NextResponse.next()
+  res.headers.set('x-lang', langFromPathname(pathname))
+  return res
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
@@ -78,14 +87,14 @@ export function middleware(req: NextRequest) {
   }
 
   if (isPublic(pathname)) {
-    return NextResponse.next()
+    return nextWithLang(pathname)
   }
 
   if (!req.cookies.get('geo_token')) {
     return NextResponse.redirect(new URL('/sign-in', `${proto}://${host}`))
   }
 
-  return NextResponse.next()
+  return nextWithLang(pathname)
 }
 
 export const config = {

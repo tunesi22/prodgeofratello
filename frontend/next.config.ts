@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['recharts', 'framer-motion', '@phosphor-icons/react'],
   },
+  // Lets the deploy script build into a scratch dir (NEXT_DIST_DIR=.next-new)
+  // without touching the .next the running server already has loaded, then
+  // atomically swap it in — avoids serving from a half-written build.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // No floating dev-tools bubble: it photobombs the real product screenshots
   // we capture from the running app for the marketing site.
   devIndicators: false,

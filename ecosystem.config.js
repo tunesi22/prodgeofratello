@@ -1,11 +1,11 @@
 module.exports = {
   apps: [
     {
-      name: 'geo-backend',
+      name: 'prodgeo-backend',
       cwd: './backend',
-      script: 'node_modules/.bin/tsx',
-      args: 'index.ts',
+      script: 'dist/backend/index.js',
       instances: 1,
+      exec_mode: 'cluster',
       autorestart: true,
       watch: false,
       env_production: {
@@ -13,11 +13,12 @@ module.exports = {
       },
     },
     {
-      name: 'geo-frontend',
+      name: 'prodgeo-frontend',
       cwd: './frontend',
       script: 'node_modules/.bin/next',
-      args: 'start -p 3000',
+      args: 'start -p 3002',
       instances: 1,
+      exec_mode: 'cluster',
       autorestart: true,
       watch: false,
       env_production: {

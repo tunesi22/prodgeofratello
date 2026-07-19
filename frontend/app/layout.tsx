@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { Figtree, Lora } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { LanguageProvider } from '@/components/providers/LanguageProvider'
@@ -30,9 +31,13 @@ export const metadata: Metadata = {
 // Applies the persisted theme before first paint to avoid a flash.
 const themeInitScript = `(function(){try{var t=localStorage.getItem('fratello-theme');document.documentElement.dataset.theme=(t==='dark'||t==='light')?t:'light';}catch(e){document.documentElement.dataset.theme='light';}})();`
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Set by middleware.ts (nextWithLang) from the request pathname — keeps
+  // this in sync with the hreflang alternates pageMetadata() declares.
+  const lang = (await headers()).get('x-lang') === 'en' ? 'en' : 'id'
+
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang={lang} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
