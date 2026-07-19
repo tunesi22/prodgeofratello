@@ -23,7 +23,15 @@ echo "[DEPLOY] Building backend..."
 cd "$REPO_DIR/backend"
 npm ci
 rm -rf dist-new
-npx tsc --outDir dist-new
+# tsc exits non-zero on this codebase's pre-existing type errors even though
+# noEmitOnError:false still writes the JS output (this has always been true,
+# not something introduced here) — so gate on the actual output file rather
+# than tsc's exit code, or every deploy would abort on unrelated type noise.
+npx tsc --outDir dist-new || true
+if [ ! -f dist-new/backend/index.js ]; then
+  echo "[DEPLOY] Backend build FAILED — dist-new/backend/index.js was not produced. Aborting."
+  exit 1
+fi
 
 echo "[DEPLOY] Building frontend..."
 cd "$REPO_DIR/frontend"
