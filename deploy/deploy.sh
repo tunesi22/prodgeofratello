@@ -16,8 +16,15 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-echo "[DEPLOY] Pulling origin main..."
-git pull origin main
+if [ -z "${DEPLOY_POST_PULL:-}" ]; then
+  echo "[DEPLOY] Pulling origin main..."
+  git pull origin main
+  # This script tracks itself in git — if the pull just changed this file,
+  # continuing to execute from the same already-open read can pick up stale
+  # or spliced content past this point. Re-exec a fresh process so the rest
+  # of the deploy is read cleanly off disk after the pull.
+  exec env DEPLOY_POST_PULL=1 bash "$REPO_DIR/deploy/deploy.sh"
+fi
 
 echo "[DEPLOY] Building backend..."
 cd "$REPO_DIR/backend"
