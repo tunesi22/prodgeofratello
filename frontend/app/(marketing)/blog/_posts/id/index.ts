@@ -1,6 +1,8 @@
 export type { Section, Post } from '../types'
 import type { Post } from '../types'
 
+import { post as chatgptWrappedViralBrandDiBalikRekomendasiAi } from './chatgpt-wrapped-viral-brand-di-balik-rekomendasi-ai'
+import { post as anthropicClaudeSonnet5Juli2026DampakBrand } from './anthropic-claude-sonnet-5-juli-2026-dampak-brand'
 import { post as aiOverviewZeroClick68PersenPencarianGoogle2026 } from './ai-overview-zero-click-68-persen-pencarian-google-2026'
 import { post as citelensStudiSeoTakMenentukanSitasiChatgpt } from './citelens-studi-seo-tak-menentukan-sitasi-chatgpt'
 import { post as riset77PersenPenggunaAiSearchIndonesiaPakaiChatgpt } from './riset-77-persen-pengguna-ai-search-indonesia-pakai-chatgpt'
@@ -37,6 +39,8 @@ import { post as caraKerjaAuditGeo } from './cara-kerja-audit-geo'
 
 // Sorted newest first.
 export const posts: Post[] = [
+  chatgptWrappedViralBrandDiBalikRekomendasiAi,
+  anthropicClaudeSonnet5Juli2026DampakBrand,
   aiOverviewZeroClick68PersenPencarianGoogle2026,
   citelensStudiSeoTakMenentukanSitasiChatgpt,
   riset77PersenPenggunaAiSearchIndonesiaPakaiChatgpt,

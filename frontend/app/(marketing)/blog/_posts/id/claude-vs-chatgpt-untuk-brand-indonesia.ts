@@ -23,6 +23,10 @@ export const post: Post = {
       "body": "Dari analisis kami, Claude secara konsisten menyebut lebih banyak brand lokal Indonesia dibanding ChatGPT untuk kueri yang sama. Hipotesis kami: Claude memiliki threshold yang lebih rendah untuk menyebut brand yang kurang terkenal secara global tapi kuat secara lokal, sementara ChatGPT lebih bias ke brand yang sudah dikenal secara internasional."
     },
     {
+      "heading": "Update: Claude Sonnet 5 kemungkinan mempertajam pola ini",
+      "body": "Anthropic merilis Claude Sonnet 5 pada 30 Juni 2026 dengan reasoning dan kemampuan riset web yang jauh lebih kuat dari model sebelumnya. Karena temuan kami menunjukkan Claude sudah lebih mengandalkan web search dibanding ChatGPT, peningkatan ini kemungkinan besar membuat gap tersebut makin lebar — brand dengan data online yang rapi berpotensi makin diuntungkan di Claude, sementara yang datanya berantakan makin tertinggal."
+    },
+    {
       "heading": "Implikasi praktis",
       "body": "Strategi GEO yang optimal harus memperhitungkan karakteristik masing-masing mesin. Tidak ada pendekatan one-size-fits-all. Brand yang ingin hasil maksimal harus memantau visibilitasnya di semua mesin secara terpisah dan menyesuaikan strategi konten berdasarkan data dari masing-masing platform."
     }

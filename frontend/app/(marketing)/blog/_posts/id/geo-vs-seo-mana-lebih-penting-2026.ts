@@ -19,6 +19,10 @@ export const post: Post = {
       "body": "GEO tumbuh dari nol menjadi disiplin pemasaran yang diakui hanya dalam dua tahun terakhir. Pemicunya jelas: ChatGPT kini digunakan lebih dari 400 juta orang per bulan, Perplexity tumbuh 10x dalam setahun, dan Gemini semakin terintegrasi ke ekosistem Google. Semakin banyak konsumen yang melewati tahap \"browsing\" dan langsung ke \"tanya AI, langsung beli\"."
     },
     {
+      "heading": "Update Juli 2026: peta mesin AI makin ramai",
+      "body": "Sejak tulisan ini pertama terbit, peta persaingan makin ramai: Claude Sonnet 5 (30 Juni), GPT-5.6 (rollout bertahap akhir Juni), dan Grok 4.5 (8 Juli) semuanya rilis dalam kurun waktu kurang dari dua minggu. Makin banyak mesin yang harus dipantau, makin jelas juga kenapa strategi GEO tidak bisa lagi disamaratakan untuk satu platform saja — karakteristik tiap model berbeda, dan brand perlu tahu persis di mana mereka kuat dan di mana mereka masih tidak terlihat."
+    },
+    {
       "heading": "Perbedaan mendasar cara kerja keduanya",
       "body": "SEO bekerja melalui sinyal teknis: backlink, kecepatan halaman, struktur URL, keyword density. GEO bekerja melalui sinyal kepercayaan dan otoritas: seberapa sering brand disebut di sumber yang dipercaya AI, seberapa konsisten narasi tentang brand di berbagai platform, dan seberapa positif sentimen di ulasan dan diskusi online."
     },

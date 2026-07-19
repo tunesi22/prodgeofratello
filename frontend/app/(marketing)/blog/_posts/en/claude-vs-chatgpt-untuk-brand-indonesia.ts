@@ -24,6 +24,10 @@ export const post: Post = {
       body: 'From our analysis, Claude consistently mentions more Indonesian local brands than ChatGPT for the same query. Our hypothesis: Claude has a lower threshold for mentioning a brand that is not globally known but strong locally, while ChatGPT is more biased toward brands that are already known internationally.',
     },
     {
+      heading: 'Update: Claude Sonnet 5 likely sharpens this pattern',
+      body: 'Anthropic released Claude Sonnet 5 on June 30, 2026 with reasoning and web-research ability well beyond the previous model. Since our findings show Claude already leans more on web search than ChatGPT, this upgrade likely widens that gap further, brands with clean online data stand to benefit even more on Claude, while brands with scattered data fall further behind.',
+    },
+    {
       heading: 'Practical implications',
       body: 'An optimal GEO strategy has to account for each engine\'s characteristics. There is no one-size-fits-all approach. A brand that wants maximum results should track its visibility across every engine separately and adjust content strategy based on the data from each platform.',
     },
