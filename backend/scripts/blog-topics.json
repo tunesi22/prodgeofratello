@@ -4,15 +4,27 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Bagaimana kampus, sekolah, dan bimbel bisa muncul saat calon siswa/orang tua bertanya rekomendasi ke ChatGPT/Gemini. Bahas gap antara SEO tradisional (rank di Google) vs GEO (disebut di jawaban AI) khusus sektor pendidikan.",
-    "keywords": ["GEO", "pendidikan", "kampus", "bimbel", "AI search"],
-    "used": false
+    "keywords": [
+      "GEO",
+      "pendidikan",
+      "kampus",
+      "bimbel",
+      "AI search"
+    ],
+    "used": true,
+    "usedDate": "2026-08-19"
   },
   {
     "slug": "geo-sektor-properti-agen-real-estate",
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Strategi GEO untuk agen properti dan developer agar direkomendasikan AI saat calon pembeli bertanya soal rumah/apartemen di suatu area.",
-    "keywords": ["GEO", "properti", "real estate", "AI search"],
+    "keywords": [
+      "GEO",
+      "properti",
+      "real estate",
+      "AI search"
+    ],
     "used": false
   },
   {
@@ -20,7 +32,13 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Brand skincare lokal Indonesia bersaing ketat di GEO karena banyak orang tanya rekomendasi skincare ke ChatGPT/Gemini. Bahas cara membangun kredibilitas konten agar disebut AI.",
-    "keywords": ["GEO", "skincare", "kecantikan", "brand lokal", "AI"],
+    "keywords": [
+      "GEO",
+      "skincare",
+      "kecantikan",
+      "brand lokal",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -28,7 +46,13 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Tantangan dan strategi GEO khusus fintech/keuangan, termasuk isu kepercayaan dan regulasi yang membuat AI lebih hati-hati merekomendasikan brand finansial.",
-    "keywords": ["GEO", "fintech", "keuangan", "SEO", "AI"],
+    "keywords": [
+      "GEO",
+      "fintech",
+      "keuangan",
+      "SEO",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -36,7 +60,13 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Startup B2B SaaS sering diabaikan strategi GEO karena fokus ke SEO/ads. Bahas kenapa buyer B2B makin sering riset lewat AI dan cara startup SaaS membangun visibilitas AI.",
-    "keywords": ["GEO", "B2B", "SaaS", "startup", "AI"],
+    "keywords": [
+      "GEO",
+      "B2B",
+      "SaaS",
+      "startup",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -44,7 +74,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Wisatawan makin sering tanya itinerary dan rekomendasi ke AI. Bahas strategi GEO untuk hotel, agen travel, dan destinasi wisata lokal.",
-    "keywords": ["GEO", "travel", "pariwisata", "AI search"],
+    "keywords": [
+      "GEO",
+      "travel",
+      "pariwisata",
+      "AI search"
+    ],
     "used": false
   },
   {
@@ -52,7 +87,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Fokus khusus kendaraan listrik (EV) di Indonesia — bagaimana brand EV dan dealer bisa direkomendasikan AI saat orang bertanya soal mobil/motor listrik.",
-    "keywords": ["GEO", "electric vehicle", "otomotif", "AI"],
+    "keywords": [
+      "GEO",
+      "electric vehicle",
+      "otomotif",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -60,7 +100,11 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "GEO bukan cuma untuk brand perusahaan — profesional (konsultan, dokter, pengacara, kreator) juga bisa dioptimasi agar direkomendasikan AI saat orang cari ahli di bidang tertentu.",
-    "keywords": ["GEO", "personal branding", "AI search"],
+    "keywords": [
+      "GEO",
+      "personal branding",
+      "AI search"
+    ],
     "used": false
   },
   {
@@ -68,7 +112,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Firma hukum dan konsultan bisnis bersaing untuk disebut AI saat calon klien bertanya rekomendasi jasa profesional. Bahas pentingnya konten otoritatif dan studi kasus.",
-    "keywords": ["GEO", "jasa hukum", "konsultan", "AI"],
+    "keywords": [
+      "GEO",
+      "jasa hukum",
+      "konsultan",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -76,7 +125,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Bisnis logistik dan ekspedisi lokal bisa kalah bersaing dengan pemain besar di rekomendasi AI. Bahas cara UMKM logistik membangun visibilitas GEO.",
-    "keywords": ["GEO", "logistik", "ekspedisi", "AI"],
+    "keywords": [
+      "GEO",
+      "logistik",
+      "ekspedisi",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -84,7 +138,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Panduan teknis mengoptimalkan Google Business Profile (dulu Google My Business) sebagai salah satu sumber data yang dipakai AI untuk merekomendasikan bisnis lokal.",
-    "keywords": ["GEO", "Google Business Profile", "SEO lokal", "AI"],
+    "keywords": [
+      "GEO",
+      "Google Business Profile",
+      "SEO lokal",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -92,7 +151,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Panduan praktis menulis section FAQ yang mudah dibaca dan dikutip oleh mesin AI, lengkap dengan contoh format yang baik dan buruk.",
-    "keywords": ["GEO", "FAQ", "schema markup", "AI"],
+    "keywords": [
+      "GEO",
+      "FAQ",
+      "schema markup",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -100,7 +164,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Jelaskan istilah AEO (Answer Engine Optimization) yang sering disamakan dengan GEO, apa perbedaan dan persamaannya, dan mana istilah yang lebih relevan untuk brand Indonesia.",
-    "keywords": ["GEO", "AEO", "SEO", "AI"],
+    "keywords": [
+      "GEO",
+      "AEO",
+      "SEO",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -108,7 +177,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Checklist praktis 10 poin yang bisa dipakai brand untuk mengaudit visibilitas AI mereka sendiri secara manual sebelum pakai tools seperti Fratello.",
-    "keywords": ["GEO", "audit", "checklist", "AI"],
+    "keywords": [
+      "GEO",
+      "audit",
+      "checklist",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -116,7 +190,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Tutorial non-teknis untuk pemilik bisnis kecil membuat FAQ schema markup tanpa perlu developer, pakai tools gratis.",
-    "keywords": ["GEO", "schema markup", "SEO", "AI"],
+    "keywords": [
+      "GEO",
+      "schema markup",
+      "SEO",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -124,7 +203,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Media dan publisher berita punya kepentingan berbeda di GEO — bagaimana artikel berita bisa jadi sumber yang dikutip AI, dan risiko traffic zero-click.",
-    "keywords": ["GEO", "media", "publisher", "AI crawler"],
+    "keywords": [
+      "GEO",
+      "media",
+      "publisher",
+      "AI crawler"
+    ],
     "used": false
   },
   {
@@ -132,7 +216,11 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Panduan cara brand riset dan menyusun daftar pertanyaan (prompt) yang relevan untuk dipantau di GEO, mirip fitur riset prompt di Fratello.",
-    "keywords": ["GEO", "riset prompt", "AI search"],
+    "keywords": [
+      "GEO",
+      "riset prompt",
+      "AI search"
+    ],
     "used": false
   },
   {
@@ -140,7 +228,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Brand yang menyasar pasar internasional perlu strategi GEO multibahasa. Bahas tantangan konten bahasa Indonesia vs Inggris di mata AI.",
-    "keywords": ["GEO", "multibahasa", "brand global", "AI"],
+    "keywords": [
+      "GEO",
+      "multibahasa",
+      "brand global",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -148,7 +241,12 @@
     "category": "Riset",
     "categoryEn": "Research",
     "angle": "Bahas tren riset/survei terbaru soal berapa persen konsumen Indonesia yang bertanya ke AI sebelum memutuskan pembelian, dan implikasinya untuk brand.",
-    "keywords": ["GEO", "riset", "konsumen Indonesia", "AI"],
+    "keywords": [
+      "GEO",
+      "riset",
+      "konsumen Indonesia",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -156,7 +254,12 @@
     "category": "Riset",
     "categoryEn": "Research",
     "angle": "Bahas konsep E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) dan bagaimana sinyal ini kemungkinan memengaruhi keputusan AI mengutip sebuah sumber.",
-    "keywords": ["GEO", "E-E-A-T", "SEO", "AI"],
+    "keywords": [
+      "GEO",
+      "E-E-A-T",
+      "SEO",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -164,7 +267,12 @@
     "category": "Riset",
     "categoryEn": "Research",
     "angle": "Bahas berapa lama konten baru butuh waktu untuk mulai muncul/dikutip di jawaban AI dibanding waktu index Google biasa.",
-    "keywords": ["GEO", "indexing", "AI crawler", "SEO"],
+    "keywords": [
+      "GEO",
+      "indexing",
+      "AI crawler",
+      "SEO"
+    ],
     "used": false
   },
   {
@@ -172,7 +280,12 @@
     "category": "Studi Kasus",
     "categoryEn": "Case Study",
     "angle": "Studi kasus fiktif namun realistis: institusi pendidikan yang menaikkan mention rate di AI search setelah menerapkan strategi GEO terstruktur.",
-    "keywords": ["GEO", "studi kasus", "pendidikan", "AI"],
+    "keywords": [
+      "GEO",
+      "studi kasus",
+      "pendidikan",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -180,7 +293,12 @@
     "category": "Studi Kasus",
     "categoryEn": "Case Study",
     "angle": "Studi kasus klinik kecantikan yang meningkatkan GEO score dan mendapat lebih banyak booking setelah direkomendasikan AI.",
-    "keywords": ["GEO", "klinik kecantikan", "studi kasus", "AI"],
+    "keywords": [
+      "GEO",
+      "klinik kecantikan",
+      "studi kasus",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -188,7 +306,12 @@
     "category": "Studi Kasus",
     "categoryEn": "Case Study",
     "angle": "Studi kasus startup fintech yang membangun kredibilitas konten sehingga lebih sering disebut AI dibanding kompetitor.",
-    "keywords": ["GEO", "fintech", "studi kasus", "AI"],
+    "keywords": [
+      "GEO",
+      "fintech",
+      "studi kasus",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -196,7 +319,12 @@
     "category": "Studi Kasus",
     "categoryEn": "Case Study",
     "angle": "Studi kasus hotel/penginapan lokal yang mulai muncul di rekomendasi AI setelah memperbaiki konten dan ulasan online.",
-    "keywords": ["GEO", "hotel", "studi kasus", "AI"],
+    "keywords": [
+      "GEO",
+      "hotel",
+      "studi kasus",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -204,7 +332,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Bahas kenapa SEO dan GEO bukan dua strategi terpisah, melainkan harus diintegrasikan — dengan contoh workflow tim marketing yang menggabungkan keduanya.",
-    "keywords": ["GEO", "SEO", "strategi hybrid", "AI"],
+    "keywords": [
+      "GEO",
+      "SEO",
+      "strategi hybrid",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -212,7 +345,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Daftar kesalahan umum tim marketing saat mulai menerapkan GEO — beda dari '5 kesalahan brand' yang sudah ada, fokus ke kesalahan level strategi/tim, bukan brand.",
-    "keywords": ["GEO", "marketing", "kesalahan", "AI"],
+    "keywords": [
+      "GEO",
+      "marketing",
+      "kesalahan",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -220,7 +358,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Penjelasan teknis ringan (non-developer) tentang bagaimana crawler AI seperti GPTBot/ClaudeBot membaca dan memproses halaman website.",
-    "keywords": ["GEO", "AI crawler", "website", "SEO teknis"],
+    "keywords": [
+      "GEO",
+      "AI crawler",
+      "website",
+      "SEO teknis"
+    ],
     "used": false
   },
   {
@@ -228,7 +371,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Bahas hubungan antara performa/kecepatan website dengan kemudahan AI crawler mengakses dan memproses konten.",
-    "keywords": ["GEO", "kecepatan website", "AI crawler", "SEO"],
+    "keywords": [
+      "GEO",
+      "kecepatan website",
+      "AI crawler",
+      "SEO"
+    ],
     "used": false
   },
   {
@@ -236,7 +384,11 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Diskusi apakah AI lebih suka mengutip konten evergreen yang stabil atau konten trending yang baru, dan implikasinya untuk kalender konten brand.",
-    "keywords": ["GEO", "konten evergreen", "AI search"],
+    "keywords": [
+      "GEO",
+      "konten evergreen",
+      "AI search"
+    ],
     "used": false
   },
   {
@@ -244,7 +396,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Panduan strategi jangka panjang membangun otoritas brand (backlink, mention media, konsistensi NAP) agar makin dipercaya AI.",
-    "keywords": ["GEO", "otoritas brand", "backlink", "AI"],
+    "keywords": [
+      "GEO",
+      "otoritas brand",
+      "backlink",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -252,7 +409,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Fokus spesifik ke bisnis frozen food/kuliner online (beda dari studi kasus kuliner yang sudah ada) — bagaimana muncul saat orang tanya rekomendasi makanan beku ke AI.",
-    "keywords": ["GEO", "frozen food", "kuliner", "AI"],
+    "keywords": [
+      "GEO",
+      "frozen food",
+      "kuliner",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -260,7 +422,11 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Tantangan GEO untuk industri asuransi yang penuh regulasi dan istilah teknis — cara membuat konten yang tetap dipercaya AI dan calon nasabah.",
-    "keywords": ["GEO", "asuransi", "AI search"],
+    "keywords": [
+      "GEO",
+      "asuransi",
+      "AI search"
+    ],
     "used": false
   },
   {
@@ -268,7 +434,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "GEO untuk skala lebih kecil: koperasi dan UMKM di desa/daerah yang mulai jualan online tapi belum punya kehadiran digital kuat.",
-    "keywords": ["GEO", "koperasi", "UMKM", "AI"],
+    "keywords": [
+      "GEO",
+      "koperasi",
+      "UMKM",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -276,7 +447,12 @@
     "category": "Riset",
     "categoryEn": "Research",
     "angle": "Bahas data/tren terbaru soal penurunan traffic organik akibat AI Overview dan zero-click search, plus apa yang bisa dilakukan brand.",
-    "keywords": ["GEO", "traffic organik", "AI Overview", "SEO"],
+    "keywords": [
+      "GEO",
+      "traffic organik",
+      "AI Overview",
+      "SEO"
+    ],
     "used": false
   },
   {
@@ -284,7 +460,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Panduan praktis format dan gaya penulisan artikel yang lebih mudah dikutip oleh ChatGPT dan mesin AI lain — struktur, panjang, dan gaya bahasa.",
-    "keywords": ["GEO", "ChatGPT", "penulisan konten", "AI"],
+    "keywords": [
+      "GEO",
+      "ChatGPT",
+      "penulisan konten",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -292,7 +473,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Strategi GEO untuk agency kreatif, desain, dan production house yang bersaing mendapat klien lewat rekomendasi AI.",
-    "keywords": ["GEO", "agency kreatif", "industri kreatif", "AI"],
+    "keywords": [
+      "GEO",
+      "agency kreatif",
+      "industri kreatif",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -300,7 +486,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Fokus khusus industri perhotelan skala lebih luas (bukan cuma satu hotel) — jaringan hotel, guesthouse, dan platform pemesanan akomodasi lokal.",
-    "keywords": ["GEO", "perhotelan", "akomodasi", "AI"],
+    "keywords": [
+      "GEO",
+      "perhotelan",
+      "akomodasi",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -308,7 +499,11 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Layanan konseling dan kesehatan mental makin sering dicari lewat AI. Bahas pentingnya konten yang sensitif namun tetap otoritatif untuk sektor ini.",
-    "keywords": ["GEO", "kesehatan mental", "AI search"],
+    "keywords": [
+      "GEO",
+      "kesehatan mental",
+      "AI search"
+    ],
     "used": false
   },
   {
@@ -316,7 +511,12 @@
     "category": "Panduan",
     "categoryEn": "Guide",
     "angle": "Perbandingan umum jenis-jenis tools monitoring visibilitas brand di AI search (kategori, bukan menjatuhkan kompetitor spesifik), dan di mana Fratello berada di lanskap ini.",
-    "keywords": ["GEO", "tools monitoring", "AI search", "Fratello"],
+    "keywords": [
+      "GEO",
+      "tools monitoring",
+      "AI search",
+      "Fratello"
+    ],
     "used": false
   },
   {
@@ -324,7 +524,12 @@
     "category": "Produk",
     "categoryEn": "Product",
     "angle": "Artikel produk yang menjelaskan cara kerja fitur monitoring GEO di Fratello — mengirim prompt ke beberapa mesin AI dan melaporkan mention rate.",
-    "keywords": ["GEO", "Fratello", "monitoring", "AI"],
+    "keywords": [
+      "GEO",
+      "Fratello",
+      "monitoring",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -332,7 +537,12 @@
     "category": "Strategi",
     "categoryEn": "Strategy",
     "angle": "Gym, studio yoga, dan brand alat olahraga bersaing untuk direkomendasikan AI saat orang cari tempat olahraga atau produk kebugaran.",
-    "keywords": ["GEO", "olahraga", "kebugaran", "AI"],
+    "keywords": [
+      "GEO",
+      "olahraga",
+      "kebugaran",
+      "AI"
+    ],
     "used": false
   },
   {
@@ -340,7 +550,12 @@
     "category": "Riset",
     "categoryEn": "Research",
     "angle": "Beda dari artikel Google Maps yang sudah ada — fokus ke ulasan di marketplace (Shopee, Tokopedia, Lazada) sebagai sinyal yang mungkin dipakai AI.",
-    "keywords": ["GEO", "marketplace", "ulasan", "AI"],
+    "keywords": [
+      "GEO",
+      "marketplace",
+      "ulasan",
+      "AI"
+    ],
     "used": false
   }
 ]

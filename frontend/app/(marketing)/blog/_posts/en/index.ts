@@ -1,5 +1,6 @@
 export type { Section, Post } from '../types'
 import type { Post } from '../types'
+import { post as geoIndustriPendidikanKampusBimbel2026 } from './geo-industri-pendidikan-kampus-bimbel-2026'
 
 import { post as chatgptWrappedViralBrandDiBalikRekomendasiAi } from './chatgpt-wrapped-viral-brand-di-balik-rekomendasi-ai'
 import { post as anthropicClaudeSonnet5Juli2026DampakBrand } from './anthropic-claude-sonnet-5-juli-2026-dampak-brand'
@@ -39,6 +40,7 @@ import { post as caraKerjaAuditGeo } from './cara-kerja-audit-geo'
 
 // Sorted newest first.
 export const posts: Post[] = [
+  geoIndustriPendidikanKampusBimbel2026,
   chatgptWrappedViralBrandDiBalikRekomendasiAi,
   anthropicClaudeSonnet5Juli2026DampakBrand,
   aiOverviewZeroClick68PersenPencarianGoogle2026,
