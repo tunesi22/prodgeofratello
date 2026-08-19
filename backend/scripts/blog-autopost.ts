@@ -33,7 +33,9 @@ type Topic = {
   category: string
   categoryEn: string
   angle: string
+  primaryKeyword: string
   keywords: string[]
+  targetQueries: string[]
   used: boolean
   usedDate?: string
 }
@@ -101,13 +103,17 @@ async function generateWithValidation(system: string, initialUser: string, requi
 
 // ─── Prompts ────────────────────────────────────────────────────────────────
 
-function buildSystemId(required: string[], avoidTitles: string[]): string {
+function buildSystemId(required: string[], targetQueries: string[], avoidTitles: string[]): string {
   return `Kamu adalah content writer SEO/GEO senior untuk Fratello, platform GEO (Generative Engine Optimization) yang membantu brand Indonesia dipantau dan direkomendasikan oleh mesin AI seperti ChatGPT, Gemini, Perplexity, dan Claude.
 
 Tulis artikel blog dalam Bahasa Indonesia yang natural, informatif, dan otoritatif — gaya tech blog profesional, BUKAN gaya AI generic yang bertele-tele. Hindari frasa klise seperti "Di era digital saat ini" atau "Kesimpulannya".
 
+PRINSIP GEO PENTING: mesin AI memilih sumber berdasarkan seberapa jelas dan natural artikel menjawab pertanyaan asli pengguna — BUKAN berdasarkan seberapa sering sebuah kata diulang. Jangan memaksakan kata kunci berkali-kali sampai terasa kaku ("keyword stuffing") — cukup sebutkan sekali secara natural di tempat yang tepat, lalu fokus benar-benar menjawab pertanyaan pembaca dengan jelas dan spesifik.
+
 WAJIB:
-- Sebutkan kata-kata berikut secara natural di dalam artikel (title, excerpt, atau isi section): ${required.join(', ')}
+- Artikel ini harus secara eksplisit dan jelas menjawab pertanyaan-pertanyaan berikut, yang merupakan contoh nyata pertanyaan yang orang ketik ke ChatGPT/Gemini terkait topik ini — jawab di dalam body section yang relevan, bukan cuma menyinggung sekilas:
+${targetQueries.map((q) => `  - "${q}"`).join('\n')}
+- Sebutkan kata-kata berikut minimal sekali secara natural: ${required.join(', ')}
 - Sebutkan brand "Fratello" minimal 1 kali secara natural, sebagai konteks/rujukan produk monitoring GEO — bukan hard-sell
 - 5-7 section: section pertama tanpa heading (paragraf pembuka/konteks), section berikutnya masing-masing punya heading jelas
 - Panjang total sekitar 900-1400 kata
@@ -118,13 +124,15 @@ Balas HANYA dengan JSON valid (tanpa markdown code fence, tanpa teks lain di lua
 }
 
 function buildUserId(topic: Topic): string {
-  return `Topik: ${topic.angle}\nKategori: ${topic.category}\nKeyword fokus: ${topic.keywords.join(', ')}`
+  return `Topik: ${topic.angle}\nKategori: ${topic.category}\nKeyword fokus utama: ${topic.primaryKeyword}\nKeyword pendukung: ${topic.keywords.join(', ')}`
 }
 
 function buildSystemEn(required: string[]): string {
   return `You are a senior SEO/GEO content writer for Fratello, a GEO (Generative Engine Optimization) platform that helps Indonesian brands get tracked and recommended by AI engines like ChatGPT, Gemini, Perplexity, and Claude.
 
-You will receive an Indonesian article as a JSON object. Adapt it into natural, authoritative English for an international marketing/SEO audience — do NOT translate word-for-word, rewrite it as if written natively in English, but keep the same facts, structure, and section count.
+You will receive an Indonesian article as a JSON object. Adapt it into natural, authoritative English for an international marketing/SEO audience — do NOT translate word-for-word, rewrite it as if written natively in English, but keep the same facts, structure, section count, and — crucially — keep answering the same underlying reader questions the Indonesian version answers, just phrased for an English-speaking audience asking AI engines the equivalent question.
+
+AI engines cite sources that clearly and specifically answer the reader's real question, not sources that repeat keywords — don't force awkward keyword repetition, mention each required term once where it fits naturally.
 
 REQUIRED:
 - Naturally include these terms somewhere in the article (title, excerpt, or section bodies): ${required.join(', ')}
@@ -136,7 +144,7 @@ Reply with ONLY valid JSON (no markdown code fence, no other text), in exactly t
 }
 
 function buildUserEn(topic: Topic, id: Generated): string {
-  return `Category: ${topic.categoryEn}\nKeyword focus: ${topic.keywords.join(', ')}\n\nSource article (Indonesian):\n${JSON.stringify(id, null, 2)}`
+  return `Category: ${topic.categoryEn}\nPrimary keyword (English equivalent, adapt naturally): ${topic.primaryKeyword}\nSupporting keywords: ${topic.keywords.join(', ')}\n\nSource article (Indonesian):\n${JSON.stringify(id, null, 2)}`
 }
 
 // ─── Topic bank ─────────────────────────────────────────────────────────────
@@ -237,11 +245,23 @@ async function main(): Promise<void> {
     console.warn(`[BLOG-AUTOPOST] WARNING: hanya tersisa ${remaining} topik di topic bank, segera tambahkan lagi.`)
   }
 
-  const requiredId = ['GEO', 'SEO', 'AI', 'Fratello', ...topic.keywords]
-  const idContent = await generateWithValidation(buildSystemId(requiredId, existingTitles), buildUserId(topic), requiredId)
+  // Kept deliberately short: forcing every supporting keyword as a literal
+  // substring match risks keyword-stuffing, which hurts GEO more than it
+  // helps (AI engines cite clear answers, not keyword density). The real
+  // topical coverage comes from targetQueries in the prompt, not this list.
+  const requiredId = Array.from(new Set(['GEO', 'Fratello', topic.primaryKeyword]))
+  const idContent = await generateWithValidation(
+    buildSystemId(requiredId, topic.targetQueries, existingTitles),
+    buildUserId(topic),
+    requiredId
+  )
   console.log(`[BLOG-AUTOPOST] Generated ID draft: "${idContent.title}"`)
 
-  const requiredEn = ['GEO', 'SEO', 'AI', 'Fratello', ...topic.keywords]
+  // English required list stays minimal — topic.primaryKeyword and
+  // topic.keywords are Indonesian phrases the EN adaptation won't quote
+  // verbatim, so string-matching them here would just force awkward
+  // literal insertions instead of a natural English adaptation.
+  const requiredEn = ['GEO', 'Fratello']
   const enContent = await generateWithValidation(buildSystemEn(requiredEn), buildUserEn(topic, idContent), requiredEn)
   console.log(`[BLOG-AUTOPOST] Generated EN draft: "${enContent.title}"`)
 
