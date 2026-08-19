@@ -12,7 +12,13 @@ import dotenv from 'dotenv'
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 
-dotenv.config({ path: path.join(__dirname, '../../.env') })
+// Load into a local object rather than process.env — this script later
+// shells out to deploy.sh, which inherits process.env. Leaking NODE_ENV=
+// production from .env into that child process makes its `npm ci` skip
+// devDependencies (typescript, tsx), breaking the backend build.
+const dotenvVars: Record<string, string> = {}
+dotenv.config({ path: path.join(__dirname, '../../.env'), processEnv: dotenvVars })
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || dotenvVars.ANTHROPIC_API_KEY
 
 const REPO_ROOT = path.resolve(__dirname, '../..')
 const ID_DIR = path.join(REPO_ROOT, 'frontend/app/(marketing)/blog/_posts/id')
@@ -45,7 +51,7 @@ type Generated = z.infer<typeof GeneratedSchema>
 
 // ─── Anthropic ──────────────────────────────────────────────────────────────
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY })
 
 async function callClaude(system: string, user: string): Promise<string> {
   const res = await client.messages.create({
@@ -217,7 +223,7 @@ function pushStaleCommitsIfAny(): void {
 
 async function main(): Promise<void> {
   console.log(`[BLOG-AUTOPOST] Start ${new Date().toISOString()}`)
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error('[BLOG-AUTOPOST] ANTHROPIC_API_KEY is not set')
+  if (!ANTHROPIC_API_KEY) throw new Error('[BLOG-AUTOPOST] ANTHROPIC_API_KEY is not set')
 
   pushStaleCommitsIfAny()
 
